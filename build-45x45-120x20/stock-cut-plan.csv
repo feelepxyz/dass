@@ -1,17 +1,17 @@
 material,stock,stock_length_mm,cuts,pieces,piece_lengths_mm,kerf_mm,used_mm,waste_mm
-beam_45x45,1,2400,2,door_brace + door_left,1288.9 + 1050.0,2,2340.9,59.1
+beam_45x45,1,2400,2,door_brace + floor_diagonal,1288.9 + 1071.6,2,2362.4,37.6
 beam_45x45,2,2400,2,left_brace + front_post_left,1224.4 + 1150.0,2,2376.4,23.6
 beam_45x45,3,2400,2,right_brace + back_post_left,1224.4 + 1150.0,2,2376.4,23.6
 beam_45x45,4,2400,2,front_post_right + back_post_right,1150.0 + 1150.0,2,2302,98
-beam_45x45,5,2400,2,door_right + roof_front,1050.0 + 950.0,2,2002,398
-beam_45x45,6,2400,2,roof_back + door_bottom,950.0 + 950.0,2,1902,498
-beam_45x45,7,2400,2,door_top + front_bottom,950.0 + 860.0,2,1812.0,588.0
-beam_45x45,8,2400,2,back_bottom + back_top,860.0 + 860.0,2,1722.0,678.0
-beam_45x45,9,2400,2,roof_middle + roof_left,860.0 + 842.3,2,1704.3,695.7
-beam_45x45,10,2400,2,roof_right + floor_back_support,842.3 + 820.0,2,1664.3,735.7
-beam_45x45,11,2400,2,seat_rail_1 + seat_rail_2,820.0 + 820.0,2,1642.0,758.0
-beam_45x45,12,2400,3,seat_lower_rail + left_bottom + left_top,820.0 + 760.0 + 760.0,4,2344.0,56.0
-beam_45x45,13,2400,2,right_bottom + right_top,760.0 + 760.0,2,1522.0,878.0
+beam_45x45,5,2400,2,door_left + door_right,1050.0 + 1050.0,2,2102,298
+beam_45x45,6,2400,2,roof_front + roof_back,950.0 + 950.0,2,1902,498
+beam_45x45,7,2400,2,door_bottom + door_top,950.0 + 950.0,2,1902,498
+beam_45x45,8,2400,2,front_bottom + back_bottom,860.0 + 860.0,2,1722.0,678.0
+beam_45x45,9,2400,2,back_top + roof_middle,860.0 + 860.0,2,1722.0,678.0
+beam_45x45,10,2400,2,roof_left + roof_right,842.3 + 842.3,2,1686.7,713.3
+beam_45x45,11,2400,2,floor_back_support + seat_rail_1,820.0 + 820.0,2,1642.0,758.0
+beam_45x45,12,2400,3,seat_rail_2 + left_bottom + left_top,820.0 + 760.0 + 760.0,4,2344.0,56.0
+beam_45x45,13,2400,3,seat_lower_rail + right_bottom + right_top,820.0 + 760.0 + 760.0,4,2344.0,56.0
 cladding_120x20,1,2400,2,door_1 + door_2,1175.0 + 1175.0,2,2352,48
 cladding_120x20,2,2400,2,door_3 + door_4,1175.0 + 1175.0,2,2352,48
 cladding_120x20,3,2400,2,door_5 + door_6,1175.0 + 1175.0,2,2352,48

@@ -11,6 +11,7 @@ V2,2,1050,45.0,45.0,wood
 back cladding,1,860.0,1050,20.0,wood
 cladding,1,1175,950,20.0,wood
 floor,1,785.0,820.0,20.0,dark wood
+floor diagonal,1,1071.6,45.0,45.0,wood
 floor support,1,820.0,45.0,45.0,wood
 front opening rail,1,860.0,45.0,45.0,wood
 hinge leaf,2,150,45.0,5,metal

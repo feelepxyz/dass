@@ -314,6 +314,22 @@ def build(
         box_at(interior_x, back_wall_front - d.frame, d.leg_extension,
                interior_width, d.frame, d.frame),
         (interior_width, d.frame, d.frame))
+    floor_brace_start = (
+        interior_x + d.frame / 2,
+        d.frame / 2,
+        d.leg_extension + d.frame / 2,
+    )
+    floor_brace_end = (
+        interior_x + interior_width - d.frame / 2,
+        back_wall_front - d.frame / 2,
+        d.leg_extension + d.frame / 2,
+    )
+    add(
+        "floor_diagonal",
+        "floor diagonal",
+        beam_between(floor_brace_start, floor_brace_end, d.frame),
+        (math.dist(floor_brace_start, floor_brace_end), d.frame, d.frame),
+    )
 
     seat_width = interior_width
     seat_x = interior_x

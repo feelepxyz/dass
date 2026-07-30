@@ -16,6 +16,7 @@ roof_left,842.3,45.0,45.0
 roof_right,842.3,45.0,45.0
 roof_middle,860.0,45.0,45.0
 floor_back_support,820.0,45.0,45.0
+floor_diagonal,1071.6,45.0,45.0
 seat_rail_1,820.0,45.0,45.0
 seat_rail_2,820.0,45.0,45.0
 seat_lower_rail,820.0,45.0,45.0

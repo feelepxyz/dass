@@ -67,6 +67,16 @@ class DassModelTest(unittest.TestCase):
              floor_support.ymin, floor_support.ymax, floor_support.zmax),
             (75, 875, 725, 775, floor.zmin),
         )
+        floor_diagonal = by_name["floor_diagonal"].solid
+        self.assertEqual(floor_diagonal.BoundingBox().zmax, floor.zmin)
+        self.assertGreater(
+            floor_diagonal.intersect(by_name["front_bottom"].solid).Volume(),
+            0,
+        )
+        self.assertGreater(
+            floor_diagonal.intersect(by_name["floor_back_support"].solid).Volume(),
+            0,
+        )
 
         seat_front = by_name["seat_front"].solid.BoundingBox()
         seat_top = by_name["seat_top"].solid.BoundingBox()

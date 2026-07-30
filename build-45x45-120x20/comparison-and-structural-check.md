@@ -18,16 +18,17 @@ Buying one spare cladding board and one spare beam is prudent.
 
 ## Cut-list comparison
 
-Both versions contain 27 beam pieces and 51 cladding pieces. The new frame uses
-25.6823 linear metres of 45×45 timber, versus 25.4802 m of 50×50 plus 0.8500 m
+The baseline contains 27 beam pieces; the new frame contains 28 after adding
+the floor diagonal. Both contain 51 cladding pieces. The new frame uses
+26.7539 linear metres of 45×45 timber, versus 25.4802 m of 50×50 plus 0.8500 m
 of 65×25 in the baseline. The new cladding schedule totals 45.2624 linear
 metres, versus 45.1524 m.
 
 | Measure | Baseline | 45×45 / 120×20 | Change |
 |---|---:|---:|---:|
-| Beam volume | 0.06296 m³ | 0.05201 m³ | −17.4% |
+| Beam volume | 0.06296 m³ | 0.05418 m³ | −13.9% |
 | Cladding volume | 0.12848 m³ | 0.10413 m³ | −19.0% |
-| Beam-stock waste | 4.142 m (50×50) + 1.550 m (65×25) | 5.490 m (45×45) | −0.202 m total |
+| Beam-stock waste | 4.142 m (50×50) + 1.550 m (65×25) | 4.416 m (45×45) | −1.276 m total |
 | Cladding-stock waste | 5.188 m | 5.078 m | −0.110 m |
 
 Lengths change because the outside envelope stays 950×850 mm while thinner
@@ -45,6 +46,7 @@ members increase the clear spans:
 | V1 posts (4) | 1150 | 1150 |
 | V2 door posts (2) | 1050 | 1050 |
 | Roof connector (1) | 850×65×25 | 860×45×45 |
+| Floor diagonal (1) | — | 1071.6×45×45 |
 
 All dimensions are millimetres. The detailed schedules and per-stock nesting
 are in `beam-pieces.csv`, `cladding-pieces.csv`, and `stock-cut-plan.csv`.
@@ -81,7 +83,19 @@ durability, and code compliance cannot be proven from the CAD.
 
 ### Weak spots / unresolved items
 
-1. **20 mm floor boards are the clearest local weakness.** For a deliberately
+1. **The diagonal improves the floor centre but not both edge regions.** The
+   new 1071.6 mm 45×45 member runs from the front-left support to the
+   rear-right support. Near the floor centre it reduces the board span to
+   roughly 370 mm: a deliberately harsh 1.5 kN point load on one 120×20 board
+   screens at 17.3 N/mm² bending stress and 1.8 mm elastic deflection, versus
+   34.7 N/mm² and 14.4 mm without the diagonal. Near the two opposite corners,
+   however, the diagonal approaches an existing end support and leaves a span
+   close to the original 740 mm. It therefore does not provide uniform
+   point-load capacity across the whole floor. A transverse intermediate joist
+   is still the robust solution if a person may stand anywhere on the floor.
+   The diagonal must also have positive end bearing or engineered hangers.
+
+   For reference, using the
    harsh 1.5 kN point load carried by one 120 mm board over its conservative
    full 785 mm blank length
    span, simple-beam screening gives 36.8 N/mm² bending stress and 17.2 mm
@@ -90,9 +104,7 @@ durability, and code compliance cannot be proven from the CAD.
    tongue-and-groove boards share the load equally, the
    result drops to 12.3 N/mm² and 5.7 mm, but that load sharing should not be
    assumed without a diaphragm/detail that guarantees it. The baseline 25 mm
-   board gives 23.3 N/mm² and 8.5 mm for one board. Add an intermediate floor
-   joist/support or verify the actual floor-board span and grade before using
-   20 mm boards.
+   board gives 23.3 N/mm² and 8.5 mm for one board.
 2. **Seat top needs connection/load-sharing confirmation.** Its 500 mm span is
    much shorter (about 435 mm support-centre spacing) and is likely serviceable,
    but a concentrated occupant load can still land on one board. Ensure the
@@ -129,9 +141,10 @@ durability, and code compliance cannot be proven from the CAD.
 The 45×45 frame-member elastic screens are reasonable for a small, lightly loaded
 toilet. The construction is **not yet demonstrated sound as drawn** because the
 model omits the connection and anchorage design, the interior rails lack a
-clear direct-bearing load path, and the 20 mm floor has a credible
-concentrated-load weakness. The minimum practical resolution is a floor
-intermediate support, direct bearing/hangers for interior rails, four positive
+clear direct-bearing load path, and a single diagonal does not support the
+20 mm floor uniformly. The minimum practical resolution is a transverse floor
+support (or a verified restricted load area), direct bearing/hangers for
+interior rails, four positive
 ground/base anchors, rated roof hold-downs, and explicit structural fastening
 for braces/cladding. Site-specific snow/wind loads and Eurocode 5 modification,
 moisture, connection, bearing, and combined-action checks remain outside this

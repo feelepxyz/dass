@@ -99,6 +99,38 @@ def pack_stock(
             stocks[min(candidates)[1]].append(piece)
         else:
             stocks.append([piece])
+    # Exact branch-and-bound is cheap for the beam schedules and avoids an
+    # unnecessary stock length when greedy packing strands a short member.
+    if len(pieces) <= 32:
+        ordered = sorted(pieces, key=lambda item: item.length, reverse=True)
+        transformed = [piece.length + kerf for piece in ordered]
+        capacity = stock_length + kerf
+        lower_bound = math.ceil(sum(transformed) / capacity)
+        for target in range(len(stocks) - 1, lower_bound - 1, -1):
+            bins: list[list[CutPiece]] = [[] for _ in range(target)]
+            remaining = [capacity] * target
+
+            def place(index: int) -> bool:
+                if index == len(ordered):
+                    return True
+                seen: set[float] = set()
+                for bin_index, space in enumerate(remaining):
+                    if space in seen or transformed[index] > space + 1e-9:
+                        continue
+                    seen.add(space)
+                    bins[bin_index].append(ordered[index])
+                    remaining[bin_index] -= transformed[index]
+                    if place(index + 1):
+                        return True
+                    remaining[bin_index] += transformed[index]
+                    bins[bin_index].pop()
+                    if space == capacity:
+                        break
+                return False
+
+            if place(0):
+                return [stock for stock in bins if stock]
+            break
     return stocks
 
 

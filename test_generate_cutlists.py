@@ -60,6 +60,15 @@ class CutListTest(unittest.TestCase):
         self.assertTrue(rows)
         self.assertTrue(all(float(row["used_mm"]) <= 2400 for row in rows))
 
+    def test_floor_diagonal_variant_fits_thirteen_beam_lengths(self):
+        design = Design(
+            frame=45,
+            cladding=20,
+            roof_connector_width=45,
+            roof_connector_thickness=45,
+        )
+        self.assertEqual(len(pack_stock(beam_pieces(design), 2400, 2)), 13)
+
     def test_45x45_120x20_variant_cut_pieces_use_requested_profiles(self):
         design = Design(
             frame=45,
@@ -70,6 +79,10 @@ class CutListTest(unittest.TestCase):
         self.assertEqual(
             {(piece.width, piece.thickness) for piece in beam_pieces(design)},
             {(45, 45)},
+        )
+        self.assertEqual(
+            sum(piece.name == "floor_diagonal" for piece in beam_pieces(design)),
+            1,
         )
         cladding = cladding_pieces(design)
         self.assertTrue(all(piece.thickness == 20 for piece in cladding))
