@@ -1,0 +1,29 @@
+part,quantity,length_mm,width_mm,thickness_mm,material
+D1,2,1223.6,45.0,45.0,wood
+D2,2,1288.1,45.0,45.0,wood
+HK1,4,760.0,45.0,45.0,wood
+HK2,2,842.3,45.0,45.0,wood
+HL1,3,814.0,45.0,45.0,wood
+HL1,2,860.0,45.0,45.0,wood
+HL2,2,860.0,45.0,45.0,wood
+HL2,2,950,45.0,45.0,wood
+V1,4,1150,45.0,45.0,wood
+V2,2,1050,45.0,45.0,wood
+back cladding,1,814.0,1050,23.0,wood
+cladding,1,1175,950,23.0,wood
+floor,1,782.0,814.0,23.0,dark wood
+floor support,2,692.0,45.0,45.0,wood
+floor support,1,814.0,45.0,45.0,wood
+front opening rail,1,860.0,45.0,45.0,wood
+hinge leaf,2,150,45.0,5,metal
+hinge leaf,2,150,50.0,5,metal
+hinge pin,2,150,12,12,metal
+metal roof,1,1085,1050,1,metal roof
+roof connector,1,860.0,45.0,45.0,wood
+roof hinge leaf,1,860.0,45.0,5,metal
+roof hinge leaf,1,860.0,53.0,5,metal
+roof hinge pin,1,860.0,16,16,metal
+seat side,1,397.0,814.0,23.0,wood
+seat support,2,387.0,45,45,wood
+seat top,1,500,814.0,23.0,wood
+side cladding,2,805.0,1175,23.0,wood

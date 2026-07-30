@@ -1,8 +1,31 @@
 import unittest
+from itertools import combinations
 
 import cadquery as cq
 
-from dass import Design, box_at, build, door_brace_endpoints
+from dass import Design, box_at, build, door_brace_endpoints, side_panel
+
+# Hinge pins are modelled as continuous barrels running through the knuckles
+# they pivot in, so they intentionally share volume with their leaves and with
+# the members they are fastened between. Nothing else in the model may overlap.
+PIN_CATEGORIES = {"hinge pin", "roof hinge pin"}
+
+
+def clashes(parts, tolerance=1.0):
+    """Return every overlapping part pair that is not hinge-pin hardware."""
+    found = []
+    for a, b in combinations(parts, 2):
+        if a.category in PIN_CATEGORIES or b.category in PIN_CATEGORIES:
+            continue
+        first, second = a.solid.BoundingBox(), b.solid.BoundingBox()
+        if (first.xmin >= second.xmax or second.xmin >= first.xmax
+                or first.ymin >= second.ymax or second.ymin >= first.ymax
+                or first.zmin >= second.zmax or second.zmin >= first.zmax):
+            continue
+        volume = a.solid.intersect(b.solid).Volume()
+        if volume > tolerance:
+            found.append((a.name, b.name, round(volume, 1)))
+    return found
 
 
 class DassModelTest(unittest.TestCase):
@@ -13,7 +36,7 @@ class DassModelTest(unittest.TestCase):
         panels = {(p.category, round(p.length), round(p.width)): 1 for p in parts}
         for expected in {
             ("side cladding", 800, 1175),
-            ("back cladding", 850, 1050),
+            ("back cladding", 800, 1050),
             ("cladding", 1175, 950),
             ("floor", 775, 800),
             ("seat top", 500, 800),
@@ -31,12 +54,12 @@ class DassModelTest(unittest.TestCase):
         grouped = {(p.category, round(p.length)) for p in parts}
         self.assertIn(("HL1", 950), grouped)
         self.assertIn(("HL2", 1050), grouped)
-        self.assertIn(("D2", round(((1050 - 100) ** 2 + 950**2) ** 0.5)), grouped)
+        self.assertIn(("D2", round((950**2 + 950**2 - 50**2) ** 0.5)), grouped)
 
-    def test_45x45_120x20_variant_uses_requested_profiles(self):
+    def test_45x45_120x23_variant_uses_requested_profiles_and_clearances(self):
         design = Design(
             frame=45,
-            cladding=20,
+            cladding=23,
             roof_connector_width=45,
             roof_connector_thickness=45,
         )
@@ -50,6 +73,9 @@ class DassModelTest(unittest.TestCase):
             {(part.width, part.thickness) for part in structural},
             {(45, 45)},
         )
+        self.assertEqual(design.interior_width, 814)
+        self.assertEqual(design.back_wall_front, 782)
+        self.assertEqual(design.seat_height - design.cladding, 397)
 
     def test_floor_seat_and_hinge_follow_section_datums(self):
         design = Design()
@@ -67,16 +93,17 @@ class DassModelTest(unittest.TestCase):
              floor_support.ymin, floor_support.ymax, floor_support.zmax),
             (75, 875, 725, 775, floor.zmin),
         )
-        floor_diagonal = by_name["floor_diagonal"].solid
-        self.assertEqual(floor_diagonal.BoundingBox().zmax, floor.zmin)
-        self.assertGreater(
-            floor_diagonal.intersect(by_name["front_bottom"].solid).Volume(),
-            0,
-        )
-        self.assertGreater(
-            floor_diagonal.intersect(by_name["floor_back_support"].solid).Volume(),
-            0,
-        )
+        self.assertNotIn("floor_diagonal", by_name)
+        # Side bearers run under the floor's long edges, butting the front
+        # opening rail and the back support without overlapping either.
+        for name, xmin in (("floor_left_support", 75), ("floor_right_support", 825)):
+            bearer = by_name[name].solid.BoundingBox()
+            self.assertEqual(
+                (bearer.xmin, bearer.xmax, bearer.ymin, bearer.ymax,
+                 bearer.zmin, bearer.zmax),
+                (xmin, xmin + 50, 50, 725, 100, floor.zmin),
+            )
+            self.assertEqual(by_name[name].length, 675)
 
         seat_front = by_name["seat_front"].solid.BoundingBox()
         seat_top = by_name["seat_top"].solid.BoundingBox()
@@ -92,7 +119,6 @@ class DassModelTest(unittest.TestCase):
         self.assertEqual(bottom_rail.zmin - front_post.zmin, design.leg_extension)
         for name in ("left_wall", "right_wall", "back_wall"):
             self.assertEqual(by_name[name].solid.BoundingBox().zmin, design.leg_extension)
-        self.assertNotIn("back_brace", by_name)
 
         door = by_name["door_right"].solid.BoundingBox()
         door_panel = by_name["door_panel"].solid.BoundingBox()
@@ -112,17 +138,19 @@ class DassModelTest(unittest.TestCase):
         left = by_name["left_wall"].solid.BoundingBox()
         right = by_name["right_wall"].solid.BoundingBox()
         back = by_name["back_wall"].solid.BoundingBox()
-        self.assertEqual((left.ymin, left.ymax), (0, 800))
-        self.assertEqual(left.ymin, by_name["front_post_left"].solid.BoundingBox().ymin)
+        self.assertAlmostEqual(left.ymin, 0)
+        self.assertAlmostEqual(left.ymax, 800)
+        self.assertAlmostEqual(left.ymin, by_name["front_post_left"].solid.BoundingBox().ymin)
 
         for name in (
             "floor", "seat_front", "seat_top",
             "seat_rail_1", "seat_rail_2", "seat_lower_rail",
         ):
+            # Boolean cuts leave sub-nanometre noise on the cladding faces.
             box = by_name[name].solid.BoundingBox()
-            self.assertGreaterEqual(box.xmin, left.xmax)
-            self.assertLessEqual(box.xmax, right.xmin)
-            self.assertLessEqual(box.ymax, back.ymin)
+            self.assertGreaterEqual(box.xmin, left.xmax - 1e-6)
+            self.assertLessEqual(box.xmax, right.xmin + 1e-6)
+            self.assertLessEqual(box.ymax, back.ymin + 1e-6)
             self.assertAlmostEqual(by_name[name].solid.intersect(by_name["left_wall"].solid).Volume(), 0)
             self.assertAlmostEqual(by_name[name].solid.intersect(by_name["right_wall"].solid).Volume(), 0)
             self.assertAlmostEqual(by_name[name].solid.intersect(by_name["back_wall"].solid).Volume(), 0)
@@ -249,7 +277,7 @@ class DassModelTest(unittest.TestCase):
         connector = by_name["roof_middle"]
         self.assertEqual(
             (connector.length, connector.width, connector.thickness),
-            (850, 65, 25),
+            (850, 65, design.roof_connector_thickness),
         )
 
         roof_normal = max(
@@ -314,7 +342,188 @@ class DassModelTest(unittest.TestCase):
         _, parts = build(design)
         for name in ("left_brace", "right_brace"):
             part = next(part for part in parts if part.name == name)
-            self.assertAlmostEqual(part.length, (750**2 + 950**2) ** 0.5)
+            self.assertAlmostEqual(part.length, (750**2 + 950**2 - 50**2) ** 0.5)
+
+    def test_braces_take_one_angled_cut_at_each_end(self):
+        """Tilting the bar off the diagonal turns each notched end into one cut.
+
+        A parallelogram prism has exactly six faces; a corner-to-corner bar
+        clipped by both boundary planes has eight. The long-point length is
+        sqrt(diagonal^2 - size^2), which stays within a millimetre of the
+        reference corner-to-corner figure.
+        """
+        for design in (
+            Design(),
+            Design(frame=45, cladding=23,
+                   roof_connector_width=45, roof_connector_thickness=45),
+        ):
+            by_name = {part.name: part for part in build(design)[1]}
+            openings = {
+                "left_brace": (design.inner_depth, design.front_post_height
+                               - design.leg_extension - 2 * design.frame),
+                "right_brace": (design.inner_depth, design.front_post_height
+                                - design.leg_extension - 2 * design.frame),
+                "back_brace": (design.inner_width, design.back_height
+                               - design.leg_extension - 2 * design.frame),
+                "door_brace": (design.inner_width,
+                               design.door_frame_height - 2 * design.frame),
+            }
+            for name, (span, rise) in openings.items():
+                with self.subTest(frame=design.frame, brace=name):
+                    solid = by_name[name].solid
+                    self.assertEqual(len(solid.Faces()), 6)
+                    self.assertEqual(len(solid.Solids()), 1)
+                    diagonal = (span**2 + rise**2) ** 0.5
+                    self.assertAlmostEqual(
+                        by_name[name].length,
+                        (diagonal**2 - design.frame**2) ** 0.5,
+                        places=6,
+                    )
+                    self.assertLess(diagonal - by_name[name].length, 1.1)
+
+    def test_side_cladding_lifts_at_the_back_and_clears_the_roof(self):
+        design = Design()
+        by_name = {part.name: part for part in build(design)[1]}
+        panel = by_name["left_wall"].solid
+
+        self.assertEqual(design.side_back_top, design.back_height + 25)
+        self.assertEqual(design.side_fall, 100)
+        # Front edge is untouched; the back edge carries the full lift.
+        front = [v.toTuple() for v in panel.Vertices() if abs(v.toTuple()[1]) < 1e-6]
+        self.assertAlmostEqual(max(z for _, _, z in front), design.front_height)
+        self.assertEqual(panel.BoundingBox().zmax, design.front_height)
+        self.assertEqual(panel.BoundingBox().zmin, design.leg_extension)
+
+        # The lifted back rises past the closed roof frame, so it is notched
+        # there; the notch is the only thing keeping the two apart.
+        raw = side_panel(design, design.frame, False)
+        self.assertGreater(
+            raw.intersect(by_name["roof_back"].solid).Volume(), 0
+        )
+        self.assertAlmostEqual(
+            panel.intersect(by_name["roof_back"].solid).Volume(), 0
+        )
+
+    def test_seat_supports_flank_the_opening_between_the_rails(self):
+        design = Design()
+        by_name = {part.name: part for part in build(design)[1]}
+        seat_top = by_name["seat_top"].solid.BoundingBox()
+
+        hole_left = (design.width - design.seat_hole_width) / 2
+        hole_right = (design.width + design.seat_hole_width) / 2
+        for name, xmin in (
+            ("seat_support_left", hole_left - design.seat_support),
+            ("seat_support_right", hole_right),
+        ):
+            part = by_name[name]
+            box = part.solid.BoundingBox()
+            self.assertEqual(part.width, design.seat_support)
+            self.assertEqual(part.thickness, design.seat_support)
+            self.assertEqual((box.xmin, box.xmax), (xmin, xmin + design.seat_support))
+            # Flush under the seat boards, fitted between the two seat rails.
+            self.assertEqual(box.zmax, seat_top.zmin)
+            self.assertEqual(box.ymin, by_name["seat_rail_1"].solid.BoundingBox().ymax)
+            self.assertEqual(box.ymax, by_name["seat_rail_2"].solid.BoundingBox().ymin)
+
+    def test_back_brace_matches_side_brace_corners_and_d2_cut(self):
+        design = Design()
+        _, parts = build(design)
+        by_name = {part.name: part for part in parts}
+        brace = by_name["back_brace"]
+
+        # Same 850 x 950 opening as the door frame, so it is a second D2 cut.
+        self.assertEqual(brace.category, "D2")
+        self.assertAlmostEqual(brace.length, (850**2 + 950**2 - 50**2) ** 0.5)
+        self.assertAlmostEqual(
+            brace.length,
+            by_name["door_brace"].length,
+        )
+
+        box = brace.solid.BoundingBox()
+        for actual, expected in zip(
+            (box.xmin, box.xmax, box.ymin, box.ymax, box.zmin, box.zmax),
+            (design.frame, design.width - design.frame,
+             design.depth - design.frame, design.depth,
+             design.leg_extension + design.frame, design.back_height - design.frame),
+        ):
+            self.assertAlmostEqual(actual, expected, places=6)
+        # Its low end shares the rear-left corner with the left side brace.
+        left_brace = by_name["left_brace"].solid.BoundingBox()
+        self.assertAlmostEqual(left_brace.ymax, box.ymin, places=6)
+        self.assertAlmostEqual(left_brace.zmin, box.zmin, places=6)
+        # It sits in the frame plane, outside the back cladding.
+        self.assertGreaterEqual(box.ymin, by_name["back_wall"].solid.BoundingBox().ymax)
+
+    def test_seat_top_has_oval_opening_clear_of_the_rails(self):
+        design = Design()
+        by_name = {part.name: part for part in build(design)[1]}
+        seat_top = by_name["seat_top"].solid
+
+        solid_volume = 800 * design.seat_depth * design.cladding
+        hole_area = 3.141592653589793 * (design.seat_hole_width / 2) * (design.seat_hole_depth / 2)
+        self.assertAlmostEqual(
+            seat_top.Volume(),
+            solid_volume - hole_area * design.cladding,
+            delta=1.0,
+        )
+
+        # The opening is centred in the seat box and clears both rails below.
+        opening = max(seat_top.Faces(), key=lambda face: face.Area()).innerWires()
+        self.assertEqual(len(opening), 1)
+        hole = opening[0].BoundingBox()
+        self.assertAlmostEqual(hole.xlen, design.seat_hole_width, places=6)
+        self.assertAlmostEqual(hole.ylen, design.seat_hole_depth, places=6)
+        self.assertAlmostEqual((hole.xmin + hole.xmax) / 2, design.width / 2)
+        for name in ("seat_rail_1", "seat_rail_2"):
+            rail = by_name[name].solid.BoundingBox()
+            self.assertFalse(rail.ymin < hole.ymax and hole.ymin < rail.ymax)
+
+    def test_cladding_fields_meet_without_overlapping(self):
+        design = Design()
+        by_name = {part.name: part for part in build(design)[1]}
+        left = by_name["left_wall"].solid.BoundingBox()
+        right = by_name["right_wall"].solid.BoundingBox()
+        back = by_name["back_wall"].solid.BoundingBox()
+
+        # The back field is fitted between the side skins, not behind them.
+        self.assertAlmostEqual(back.xmin, left.xmax)
+        self.assertAlmostEqual(back.xmax, right.xmin)
+        self.assertEqual(back.xlen, design.interior_width)
+        # The side skins still close the corner the back field no longer covers.
+        self.assertEqual(left.ymax, back.ymax)
+
+        # Both side skins are notched around the front opening rail.
+        rail = by_name["front_bottom"].solid
+        for name in ("left_wall", "right_wall"):
+            panel = by_name[name].solid
+            self.assertAlmostEqual(panel.intersect(rail).Volume(), 0)
+            notch = box_at(
+                design.frame, 0, design.leg_extension,
+                design.width - 2 * design.frame, design.frame, design.frame,
+            )
+            self.assertAlmostEqual(panel.intersect(notch).Volume(), 0)
+
+    def test_no_part_overlaps_another_except_hinge_pins(self):
+        variants = {
+            "default": Design(),
+            "wide": Design(width=1050, seat_depth=550),
+            "45x45": Design(
+                frame=45, cladding=23,
+                roof_connector_width=45, roof_connector_thickness=45,
+            ),
+        }
+        for label, design in variants.items():
+            for state, door_angle, roof_lift_angle in (
+                ("closed", 0, 0),
+                ("open", 105, 25),
+            ):
+                with self.subTest(variant=label, state=state):
+                    _, parts = build(
+                        design,
+                        door_angle=door_angle,
+                        roof_lift_angle=roof_lift_angle,
+                    )
+                    self.assertEqual(clashes(parts), [])
 
 
 if __name__ == "__main__":

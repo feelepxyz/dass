@@ -33,6 +33,7 @@ def beam_pieces(design: Design) -> list[CutPiece]:
         and (part.width, part.thickness) in {
             (design.frame, design.frame),
             (design.roof_connector_width, design.roof_connector_thickness),
+            (design.seat_support, design.seat_support),
         }
     ]
 
@@ -55,14 +56,14 @@ def cladding_pieces(design: Design, board_width: float = 120) -> list[CutPiece]:
                 ))
 
     panel("door", design.width, design.door_height)
-    panel("back_wall", design.inner_width, design.back_height - design.leg_extension)
+    panel("back_wall", design.interior_width, design.back_height - design.leg_extension)
 
     side_span = design.plan_grid_depth
     side_count = math.ceil(side_span / board_width)
     for side in ("left_wall", "right_wall"):
         for index in range(side_count):
             position = index * board_width
-            length = design.door_height - design.roof_rise * position / side_span
+            length = design.door_height - design.side_fall * position / side_span
             pieces.append(CutPiece(
                 f"{side}_{index + 1}",
                 length,
@@ -99,38 +100,30 @@ def pack_stock(
             stocks[min(candidates)[1]].append(piece)
         else:
             stocks.append([piece])
-    # Exact branch-and-bound is cheap for the beam schedules and avoids an
-    # unnecessary stock length when greedy packing strands a short member.
-    if len(pieces) <= 32:
-        ordered = sorted(pieces, key=lambda item: item.length, reverse=True)
-        transformed = [piece.length + kerf for piece in ordered]
-        capacity = stock_length + kerf
-        lower_bound = math.ceil(sum(transformed) / capacity)
-        for target in range(len(stocks) - 1, lower_bound - 1, -1):
-            bins: list[list[CutPiece]] = [[] for _ in range(target)]
-            remaining = [capacity] * target
+    # Greedy packing can strand one short final stock. Try to redistribute
+    # each stock's pieces without attempting an expensive optimality proof.
+    for source_index in sorted(
+        range(len(stocks)),
+        key=lambda index: sum(piece.length + kerf for piece in stocks[index]),
+    ):
+        source = stocks[source_index]
+        targets = [stock.copy() for index, stock in enumerate(stocks) if index != source_index]
 
-            def place(index: int) -> bool:
-                if index == len(ordered):
-                    return True
-                seen: set[float] = set()
-                for bin_index, space in enumerate(remaining):
-                    if space in seen or transformed[index] > space + 1e-9:
-                        continue
-                    seen.add(space)
-                    bins[bin_index].append(ordered[index])
-                    remaining[bin_index] -= transformed[index]
-                    if place(index + 1):
+        def redistribute(index: int) -> bool:
+            if index == len(source):
+                return True
+            piece = source[index]
+            for target in targets:
+                used = sum(item.length for item in target) + kerf * max(0, len(target) - 1)
+                if used + kerf + piece.length <= stock_length + 1e-9:
+                    target.append(piece)
+                    if redistribute(index + 1):
                         return True
-                    remaining[bin_index] += transformed[index]
-                    bins[bin_index].pop()
-                    if space == capacity:
-                        break
-                return False
+                    target.pop()
+            return False
 
-            if place(0):
-                return [stock for stock in bins if stock]
-            break
+        if redistribute(0):
+            return targets
     return stocks
 
 

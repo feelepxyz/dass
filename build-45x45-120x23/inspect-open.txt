@@ -1,0 +1,8 @@
+build-45x45-120x23/dass-open faces=267 edges=531
+  facts: size=[1316.39, 1848.75, 1756.92] center=[608.195, 3.03845, 878.46] extentAxis=y diag=2870.11 kind=assembly
+  positioning: size=[1316.39, 1848.75, 1756.92] center=[608.195, 3.03845, 878.46] extentAxis=y diag=2870.11
+  planes: 6 major groups
+    x=905 normalSign=-1 faces=17 area=1.19387e+06
+    x=45 normalSign=1 faces=15 area=1.19237e+06
+    y=805 normalSign=-1 faces=13 area=1.14356e+06
+    ... 3 more

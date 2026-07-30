@@ -31,6 +31,9 @@ class Design:
     door_height: float = 1175
     seat_depth: float = 500
     seat_height: float = 420
+    seat_hole_width: float = 270
+    seat_hole_depth: float = 330
+    seat_support: float = 45
     roof_overhang: float = 65
     roof_thickness: float = 1
     roof_beam_run: float = 833
@@ -42,7 +45,8 @@ class Design:
     hinge_leaf_thickness: float = 5
     roof_hinge_pin_radius: float = 8
     roof_connector_width: float = 65
-    roof_connector_thickness: float = 25
+    roof_connector_thickness: float = 23
+    side_back_lift: float = 25
 
     @property
     def inner_width(self) -> float:
@@ -57,6 +61,11 @@ class Design:
         return self.width - 2 * (self.frame + self.cladding)
 
     @property
+    def interior_x(self) -> float:
+        """Inner face of the left side cladding; everything fitted starts here."""
+        return self.frame + self.cladding
+
+    @property
     def back_wall_front(self) -> float:
         return self.depth - self.frame - self.cladding
 
@@ -67,6 +76,16 @@ class Design:
     @property
     def plan_grid_depth(self) -> float:
         return self.depth - self.frame
+
+    @property
+    def side_back_top(self) -> float:
+        """Top of the side cladding at the back, lifted clear of the frame."""
+        return self.back_height + self.side_back_lift
+
+    @property
+    def side_fall(self) -> float:
+        """Side cladding drop from front to back; shallower than the roof."""
+        return self.front_height - self.side_back_top
 
     @property
     def roof_run(self) -> float:
@@ -97,6 +116,8 @@ class Design:
         assert self.width > 2 * self.frame and self.depth > 2 * self.frame
         assert self.front_height > self.back_height >= self.front_post_height > self.seat_height
         assert 0 < self.seat_depth < self.inner_depth
+        assert 0 < self.seat_hole_width < self.interior_width
+        assert 0 < self.seat_hole_depth < self.seat_depth
         assert self.door_top == self.front_height
     def validate_reference(self) -> None:
         """Prove that defaults reproduce the dimensions repeated in the sources."""
@@ -135,22 +156,62 @@ def beam_between(a: tuple[float, float, float], b: tuple[float, float, float], s
     return cq.Workplane(plane).rect(size, size).extrude(length).val()
 
 
-def extended_beam_between(
+def rotate_about(vector: cq.Vector, axis: cq.Vector, degrees: float) -> cq.Vector:
+    """Rodrigues rotation of ``vector`` about ``axis``."""
+    unit = axis.normalized()
+    theta = math.radians(degrees)
+    return (
+        vector.multiply(math.cos(theta))
+        + unit.cross(vector).multiply(math.sin(theta))
+        + unit.multiply(unit.dot(vector) * (1 - math.cos(theta)))
+    )
+
+
+def single_cut_brace(
     a: tuple[float, float, float],
     b: tuple[float, float, float],
     size: float,
-    overshoot: float = 100,
+    plane_normal: tuple[float, float, float],
+    opening: cq.Shape,
 ) -> cq.Shape:
-    """Beam extended past both datums so clipping creates the angled end cuts."""
+    """Brace whose ends each take one angled saw cut.
+
+    A bar centred on the corner-to-corner diagonal overshoots both boundaries
+    at each corner, so clipping it leaves a notched point built from two faces.
+    Tilting the bar by ``asin(size / span)`` puts one long face through each
+    corner instead: a single plane then trims each end and the finished piece
+    is a parallelogram that still fills the opening corner to corner.
+    """
     va, vb = cq.Vector(*a), cq.Vector(*b)
-    direction = (vb - va).normalized()
-    extended_a = va - direction.multiply(overshoot)
-    extended_b = vb + direction.multiply(overshoot)
-    return beam_between(
-        (extended_a.x, extended_a.y, extended_a.z),
-        (extended_b.x, extended_b.y, extended_b.z),
-        size,
+    delta = vb - va
+    tilt = math.degrees(math.asin(size / delta.Length))
+    normal = cq.Vector(*plane_normal)
+    diagonal = delta.normalized()
+    # Of the two tilts, take the steeper: the rails then make both cuts, so the
+    # brace bears on them rather than being trapped between the posts.
+    direction = max(
+        (rotate_about(diagonal, normal, sign * tilt) for sign in (1, -1)),
+        key=lambda candidate: abs(candidate.z),
     )
+    midpoint = va + delta.multiply(0.5)
+    reach = delta.dot(direction) / 2 + size
+    start = midpoint - direction.multiply(reach)
+    end = midpoint + direction.multiply(reach)
+    bar = beam_between((start.x, start.y, start.z), (end.x, end.y, end.z), size)
+    return bar.intersect(opening)
+
+
+def cut_length(solid: cq.Shape) -> float:
+    """Long-point length of an angle-cut piece.
+
+    Both ends are mitred, so the longest edge falls short of the stock actually
+    needed. Measure the piece's extent along its own long axis instead, which
+    is the long-point-to-long-point dimension you cut to.
+    """
+    longest = max(solid.Edges(), key=lambda edge: edge.Length())
+    axis = (longest.endPoint() - longest.startPoint()).normalized()
+    reach = [axis.dot(cq.Vector(*vertex.toTuple())) for vertex in solid.Vertices()]
+    return max(reach) - min(reach)
 
 
 def door_brace_endpoints(d: Design) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
@@ -165,19 +226,26 @@ def door_brace_endpoints(d: Design) -> tuple[tuple[float, float, float], tuple[f
 
 
 def side_panel(d: Design, x: float, right: bool) -> cq.Shape:
-    """Cladding wedge following the mono-pitch roof."""
+    """Cladding wedge following the mono-pitch roof.
+
+    The bottom front corner is notched around the front opening rail, which
+    runs the full inner width and so crosses the side cladding's plane.
+    """
     z0 = d.leg_extension
+    notch_top = z0 + d.frame
     front_top = d.front_height
-    back_top = d.back_height
+    back_top = d.side_back_top
     front_y = 0
     back_y = d.depth - d.frame
     profile = (
         cq.Workplane("YZ")
         .workplane(offset=x)
-        .moveTo(front_y, z0)
+        .moveTo(d.frame, z0)
         .lineTo(back_y, z0)
         .lineTo(back_y, back_top)
         .lineTo(front_y, front_top)
+        .lineTo(front_y, notch_top)
+        .lineTo(d.frame, notch_top)
         .close()
         .extrude(d.cladding if not right else -d.cladding)
     )
@@ -288,19 +356,24 @@ def build(
     for (name, category, _, dims, material), solid in zip(roof_parts, pitched_roof_parts):
         add(name, category, lift_roof_part(solid), dims, material)
 
-    # 25 mm tongue-and-groove wall fields.
-    add("left_wall", "side cladding", side_panel(d, d.frame, False),
+    # 25 mm tongue-and-groove wall fields. The lifted back edge rises past the
+    # closed roof frame, so each panel is notched where that frame crosses it.
+    roof_closed = cq.Compound.makeCompound(pitched_roof_parts)
+    add("left_wall", "side cladding",
+        side_panel(d, d.frame, False).cut(roof_closed),
         (d.plan_grid_depth, d.door_height, d.cladding))
-    add("right_wall", "side cladding", side_panel(d, d.width - d.frame, True),
+    add("right_wall", "side cladding",
+        side_panel(d, d.width - d.frame, True).cut(roof_closed),
         (d.plan_grid_depth, d.door_height, d.cladding))
+    # The back field is fitted between the two side skins, not behind them.
     add("back_wall", "back cladding",
-        box_at(d.frame, d.depth - d.frame - d.cladding,
-               d.leg_extension, d.inner_width, d.cladding,
+        box_at(d.interior_x, d.back_wall_front,
+               d.leg_extension, d.interior_width, d.cladding,
                d.back_height - d.leg_extension),
-        (d.inner_width, d.back_height - d.leg_extension, d.cladding))
+        (d.interior_width, d.back_height - d.leg_extension, d.cladding))
 
     # Floor and toilet box fit between the 25 mm side-wall skins.
-    interior_x = d.frame + d.cladding
+    interior_x = d.interior_x
     interior_width = d.interior_width
     back_wall_front = d.back_wall_front
     floor_width = interior_width
@@ -314,22 +387,17 @@ def build(
         box_at(interior_x, back_wall_front - d.frame, d.leg_extension,
                interior_width, d.frame, d.frame),
         (interior_width, d.frame, d.frame))
-    floor_brace_start = (
-        interior_x + d.frame / 2,
-        d.frame / 2,
-        d.leg_extension + d.frame / 2,
-    )
-    floor_brace_end = (
-        interior_x + interior_width - d.frame / 2,
-        back_wall_front - d.frame / 2,
-        d.leg_extension + d.frame / 2,
-    )
-    add(
-        "floor_diagonal",
-        "floor diagonal",
-        beam_between(floor_brace_start, floor_brace_end, d.frame),
-        (math.dist(floor_brace_start, floor_brace_end), d.frame, d.frame),
-    )
+    # The floor boards run front to back, so the side bearers carry their long
+    # edges between the front opening rail and the back support.
+    floor_side_length = back_wall_front - 2 * d.frame
+    for label, x in (
+        ("left", interior_x),
+        ("right", interior_x + interior_width - d.frame),
+    ):
+        add(f"floor_{label}_support", "floor support",
+            box_at(x, d.frame, d.leg_extension,
+                   d.frame, floor_side_length, d.frame),
+            (floor_side_length, d.frame, d.frame))
 
     seat_width = interior_width
     seat_x = interior_x
@@ -340,9 +408,18 @@ def build(
         box_at(seat_x, seat_front_y, floor_top,
                seat_width, d.cladding, d.seat_height - d.cladding),
         (d.seat_height - d.cladding, seat_width, d.cladding))
+    # Oval seat opening, centred in the seat box so the rails stay clear of it.
+    seat_hole = (
+        cq.Workplane("XY")
+        .center(d.width / 2, seat_front_y + d.seat_depth / 2)
+        .ellipse(d.seat_hole_width / 2, d.seat_hole_depth / 2)
+        .extrude(d.cladding)
+        .translate((0, 0, seat_top_bottom))
+        .val()
+    )
     add("seat_top", "seat top",
         box_at(seat_x, seat_front_y, seat_top_bottom,
-               seat_width, d.seat_depth, d.cladding),
+               seat_width, d.seat_depth, d.cladding).cut(seat_hole),
         (d.seat_depth, seat_width, d.cladding))
     # Both rails are concealed inside the seat box, immediately below its boards.
     for index, y in enumerate((
@@ -356,13 +433,24 @@ def build(
         box_at(seat_x, seat_front_y + d.cladding,
                floor_top, seat_width, d.frame, d.frame),
         (seat_width, d.frame, d.frame))
+    # The opening cuts the middle seat boards, so a bearer runs down each side
+    # of it, fitted between the two seat rails and flush under the boards.
+    seat_support_front = seat_front_y + d.cladding + d.frame
+    seat_support_length = (seat_back - d.frame) - seat_support_front
+    for label, x in (
+        ("left", (d.width - d.seat_hole_width) / 2 - d.seat_support),
+        ("right", (d.width + d.seat_hole_width) / 2),
+    ):
+        add(f"seat_support_{label}", "seat support",
+            box_at(x, seat_support_front, seat_top_bottom - d.seat_support,
+                   d.seat_support, seat_support_length, d.seat_support),
+            (seat_support_length, d.seat_support, d.seat_support))
     # Side braces join the opposite inner corners of each 750 × 950 mm frame.
     # Their geometry is intentionally derived from those corners; the audit
     # reports the small conflict with the nominal 1209 mm / 36° image row.
     for x, label in ((d.frame / 2, "left"), (d.width - d.frame / 2, "right")):
         bottom = (x, d.depth - d.frame, d.leg_extension + d.frame)
         top = (x, d.frame, d.front_post_height - d.frame)
-        d1_length = math.dist(bottom, top)
         side_opening = box_at(
             x - d.frame / 2,
             d.frame,
@@ -371,9 +459,27 @@ def build(
             d.inner_depth,
             d.front_post_height - d.leg_extension - 2 * d.frame,
         )
-        add(f"{label}_brace", "D1",
-            extended_beam_between(bottom, top, d.frame).intersect(side_opening),
-            (d1_length, d.frame, d.frame))
+        brace = single_cut_brace(bottom, top, d.frame, (1, 0, 0), side_opening)
+        add(f"{label}_brace", "D1", brace,
+            (cut_length(brace), d.frame, d.frame))
+
+    # Back-wall brace. Its low end shares the rear-left corner with the left
+    # side brace, so the bracing runs continuously around that corner. The
+    # 850 x 950 opening matches the door frame, so this is a second D2 cut.
+    back_brace_bottom = (d.frame, d.depth - d.frame / 2, d.leg_extension + d.frame)
+    back_brace_top = (d.width - d.frame, d.depth - d.frame / 2, d.back_height - d.frame)
+    back_opening = box_at(
+        d.frame,
+        d.depth - d.frame,
+        d.leg_extension + d.frame,
+        d.inner_width,
+        d.frame,
+        d.back_height - d.leg_extension - 2 * d.frame,
+    )
+    back_brace = single_cut_brace(
+        back_brace_bottom, back_brace_top, d.frame, (0, 1, 0), back_opening
+    )
+    add("back_brace", "D2", back_brace, (cut_length(back_brace), d.frame, d.frame))
 
     # The metal sheet is centred over the closed roof frame. Compensate for
     # pitch so its plan-view envelope remains exactly 1050 × 1085 mm.
@@ -408,6 +514,11 @@ def build(
         roof_hinge_top - d.frame,
         d.inner_width, d.hinge_leaf_thickness, d.frame,
     ))
+    # Pitching swings the leaf's outer bottom corner below the fixed rear rail.
+    # Relieve it there so the closed roof seats without fouling the rail.
+    roof_moving_leaf = roof_moving_leaf.cut(
+        box_at(0, 0, 0, d.width, d.depth, d.back_height)
+    )
     roof_moving_leaf = lift_roof_part(roof_moving_leaf)
     roof_hinge_pin = (
         cq.Workplane("YZ")
@@ -434,7 +545,11 @@ def build(
     door_frame_bottom = d.door_bottom
     door_frame_top = door_frame_bottom + d.door_frame_height
     door_brace_top, door_brace_bottom = door_brace_endpoints(d)
-    door_brace_length = math.dist(door_brace_top, door_brace_bottom)
+    door_brace_solid = single_cut_brace(
+        door_brace_bottom, door_brace_top, d.frame, (0, 1, 0),
+        box_at(d.frame, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom + d.frame,
+               d.inner_width, d.frame, d.door_frame_height - 2 * d.frame),
+    )
     door_parts: list[tuple[str, cq.Shape, tuple[float, float, float], str]] = [
         ("door_panel", box_at(0, -d.cladding - d.hinge_gap,
                               d.door_bottom,
@@ -446,19 +561,15 @@ def build(
         ("door_right", box_at(d.width - d.frame, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom,
                               d.frame, d.frame, d.door_frame_height),
          (d.door_frame_height, d.frame, d.frame), "V2"),
-        ("door_bottom", box_at(0, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom,
-                               door_width, d.frame, d.frame),
-         (door_width, d.frame, d.frame), "HL2"),
-        ("door_top", box_at(0, -d.frame - d.cladding - d.hinge_gap, door_frame_top - d.frame,
-                            door_width, d.frame, d.frame),
-         (door_width, d.frame, d.frame), "HL2"),
-        ("door_brace", extended_beam_between(
-            door_brace_top, door_brace_bottom, d.frame
-        ).intersect(
-            box_at(d.frame, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom + d.frame,
-                   d.inner_width, d.frame, d.door_frame_height - 2 * d.frame)
-        ),
-         (door_brace_length, d.frame, d.frame), "D2"),
+        # The stiles run the full frame height, so the rails fit between them.
+        ("door_bottom", box_at(d.frame, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom,
+                               d.inner_width, d.frame, d.frame),
+         (d.inner_width, d.frame, d.frame), "HL2"),
+        ("door_top", box_at(d.frame, -d.frame - d.cladding - d.hinge_gap, door_frame_top - d.frame,
+                            d.inner_width, d.frame, d.frame),
+         (d.inner_width, d.frame, d.frame), "HL2"),
+        ("door_brace", door_brace_solid,
+         (cut_length(door_brace_solid), d.frame, d.frame), "D2"),
     ]
     for name, solid, dims, category in door_parts:
         if door_angle:
