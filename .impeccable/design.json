@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-30T00:00:00+02:00",
+  "title": "Design System: DASS Workshop Guide",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Registration Ink",
+        "canonical": "#17211B",
+        "tonalRamp": ["#17211B", "#2D3B32", "#45564B", "#607267", "#7E8F84", "#A0AEA5", "#C6CEC9", "#EDF0EE"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Workshop Paper",
+        "canonical": "#F4F0E5",
+        "tonalRamp": ["#28261F", "#48443A", "#696459", "#8C8679", "#AFA99B", "#CDC7BA", "#E4DFD3", "#F4F0E5"]
+      },
+      "stock": {
+        "role": "secondary",
+        "displayName": "Raw Timber",
+        "canonical": "#D8BF83",
+        "tonalRamp": ["#2D2718", "#504526", "#746438", "#99854D", "#B7A064", "#D0B879", "#E4D29E", "#F5EDD7"]
+      },
+      "blueprint": {
+        "role": "primary",
+        "displayName": "Blueprint Teal",
+        "canonical": "#174E63",
+        "tonalRamp": ["#08242E", "#0E3B4B", "#17546A", "#277086", "#438BA0", "#6BA8B8", "#A2CAD3", "#DBEEF1"]
+      },
+      "signal": {
+        "role": "tertiary",
+        "displayName": "Saw Guard Orange",
+        "canonical": "#E2572C",
+        "tonalRamp": ["#32130A", "#5E2412", "#8A351A", "#B74724", "#DF592E", "#EC7D58", "#F3AB91", "#FCE0D5"]
+      }
+    },
+    "typographyMeta": {
+      "display": {"displayName": "Crate Stencil", "purpose": "Document title and phase headings."},
+      "body": {"displayName": "Workshop Instruction", "purpose": "Short physical instructions and hold points."},
+      "label": {"displayName": "Measurement Mark", "purpose": "Codes, stock IDs, dimensions, and machine settings."}
+    },
+    "shadows": [],
+    "motion": [
+      {"name": "native-scroll", "value": "scroll-behavior: smooth", "purpose": "Moves between long-document phases without ornamental animation."}
+    ],
+    "breakpoints": [
+      {"name": "single-column", "value": "780px"},
+      {"name": "print-sheet", "value": "A4 landscape"}
+    ]
+  },
+  "components": [
+    {
+      "name": "Stock Bar",
+      "kind": "custom",
+      "refersTo": "stock-bar",
+      "description": "Scaled material strip showing kept pieces, cuts, and offcut in physical order.",
+      "html": "<div class=\"ds-stock\"><b>RBH1</b><span>990</span><i></i><em>48 offcut</em></div>",
+      "css": ".ds-stock{display:grid;grid-template-columns:4fr 3px 1fr;align-items:center;height:72px;border:2px solid #17211b;background:#d8bf83;color:#17211b;font:700 12px ui-monospace,monospace}.ds-stock>b,.ds-stock>span{padding:8px}.ds-stock>i{height:100%;background:#17211b}.ds-stock>em{align-self:stretch;display:grid;place-items:center;background:#e7e1d2;font-style:normal}"
+    },
+    {
+      "name": "Code Mark",
+      "kind": "chip",
+      "refersTo": "code-mark",
+      "description": "Permanent high-contrast identity stamped on a cut part.",
+      "html": "<b class=\"ds-code\">LSD1</b>",
+      "css": ".ds-code{display:inline-block;padding:5px 7px;border-radius:2px;background:#17211b;color:#f4f0e5;font:700 12px ui-monospace,monospace;letter-spacing:.04em}"
+    },
+    {
+      "name": "Phase Navigation",
+      "kind": "nav",
+      "description": "Sticky index for the long manufacturing sequence.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\">1 · BEAMS</a><a href=\"#\">2 · PANELS</a></nav>",
+      "css": ".ds-nav{display:flex;background:#17211b}.ds-nav a{padding:12px 16px;color:#f4f0e5;text-decoration:none;font:700 12px ui-monospace,monospace}.ds-nav a:hover,.ds-nav a:focus-visible{background:#e2572c;outline:0}"
+    },
+    {
+      "name": "Hold Point",
+      "kind": "custom",
+      "description": "Safety-orange shop instruction that must interrupt the sequence.",
+      "html": "<aside class=\"ds-hold\"><b>STOP / VERIFY STOCK</b><span>Check all three stock dimensions before cutting.</span></aside>",
+      "css": ".ds-hold{display:flex;gap:12px;padding:14px 16px;border:3px solid #e2572c;background:#fffdf6;color:#17211b;font:700 14px Arial,sans-serif}.ds-hold>b{color:#e2572c;font-family:ui-monospace,monospace}"
+    },
+    {
+      "name": "Stack Ticket",
+      "kind": "card",
+      "description": "One standalone construction unit with its complete code set.",
+      "html": "<article class=\"ds-stack\"><header><b>A</b><h3>ROOF UNIT</h3></header><p>RBH1 · RBH2 · RBS1 · RBS2 · RBC1</p></article>",
+      "css": ".ds-stack{border:2px solid #17211b;background:#fffdf6}.ds-stack header{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #17211b}.ds-stack header b{padding:10px;background:#174e63;color:white;font:800 16px ui-monospace,monospace}.ds-stack h3{margin:0;font:800 24px 'Arial Narrow',sans-serif}.ds-stack p{padding:12px;margin:0;font:700 12px ui-monospace,monospace}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Cutting Ticket",
+    "overview": "The guide behaves like a cabinetmaker's cutting sheet enlarged for use beside a saw: exact bars, visible waste, hard cut ticks, oversized part marks, and short instructions placed where the work occurs. It is dense but never decorative.",
+    "keyCharacteristics": ["Model-derived", "Print-safe", "Physically sequenced", "Code-driven"],
+    "rules": [],
+    "dos": [
+      "Do show dimensions and code marks directly on the relevant geometry.",
+      "Do distinguish kept offcuts, terminal waste, and gang-cut waste.",
+      "Do preserve a clear black-and-white print fallback."
+    ],
+    "donts": [
+      "Don't hide manufacturing detail inside hover-only interactions.",
+      "Don't use dashboard cards, decorative charts, or unlabeled icons.",
+      "Don't scale diagrams independently when relative stock usage matters."
+    ]
+  }
+}

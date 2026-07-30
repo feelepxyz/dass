@@ -7,11 +7,7 @@ closed/open renders, STEP and GLB CAD files, and a CSV cut list with:
 uv run dass.py
 uv run dass.py --output build-wide --set width=1050 --set seat_depth=550
 uv run generate_cutlists.py
-uv run dass.py --output build-45x45-120x23 --set frame=45 --set cladding=23 \
-  --set roof_connector_width=45 --set roof_connector_thickness=45
-uv run generate_cutlists.py --output build-45x45-120x23 \
-  --set frame=45 --set cladding=23 \
-  --set roof_connector_width=45 --set roof_connector_thickness=45
+uv run generate_build_guide.py
 uv run dass.py --output build-45x45-120x20 --set frame=45 --set cladding=20 \
   --set roof_connector_width=45 --set roof_connector_thickness=45
 uv run generate_cutlists.py --output build-45x45-120x20 \
@@ -25,20 +21,43 @@ NAME=VALUE`; derived spans, grid dimensions, braces, CAD, renders, and the CSV
 cut list are regenerated together. `--door-angle` changes the open-door render.
 `--roof-lift-angle` raises the complete roof assembly about its rear hinge.
 
-`generate_cutlists.py` expands the modeled beams and 120 × 25 mm timber
-cladding fields into individual pieces, then writes a 2400 mm stock plan with
-a 2 mm saw kerf. The metal roof is listed separately and is not packed as
-timber. The defaults can be changed with `--stock-length` and `--kerf`.
+The current design is 990 × 815 mm, framed in 45 × 45 mm stock and clad in
+23 × 120 mm interleaved råspont. Each board covers 110 mm; the remaining
+10 mm lip is included in the assembled width and sawn off only after the
+field is fixed to its frame. The door is nine covers wide and each side is seven covers
+deep, so both finish with exactly 10 mm to trim. The fitted 854 mm rear wall,
+floor, seat top, and seat front each use eight boards and leave 36 mm to trim.
+
+`generate_cutlists.py` expands those fields into full-width boards and writes
+kerf-aware, stop-block-sequenced plans for 4200 mm beam stock and 4500 mm
+cladding stock with a 2.8 mm kerf. One kerf is reserved for every released piece. Equal-length
+cuts run as one batch across stock boundaries; the cladding plan reuses only
+three labeled early remainders for the final 397 mm batch so the full job fits
+the available twelve boards. The two sloping side walls are listed as
+`left_wall` and `right_wall` gang-cut sets: cut all fourteen 1175 mm blanks
+first, fix seven boards to each wall frame, then make one continuous angled cut
+through each fixed field. Trim the terminal edge from the frame datum. The piece
+CSV records each unique shop code and the
+resulting long and short point of each side board. Shop codes use at most three
+letters and two digits. Use `--beam-stock-length`,
+`--cladding-stock-length`, and `--kerf` to change the stock assumptions;
+`--stock-length` overrides both lengths.
+
+`generate_build_guide.py` writes `build/cut-guide.html`, a screen and print
+guide with batch-sequenced stock diagrams and unit drawings. Each unit drawing
+contains its assembly steps and on-frame cladding cuts. It uses the existing
+`build/renders/open-hero.png` assembly render.
 
 ## Source reconciliation
 
 The supplied sources use several dimension domains:
 
-- Elevations and the cut list define a 950 × 850 outside post envelope made
-  from 50 × 50 stock, yielding 850 mm front/back and 750 mm side clear spans.
+- The earlier 950 × 850 / 50 × 50 reference has been adjusted to a
+  990 × 815 outside envelope in 45 × 45 stock so the exposed cladding fields
+  land on 110 mm råspont cover modules with a terminal trim allowance.
 - The plan labels 900 × 800 between post centrelines: each equals its outside
   envelope minus one 50 mm post. This reconciles the plan with the elevations.
-- Walls are 25 mm `råspont` (tongue-and-groove cladding).
+- Walls are 23 × 120 mm `råspont` with 110 mm effective cover.
 - Written finished panels: side walls 2 × 800 × 1175 maximum (sloping down),
   back wall 850 × 1050 above the 100 mm feet and door 950 × 1175. The fitted
   interior panels are floor 775 × 800, seat top 500 × 800, and seat front
@@ -54,8 +73,10 @@ The supplied sources use several dimension domains:
 - The roof frame is 950 × 933 overall: two 950 mm HL2 cross-members enclose two
   HK2 side members with an 833 mm horizontal run. All roof members are
   coplanar with the roof; an 850 × 65 × 25 mm middle member connects the side
-  beams. A centered 1050 × 1085 mm metal sheet and the frame lift together on
-  a hinge on the outside face of the fixed rear support.
+  beams. In the closed position, the frame turns a further 3.28° until its side
+  beams sit on the door cladding notches. A centered 1050 × 1085 mm metal sheet
+  and the frame lift together on a hinge on the outside face of the fixed rear
+  support.
 - Reference 50 × 50 cut-list stock: V1 4 × 1150, V2 2 × 1050,
   D1 2 × 1209 (−36° ends), D2 1 × 1274.8, HK1 4 × 750,
   HK2 2 × 833, HL1 5 × 850, and HL2 2 × 950. The model carries D2 2 × 1274.8,
@@ -111,10 +132,10 @@ The side cladding no longer parallels the roof. Its front edge stays at
 `side_back_top`, so the fall is `side_fall` = 100 mm over 800 mm while the roof
 still falls 125 mm over 833 mm. The bottom and back anchors are unchanged.
 
-That lift pushes the back of each panel past the closed roof frame, so both
-panels are cut against it and carry a notch where the rear beam crosses. Only
-about 6 mm of lift would clear it untouched; the notch is what buys the full
-25 mm while keeping the roof line and the front height exactly as they were.
+That lift pushes the back of each panel into the seated roof assembly. Both
+panels are scribed after assembly and relieved around the roof frame and sheet.
+Only about 6 mm of lift would clear the frame untouched. The relief keeps the
+full 25 mm lift without changing the roof line or front height.
 
 The roof's middle connector is 23 mm thick by default so it clears the raised
 side panels without a notch. The 45 × 45 variants override it to 45 mm, which
@@ -128,3 +149,47 @@ source labels and quantities.
 Exact corner-to-corner brace geometry gives D1 = 1210.4 mm at 38.3° and
 D2 = 1274.8 mm at 41.8°. The audit reports remaining geometric differences
 instead of forcing the CAD metadata to match.
+
+## Photo-realistic renders
+
+`uv run render_photo.py` writes a set of lit renders to `build/renders`: hero
+angles of the open and closed model, the six straight-on elevations, and two
+shots composited into `background.jpg`. It builds the GLBs itself, then renders
+them with three.js in headless Chromium — sky lighting, a sun with soft
+shadows, screen-space ambient occlusion, and per-part wood grain.
+
+```
+uv run render_photo.py                          # every view, 1600 x 1200
+uv run render_photo.py --views open-hero        # one view
+uv run render_photo.py --list-views             # available view names
+uv run render_photo.py --width 2400 --skip-build
+```
+
+The timber takes its grain from `textures/plywood_diff_4k.jpg` (`--texture`);
+without it the script synthesises a pale birch sheet instead. Normal and
+roughness maps are derived from whichever is used.
+
+Cladding, floor and seat fields are one solid panel in CAD but råspont boards in
+the workshop, so a single sheet of grain across them reads as plywood. The
+script cuts that sheet into eight board-shaped strips — separate bands of the
+photo, mirrored and re-toned, with the lap shadow baked into both edges — and
+the renderer splits each panel back into 110 mm covers, clipping the geometry at
+every joint so each board can take its own strip, laid either way round and at
+its own tone. The roof is corrugated sheet, black on top and galvanised
+underneath.
+
+The two `in-situ-*` views place the model in the `background.jpg` clearing.
+Their `frameWidth` sets the apparent size. Both views use one fixed camera
+anchor, so the closed shell matches the open shell exactly. The guide uses a
+lower square crop, and its interactive model starts from the same view.
+
+Their lighting is matched to the photograph rather than staged. The plate is lit
+from the camera's left and well above — the fence post at its right edge is
+bright down its left face and dark down its right, and the birch trunks behind
+it read the same way — so both shots put the sun there, and their `exposure`,
+`envIntensity` and `sunIntensity` are set so the timber sits inside the
+photograph's own tonal range instead of below it.
+
+Camera angles and lighting for every view live in `VIEWS` in
+`render/render.mjs`; `npm install` inside `render/` restores its two
+dependencies.

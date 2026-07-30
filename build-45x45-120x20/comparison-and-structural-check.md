@@ -1,6 +1,6 @@
 # 45×45 frame / 120×20 cladding comparison
 
-## Purchase list (2.4 m stock, 2 mm saw kerf)
+## Purchase list (2.4 m stock, 2.8 mm saw kerf)
 
 | Material | Baseline | 45×45 / 120×20 | Change |
 |---|---:|---:|---:|
@@ -12,7 +12,7 @@
 | Total 2.4 m lengths | 34 | 34 | 0 |
 
 This is a generated feasible stock plan; the best-fit heuristic does not prove
-that the counts are globally minimal. It includes 2 mm between consecutive cuts. It does not include
+that the counts are globally minimal. It includes 2.8 mm between consecutive cuts. It does not include
 end-trimming allowance, damaged stock, grain selection, or spare material.
 Buying one spare cladding board and one spare beam is prudent.
 
@@ -28,8 +28,8 @@ metres, versus 45.1524 m.
 |---|---:|---:|---:|
 | Beam volume | 0.06296 m³ | 0.05418 m³ | −13.9% |
 | Cladding volume | 0.12848 m³ | 0.10413 m³ | −19.0% |
-| Beam-stock waste | 4.142 m (50×50) + 1.550 m (65×25) | 4.416 m (45×45) | −1.276 m total |
-| Cladding-stock waste | 5.188 m | 5.078 m | −0.110 m |
+| Beam-stock waste | 4.131 m (50×50) + 1.550 m (65×25) | 4.404 m (45×45) | −1.277 m total |
+| Cladding-stock waste | 5.164 m | 5.054 m | −0.110 m |
 
 Lengths change because the outside envelope stays 950×850 mm while thinner
 members increase the clear spans:

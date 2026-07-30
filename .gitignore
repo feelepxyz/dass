@@ -6,3 +6,6 @@ build-wide/
 
 # CAD Viewer writes a hidden GLB cache beside each .step it renders
 .*.step.glb
+
+# Renderer dependencies (three.js + headless Chromium driver)
+render/node_modules/

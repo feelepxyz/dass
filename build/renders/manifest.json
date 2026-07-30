@@ -1,0 +1,220 @@
+{
+ "variants": {
+  "closed": "build/renders/dass-closed.glb",
+  "open": "build/renders/dass-open.glb"
+ },
+ "parts": {
+  "front_post_left": {
+   "material": "wood",
+   "category": "V1"
+  },
+  "back_post_left": {
+   "material": "wood",
+   "category": "V1"
+  },
+  "front_post_right": {
+   "material": "wood",
+   "category": "V1"
+  },
+  "back_post_right": {
+   "material": "wood",
+   "category": "V1"
+  },
+  "front_bottom": {
+   "material": "wood",
+   "category": "front opening rail"
+  },
+  "back_bottom": {
+   "material": "wood",
+   "category": "HL1"
+  },
+  "left_bottom": {
+   "material": "wood",
+   "category": "HK1"
+  },
+  "left_top": {
+   "material": "wood",
+   "category": "HK1"
+  },
+  "right_bottom": {
+   "material": "wood",
+   "category": "HK1"
+  },
+  "right_top": {
+   "material": "wood",
+   "category": "HK1"
+  },
+  "back_top": {
+   "material": "wood",
+   "category": "HL1"
+  },
+  "roof_front": {
+   "material": "wood",
+   "category": "HL2"
+  },
+  "roof_back": {
+   "material": "wood",
+   "category": "HL2"
+  },
+  "roof_left": {
+   "material": "wood",
+   "category": "HK2"
+  },
+  "roof_right": {
+   "material": "wood",
+   "category": "HK2"
+  },
+  "roof_middle": {
+   "material": "wood",
+   "category": "roof connector"
+  },
+  "left_wall": {
+   "material": "wood",
+   "category": "side cladding"
+  },
+  "right_wall": {
+   "material": "wood",
+   "category": "side cladding"
+  },
+  "back_wall": {
+   "material": "wood",
+   "category": "back cladding"
+  },
+  "floor": {
+   "material": "dark wood",
+   "category": "floor"
+  },
+  "floor_back_support": {
+   "material": "wood",
+   "category": "floor support"
+  },
+  "floor_left_support": {
+   "material": "wood",
+   "category": "floor support"
+  },
+  "floor_right_support": {
+   "material": "wood",
+   "category": "floor support"
+  },
+  "seat_front": {
+   "material": "wood",
+   "category": "seat side"
+  },
+  "seat_top": {
+   "material": "wood",
+   "category": "seat top"
+  },
+  "seat_rail_1": {
+   "material": "wood",
+   "category": "HL1"
+  },
+  "seat_rail_2": {
+   "material": "wood",
+   "category": "HL1"
+  },
+  "seat_lower_rail": {
+   "material": "wood",
+   "category": "HL1"
+  },
+  "seat_support_left": {
+   "material": "wood",
+   "category": "seat support"
+  },
+  "seat_support_right": {
+   "material": "wood",
+   "category": "seat support"
+  },
+  "left_brace": {
+   "material": "wood",
+   "category": "D1"
+  },
+  "right_brace": {
+   "material": "wood",
+   "category": "D1"
+  },
+  "back_brace": {
+   "material": "wood",
+   "category": "D2"
+  },
+  "roof": {
+   "material": "metal roof",
+   "category": "metal roof"
+  },
+  "roof_hinge_fixed": {
+   "material": "metal",
+   "category": "roof hinge leaf"
+  },
+  "roof_hinge_moving": {
+   "material": "metal",
+   "category": "roof hinge leaf"
+  },
+  "roof_hinge_pin": {
+   "material": "metal",
+   "category": "roof hinge pin"
+  },
+  "door_panel": {
+   "material": "wood",
+   "category": "cladding"
+  },
+  "door_left": {
+   "material": "wood",
+   "category": "V2"
+  },
+  "door_right": {
+   "material": "wood",
+   "category": "V2"
+  },
+  "door_bottom": {
+   "material": "wood",
+   "category": "HL2"
+  },
+  "door_top": {
+   "material": "wood",
+   "category": "HL2"
+  },
+  "door_brace": {
+   "material": "wood",
+   "category": "D2"
+  },
+  "hinge_fixed_1": {
+   "material": "metal",
+   "category": "hinge leaf"
+  },
+  "hinge_door_1": {
+   "material": "metal",
+   "category": "hinge leaf"
+  },
+  "door_hinge_1": {
+   "material": "metal",
+   "category": "hinge pin"
+  },
+  "hinge_fixed_2": {
+   "material": "metal",
+   "category": "hinge leaf"
+  },
+  "hinge_door_2": {
+   "material": "metal",
+   "category": "hinge leaf"
+  },
+  "door_hinge_2": {
+   "material": "metal",
+   "category": "hinge pin"
+  }
+ },
+ "textures": {
+  "color": "textures/plywood_diff_4k.jpg",
+  "normal": "build/renders/wood-normal.png",
+  "roughness": "build/renders/wood-roughness.png",
+  "corrugation": "build/renders/corrugation-normal.png",
+  "plank": {
+   "color": "build/renders/plank-atlas.png",
+   "normal": "build/renders/plank-normal.png",
+   "roughness": "build/renders/plank-roughness.png",
+   "cells": 8,
+   "lengthMm": 1200.0,
+   "boardMm": 120.0,
+   "coverMm": 110.0
+  }
+ },
+ "photo": "background.jpg"
+}

@@ -1,0 +1,1376 @@
+<!doctype html>
+<!--
+THESIS: The guide is the drawing set itself, numbered sheet by numbered sheet; it refuses the dashboard and the cutting-ticket poster alike.
+OWN-WORLD: White sheets on a grey ground, one monoline face at one weight, black line work in four weights, red for part codes, blue for dimensions, hatching for cut timber.
+STORY: See the building, cut by batch, then build and trim each lettered unit.
+FIRST VIEWPORT: Title block and main views; numbered sheets run A-200 to A-400.
+FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png; captions, drawing numbers, and title block follow that sheet.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DASS · Working drawing</title>
+  <script type="importmap">
+  {"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/addons/"}}
+  </script>
+  <style>
+    @font-face {
+      font-family:InputMono;
+      src:url("fonts/InputMono-Regular.woff2") format("woff2");
+      font-weight:400; font-style:normal; font-display:swap;
+    }
+    :root {
+      --sheet:#fff; --ground:#e4e4e1; --ink:#151515; --line:#000;
+      --timber:#7f7f7f; --grey-dark:#5a5a5a; --grey-mid:#959595;
+      --grey-light:#b7b7b7; --grey-pale:#e6e6e6; --grey-faint:#f2f2f0;
+      --code:#bb261a; --code-deep:#8f1c13; --dim:#63a4f5; --dim-ink:#1668c4;
+      --mono:InputMono,ui-monospace,SFMono-Regular,Consolas,monospace;
+      --hair:.5px; --object:.8px; --section:1.4px;
+      /* Four lettering steps and two display steps. A drawing set letters at a
+         handful of sizes; the face has one weight, so size carries the rank. */
+      --t-fine:.62rem; --t-small:.7rem; --t-mark:.76rem; --t-note:.83rem;
+      --t-title:clamp(1.25rem,2.5vw,1.9rem); --t-doc:clamp(1.7rem,4.2vw,3rem);
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0; padding:0; background:var(--ground); color:var(--ink);
+      font-family:var(--mono); font-size:var(--t-note); line-height:1.65;
+      -webkit-font-smoothing:antialiased;
+    }
+    .defs { position:absolute; width:0; height:0; overflow:hidden; }
+    a { color:inherit; }
+    button,input { font:inherit; font-family:var(--mono); }
+    h1,h2,h3,h4 { margin:0; font-weight:400; text-transform:uppercase; }
+    h1 { font-size:var(--t-doc); letter-spacing:.01em; line-height:1.08; }
+    h2 { font-size:var(--t-title); letter-spacing:.02em; color:var(--code-deep); }
+    h3 { font-size:var(--t-mark); letter-spacing:.14em; }
+    h4 { font-size:var(--t-fine); letter-spacing:.14em; color:var(--grey-dark); }
+    p { margin:0; max-width:68ch; }
+    b,strong { font-weight:400; }
+
+    .set { width:min(1360px,100%); margin:auto; padding:clamp(16px,3vw,44px) clamp(12px,3vw,44px) 120px; }
+    .sheet {
+      background:var(--sheet); border:1px solid var(--line);
+      padding:clamp(24px,3vw,48px); margin-bottom:clamp(24px,4vw,56px);
+      break-after:page;
+    }
+    .sheet:last-child { margin-bottom:0; }
+
+    /* Sheet head: number, title, and a rule with air on both sides. */
+    .sheet-head { margin-bottom:40px; }
+    .sheet-no {
+      display:block; font-size:var(--t-fine); letter-spacing:.22em;
+      color:var(--grey-dark); margin-bottom:14px;
+    }
+    .sheet-head h2 { padding-bottom:20px; border-bottom:1px solid var(--line); }
+    .sheet-note { margin-top:24px; color:var(--ink); }
+    .sheet-note + .sheet-note { margin-top:14px; }
+
+    /* Masthead is the one title block in the set. */
+    .masthead {
+      background:var(--sheet); border:1px solid var(--line);
+      padding:clamp(24px,3vw,48px); margin-bottom:clamp(24px,4vw,56px);
+    }
+    .masthead-top {
+      display:grid; grid-template-columns:minmax(0,1fr) auto;
+      gap:40px; align-items:start;
+    }
+    .masthead h1 { margin-bottom:18px; }
+    .masthead-sub { color:var(--grey-dark); }
+    .title-block { display:grid; grid-template-columns:auto auto; border:1px solid var(--line); }
+    .title-block dt, .title-block dd {
+      margin:0; padding:10px 16px; font-size:var(--t-fine); letter-spacing:.12em;
+      text-transform:uppercase; border-bottom:1px solid var(--grey-pale);
+    }
+    .title-block dt { color:var(--grey-dark); border-right:1px solid var(--grey-pale); }
+    .title-block > div { display:contents; }
+    .title-block > div:last-child dt, .title-block > div:last-child dd { border-bottom:0; }
+    .title-block a {
+      display:inline-flex; align-items:center; gap:7px; color:inherit;
+      text-decoration:underline; text-underline-offset:3px;
+    }
+    .source-icon {
+      width:1.05em; height:1.05em; fill:none; stroke:currentColor;
+      stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none;
+    }
+
+    /* Schedule: a quantity table, not a row of hero numbers. */
+    caption {
+      text-align:left; padding-bottom:14px; font-size:var(--t-fine);
+      letter-spacing:.18em; text-transform:uppercase; color:var(--grey-dark);
+    }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:13px 16px; text-align:left; vertical-align:top; }
+    th {
+      font-size:var(--t-fine); letter-spacing:.14em; text-transform:uppercase;
+      font-weight:400; color:var(--grey-dark); border-bottom:1px solid var(--line);
+    }
+    td { border-bottom:1px solid var(--grey-pale); font-size:var(--t-mark); }
+    tbody tr:last-child td { border-bottom:1px solid var(--grey-light); }
+    tfoot td { border-bottom:0; color:var(--grey-dark); font-size:var(--t-small); }
+    th:first-child, td:first-child { padding-left:0; }
+    th:last-child, td:last-child { padding-right:0; }
+    .table-scroll { overflow-x:auto; margin-top:36px; }
+    .table-scroll table { min-width:620px; }
+
+    /* The two inks. Red is codes. Blue is dimensions and measured detail. */
+    .code, .marks b, .stock-piece b, .code-strip b { color:var(--code); letter-spacing:.06em; }
+    .measure { color:var(--dim-ink); white-space:nowrap; }
+    .pass { color:var(--grey-dark); }
+    .marks b + b { margin-left:8px; }
+
+    /* Caution notes: command first, risk second. */
+    /* A drawing set boxes its notes and letters the heading in red; it does not
+       tab them with a coloured edge. */
+    .note { margin:36px 0; padding:20px 24px; border:1px solid var(--line); }
+    .note h3 { color:var(--code-deep); margin-bottom:12px; }
+    .note p + p { margin-top:12px; }
+    .note ol { margin:12px 0 0; padding-left:22px; }
+    .note ol li { margin-bottom:10px; max-width:66ch; }
+    .note ol li:last-child { margin-bottom:0; }
+
+    /* Drawings. One caption under each, centred, the way the set captions them. */
+    .drawing { margin:0; }
+    .plate { display:block; width:100%; height:auto; background:var(--sheet); }
+    .drawing figcaption { padding:22px 12px 6px; text-align:center; }
+    .drawing-name { display:block; font-size:var(--t-small); letter-spacing:.16em; text-transform:uppercase; }
+    .drawing-ref {
+      display:block; margin-top:8px; font-size:var(--t-fine); letter-spacing:.14em;
+      text-transform:uppercase; color:var(--grey-dark);
+    }
+    .drawing-note {
+      display:block; margin:10px auto 0; max-width:58ch;
+      font-size:var(--t-small); line-height:1.6; color:var(--grey-dark);
+    }
+
+    .plate .member { fill:var(--sheet); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
+    .plate .cut-member { fill:url(#hatch); stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
+    .plate .field { fill:var(--grey-faint); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
+    .plate .cut-field { fill:var(--grey-pale); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
+    .plate .blank { fill:#fafafa; stroke:var(--grey-mid); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
+    .plate .ghost { fill:none; stroke:var(--grey-mid); stroke-width:var(--hair); stroke-dasharray:10 6; vector-effect:non-scaling-stroke; }
+    .plate .under { fill:none; stroke:var(--grey-dark); stroke-width:var(--hair); stroke-dasharray:7 5; vector-effect:non-scaling-stroke; }
+    .plate .joint { stroke:var(--grey-light); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
+    .plate .trim { fill:url(#hatch-fine); stroke:var(--grey-dark); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
+    .plate .cut { fill:none; stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
+    .plate .opening { fill:none; stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
+    .plate .dim, .plate .dim-tick { fill:none; stroke:var(--dim); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
+    .plate .leader { fill:none; stroke:var(--dim); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
+    .plate .leader-dot { fill:var(--dim); stroke:none; }
+    .plate text { fill:var(--ink); font-family:var(--mono); font-size:13px; letter-spacing:.06em; }
+    /* A code has to stay legible over hatching, so it carries a white halo. */
+    .plate .mark {
+      fill:var(--code); font-size:16px; letter-spacing:.08em;
+      stroke:var(--sheet); stroke-width:3.5; paint-order:stroke;
+    }
+    .plate .small { fill:var(--dim-ink); font-size:12px; }
+    .plate .note-text { fill:var(--grey-dark); font-size:12px; }
+    .plate .dim-text { fill:var(--dim-ink); font-size:12px; letter-spacing:.04em; }
+
+    /* Stock bars: one scaled diagram per stock length. */
+    .stock-list { display:grid; gap:28px; margin-top:36px; }
+    /* The bar inside is 860px wide and scrolls itself; without this the article
+       inherits that as its minimum and the whole document scrolls sideways. */
+    .stock { break-inside:avoid; min-width:0; }
+    .stock > header {
+      display:flex; justify-content:space-between; align-items:baseline;
+      gap:20px; padding-bottom:12px;
+    }
+    .stock header label { display:flex; align-items:center; gap:10px; cursor:pointer; }
+    .stock header b { color:var(--ink); font-size:var(--t-mark); letter-spacing:.14em; }
+    .stock-count { font-size:var(--t-fine); letter-spacing:.14em; text-transform:uppercase; color:var(--grey-dark); }
+    input[type=checkbox] { accent-color:var(--code); width:15px; height:15px; margin:0; }
+    .stock-scroll { overflow-x:auto; padding-bottom:46px; }
+    .stock-track {
+      position:relative; min-width:860px; width:100%; height:auto;
+      aspect-ratio:var(--stock-aspect);
+      background:var(--sheet); border:1px solid var(--line);
+    }
+    .stock-piece, .stock-waste { position:absolute; top:0; bottom:0; overflow:visible; }
+    .stock-piece {
+      padding:0 9px; border-right:var(--hair) solid var(--grey-light);
+    }
+    .stock-piece b, .stock-piece span {
+      position:absolute; left:9px; white-space:nowrap;
+    }
+    .stock-piece b { top:calc(100% + 7px); font-size:var(--t-small); }
+    .stock-piece span { top:calc(100% + 23px); font-size:var(--t-fine); color:var(--dim-ink); }
+    .stock-piece.is-gang { background:repeating-linear-gradient(45deg,transparent 0 5px,var(--grey-pale) 5px 6px); }
+    .saw-tick { position:absolute; top:-4px; bottom:-4px; width:1px; background:var(--line); z-index:2; }
+    .stock-waste {
+      background:repeating-linear-gradient(135deg,transparent 0 5px,var(--grey-light) 5px 6px);
+      border-left:1px dashed var(--line);
+    }
+    .stock-waste span {
+      position:absolute; top:calc(100% + 7px); left:50%; transform:translateX(-50%);
+      font-size:var(--t-fine); color:var(--grey-dark); background:var(--sheet);
+      padding:2px 5px; white-space:nowrap;
+    }
+    /* General arrangement: image and model, controls under each frame. */
+    .view-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-top:36px; }
+    /* Grid children default to min-content width, and the control strip is
+       wide; without this the two frames push each other off the sheet. */
+    .gallery, .viewer { display:flex; flex-direction:column; margin:0; min-width:0; }
+    .view-frame {
+      position:relative; aspect-ratio:1; overflow:hidden;
+      background:var(--grey-faint); border:1px solid var(--line);
+    }
+    .shot {
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:contain; opacity:0; transition:opacity .15s linear;
+    }
+    /* The in-situ composites are portrait; they fill the square and crop. */
+    .shot.is-crop { object-fit:cover; object-position:center 38%; }
+    .shot.is-on { opacity:1; }
+    /* Wrapping rather than scrolling: a hidden group is a group nobody finds. */
+    .view-controls {
+      display:flex; flex-wrap:wrap; border:1px solid var(--line); border-top:0;
+    }
+    .pill-group { display:flex; align-items:center; flex:0 0 auto; }
+    .pill-group + .pill-group { border-left:1px solid var(--grey-pale); }
+    .pill-group i {
+      padding:0 12px; font-style:normal; font-size:var(--t-fine); letter-spacing:.14em;
+      text-transform:uppercase; color:var(--grey-mid); white-space:nowrap;
+    }
+    .pill {
+      border:0; background:none; padding:14px 13px; cursor:pointer;
+      font-size:var(--t-fine); letter-spacing:.12em; text-transform:uppercase;
+      color:var(--grey-dark); white-space:nowrap;
+    }
+    .pill:hover { color:var(--ink); }
+    .pill.is-on { color:var(--code); box-shadow:inset 0 -2px 0 var(--code); }
+    .pill:focus-visible { outline:1px solid var(--line); outline-offset:-3px; }
+    .gallery figcaption, .viewer figcaption {
+      padding:18px 2px 0; font-size:var(--t-small); line-height:1.6; color:var(--grey-dark);
+    }
+    .gallery figcaption:empty { display:none; }
+    .viewer-frame { cursor:grab; }
+    .viewer-frame.is-over { cursor:pointer; }
+    .viewer-canvas { display:block; width:100%; height:100%; touch-action:none; }
+    .viewer-status {
+      position:absolute; left:0; right:0; bottom:0; margin:0; padding:9px 12px;
+      background:var(--sheet); border-top:1px solid var(--grey-pale);
+      font-size:var(--t-fine); letter-spacing:.12em; text-transform:uppercase; color:var(--grey-dark);
+    }
+    .viewer-tip {
+      position:absolute; z-index:3; min-width:160px; max-width:240px; padding:11px 13px;
+      background:var(--sheet); border:1px solid var(--line); pointer-events:none;
+    }
+    .viewer-tip b { display:block; color:var(--code); font-size:var(--t-note); letter-spacing:.08em; }
+    .viewer-tip span { display:block; font-size:var(--t-fine); line-height:1.5; }
+    .viewer-tip .tip-name { margin:3px 0 6px; text-transform:uppercase; letter-spacing:.1em; color:var(--grey-dark); }
+    .viewer-tip .tip-size { color:var(--dim-ink); }
+
+    /* Unit drawings. */
+    .drawing-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:44px 40px; margin-top:36px;
+    }
+    .unit { display:flex; flex-direction:column; break-inside:avoid; }
+    .unit > header { display:flex; gap:14px; align-items:baseline; margin-bottom:8px; }
+    .unit-letter { color:var(--code); font-size:var(--t-mark); letter-spacing:.14em; }
+    .unit-face { display:flex; margin-left:auto; border:1px solid var(--grey-light); }
+    .unit-face button {
+      border:0; background:var(--sheet); padding:7px 9px; cursor:pointer;
+      color:var(--grey-dark); font-size:var(--t-fine); letter-spacing:.1em;
+      text-transform:uppercase;
+    }
+    .unit-face button + button { border-left:1px solid var(--grey-light); }
+    .unit-face button.is-on { color:var(--code); box-shadow:inset 0 -2px 0 var(--code); }
+    .unit-face button:focus-visible { outline:1px solid var(--line); outline-offset:-3px; }
+    .unit[data-face="cladding"] .plate .member,
+    .unit[data-face="cladding"] .plate .under,
+    .unit[data-face="cladding"] .plate .ghost,
+    .unit[data-face="cladding"] .plate .mark { opacity:.14; }
+    .unit-steps { margin-top:16px; padding-top:14px; border-top:1px solid var(--grey-pale); }
+    .unit-steps ol { margin:10px 0 0; padding-left:22px; }
+    .unit-steps li { margin-bottom:8px; font-size:var(--t-small); line-height:1.55; }
+    .unit-steps li:last-child { margin-bottom:0; }
+    .code-strip { display:flex; flex-wrap:wrap; gap:4px 12px; padding:14px 0 0; font-size:var(--t-fine); }
+    .stack-check {
+      display:flex; align-items:center; gap:10px; margin-top:16px; padding-top:14px;
+      border-top:1px solid var(--grey-pale); font-size:var(--t-fine); letter-spacing:.14em;
+      text-transform:uppercase; color:var(--grey-dark); cursor:pointer;
+    }
+
+    .set-foot {
+      display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      gap:20px; margin-top:clamp(24px,4vw,56px); padding:24px clamp(24px,3vw,48px);
+      background:var(--sheet); border:1px solid var(--line);
+    }
+    .set-foot p { font-size:var(--t-small); color:var(--grey-dark); }
+    .reset {
+      margin-top:20px; border:1px solid var(--line); background:none; color:var(--ink);
+      padding:11px 18px; font-size:var(--t-fine); letter-spacing:.14em; text-transform:uppercase; cursor:pointer;
+    }
+    .reset:hover, .reset:focus-visible { background:var(--code); border-color:var(--code); color:#fff; outline:0; }
+
+    @media (max-width:1080px) { .view-grid, .drawing-grid { grid-template-columns:1fr; } }
+    @media (max-width:720px) {
+      :root { --t-fine:.6rem; --t-small:.68rem; --t-mark:.73rem; --t-note:.8rem; }
+      .masthead-top { grid-template-columns:1fr; gap:28px; }
+      /* One row per group, pills wrapping inside it, so nothing sits off-screen. */
+      .view-controls { flex-direction:column; }
+      .pill-group { flex-wrap:wrap; width:100%; }
+      .pill-group + .pill-group { border-left:0; border-top:1px solid var(--grey-pale); }
+      .pill-group i { flex:0 0 100%; padding:10px 12px 2px; }
+      .pill { padding:10px 12px; }
+    }
+    @media print {
+      @page { size:A4 landscape; margin:9mm; }
+      body { background:#fff; font-size:8.4pt; }
+      .set { width:100%; padding:0; }
+      .sheet, .masthead { border:0; padding:0 0 6mm; margin:0; }
+      .sheet { break-before:page; }
+      .view-controls, .reset, .viewer, .viewer-status, .set-foot { display:none; }
+      .view-grid { grid-template-columns:1fr; }
+      /* The frame is square on screen; on paper it must not eat a whole sheet. */
+      .view-frame { aspect-ratio:auto; height:auto; border:0; background:none; text-align:center; }
+      .shot { position:static; width:auto; height:auto; max-width:100%; max-height:96mm; }
+      .shot:not(.is-on) { display:none; }
+      .gallery figcaption { padding-top:8px; }
+      /* Keep the title block and main views on one sheet. */
+      .masthead { break-after:page; }
+      .masthead .view-grid { margin-top:5mm; }
+      .masthead .view-frame { max-height:65mm; }
+      .masthead h1 { margin-bottom:8px; }
+      caption { padding-bottom:7px; }
+      th, td { padding:6px 10px; }
+      .title-block dt, .title-block dd { padding:5px 10px; }
+      .note { margin:16px 0; padding:12px 16px; }
+      .sheet-head { margin-bottom:20px; }
+      .sheet-head h2 { padding-bottom:10px; }
+      .sheet-note { margin-top:12px; }
+      .table-scroll, .stock-list { margin-top:18px; }
+      .stock-scroll, .table-scroll { overflow:visible; }
+      .stock-track { min-width:0; height:auto; }
+      /* A plate sized only by column width runs taller than the page, which
+         leaves whole sheets blank. Give every drawing a height it must fit. */
+      .drawing .plate { width:100%; height:74mm; }
+      /* A4 landscape is narrower than the 1080px breakpoint, so the grid would
+         otherwise fall to one column and print one drawing per sheet. */
+      .drawing-grid { grid-template-columns:1fr 1fr; gap:8mm 7mm; margin-top:8mm; }
+      .drawing figcaption { padding-top:6px; }
+      .drawing-note { margin-top:5px; }
+      .unit-face { display:none; }
+      .code-strip { padding-top:7px; }
+      .stack-check { margin-top:8px; padding-top:7px; }
+      .drawing, .unit, .stock, .note { break-inside:avoid; }
+      a { text-decoration:none; }
+    }
+</style>
+</head>
+<body>
+<svg class="defs" aria-hidden="true" focusable="false"><defs>
+  <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="7" stroke="#7f7f7f" stroke-width="1"/>
+  </pattern>
+  <pattern id="hatch-fine" width="5" height="5" patternTransform="rotate(135)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="5" stroke="#b7b7b7" stroke-width="1"/>
+  </pattern>
+</defs></svg>
+<main class="set">
+  <header class="masthead" id="top">
+    <div class="masthead-top">
+      <div>
+        <span class="sheet-no">WORKING DRAWING</span>
+        <h1>Can AI build a toilet yet?</h1>
+        <p class="masthead-sub">Outdoor toilet drawn from a parametric model using claude and codex.</p>
+      </div>
+      <dl class="title-block">
+        <div><dt>Project</dt><dd>DASS</dd></div>
+        <div><dt>Issue</dt><dd>2026-07-30</dd></div>
+        <div><dt>Architect</dt><dd><a href="https://www.instagram.com/hannes.soderquist/"
+          target="_blank" rel="noopener noreferrer">@hannes.soderquist</a></dd></div>
+        <div><dt>Code</dt><dd><a href="https://x.com/feelepxyz"
+          target="_blank" rel="noopener noreferrer">@feelepxyz</a></dd></div>
+        <div><dt>Source</dt><dd><a href="https://github.com/feelepxyz/dass"
+          target="_blank" rel="noopener noreferrer"><svg class="source-icon" viewBox="0 0 24 24"
+          aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3.28-.36
+          6.72-1.61 6.72-7.25a5.65 5.65 0 0 0-1.5-3.95 5.4 5.4 0 0 0-.14-2.95
+          S17.9-.03 15 1.85a13.38 13.38 0 0 0-7 0C5.1-.03 3.92.35 3.92.35
+          a5.4 5.4 0 0 0-.14 2.95 5.65 5.65 0 0 0-1.5 3.95c0 5.63 3.44 6.88
+          6.72 7.25A4.8 4.8 0 0 0 8 18v4"/><path d="M8 19c-3 .9-5-1.5-5-1.5"/>
+          </svg>GitHub</a></dd></div>
+        <div><dt>Units</dt><dd>Millimetres</dd></div>
+        <div><dt>Kerf</dt><dd>2.8 per cut</dd></div>
+        <div><dt>Sheets</dt><dd>A-200 to A-400</dd></div>
+      </dl>
+    </div>
+    <div class="view-grid">
+      
+      <figure class="gallery">
+        <div class="view-frame"><img class="shot is-on is-crop" data-view="in-situ-open" src="web-renders/in-situ-open.jpg" alt="" data-caption="" decoding="async"><img class="shot is-crop" data-view="in-situ-closed" data-src="web-renders/in-situ-closed.jpg" alt="The same plate with everything shut." data-caption="The same plate with everything shut." decoding="async"><img class="shot" data-view="open-hero" data-src="web-renders/open-hero.jpg" alt="Three-quarter view, door swung clear of the opening." data-caption="Three-quarter view, door swung clear of the opening." decoding="async"><img class="shot" data-view="open-doorway" data-src="web-renders/open-doorway.jpg" alt="Straight into the opening at standing height." data-caption="Straight into the opening at standing height." decoding="async"><img class="shot" data-view="open-interior" data-src="web-renders/open-interior.jpg" alt="Down onto the seat box, floor deck, and back wall." data-caption="Down onto the seat box, floor deck, and back wall." decoding="async"><img class="shot" data-view="closed-hero" data-src="web-renders/closed-hero.jpg" alt="Three-quarter view of the finished shell." data-caption="Three-quarter view of the finished shell." decoding="async"><img class="shot" data-view="closed-rear-quarter" data-src="web-renders/closed-rear-quarter.jpg" alt="Back wall, rear posts, and the roof overhang." data-caption="Back wall, rear posts, and the roof overhang." decoding="async"><img class="shot" data-view="closed-above" data-src="web-renders/closed-above.jpg" alt="The mono-pitch roof and its sheet overhangs." data-caption="The mono-pitch roof and its sheet overhangs." decoding="async"><img class="shot" data-view="flat-front" data-src="web-renders/flat-front.jpg" alt="Square-on front elevation, door closed." data-caption="Square-on front elevation, door closed." decoding="async"><img class="shot" data-view="flat-front-open" data-src="web-renders/flat-front-open.jpg" alt="Square-on with the door swung, showing the opening." data-caption="Square-on with the door swung, showing the opening." decoding="async"><img class="shot" data-view="flat-back" data-src="web-renders/flat-back.jpg" alt="Square-on rear elevation." data-caption="Square-on rear elevation." decoding="async"><img class="shot" data-view="flat-left" data-src="web-renders/flat-left.jpg" alt="Square-on left side; the cladding falls to the rear." data-caption="Square-on left side; the cladding falls to the rear." decoding="async"><img class="shot" data-view="flat-right" data-src="web-renders/flat-right.jpg" alt="Square-on right side, mirror of the left." data-caption="Square-on right side, mirror of the left." decoding="async"><img class="shot" data-view="flat-top" data-src="web-renders/flat-top.jpg" alt="Orthographic plan of the roof sheet." data-caption="Orthographic plan of the roof sheet." decoding="async"></div>
+        <div class="view-controls" role="group" aria-label="Choose a view"><span class="pill-group"><i>In situ</i><button class="pill is-on" type="button" data-view="in-situ-open" aria-pressed="true">Open</button><button class="pill" type="button" data-view="in-situ-closed" aria-pressed="false">Closed</button></span><span class="pill-group"><i>Render</i><button class="pill" type="button" data-view="open-hero" aria-pressed="false">Open</button><button class="pill" type="button" data-view="open-doorway" aria-pressed="false">Doorway</button><button class="pill" type="button" data-view="open-interior" aria-pressed="false">Interior</button><button class="pill" type="button" data-view="closed-hero" aria-pressed="false">Closed</button><button class="pill" type="button" data-view="closed-rear-quarter" aria-pressed="false">Rear</button><button class="pill" type="button" data-view="closed-above" aria-pressed="false">Above</button></span><span class="pill-group"><i>Elevation</i><button class="pill" type="button" data-view="flat-front" aria-pressed="false">Front</button><button class="pill" type="button" data-view="flat-front-open" aria-pressed="false">Front open</button><button class="pill" type="button" data-view="flat-back" aria-pressed="false">Back</button><button class="pill" type="button" data-view="flat-left" aria-pressed="false">Left</button><button class="pill" type="button" data-view="flat-right" aria-pressed="false">Right</button><button class="pill" type="button" data-view="flat-top" aria-pressed="false">Top</button></span></div>
+        <figcaption class="gallery-caption"></figcaption>
+      </figure>
+      
+      <figure class="viewer">
+        <div class="view-frame viewer-frame">
+          <canvas class="viewer-canvas" aria-label="Interactive model of the finished building"></canvas>
+          <div class="viewer-tip" hidden></div>
+          <p class="viewer-status">Loading the model…</p>
+        </div>
+        <div class="view-controls" role="group" aria-label="Model controls">
+          <span class="pill-group"><i>Model</i>
+            <button class="pill is-on" type="button" data-variant="open" aria-pressed="true">Open</button>
+            <button class="pill" type="button" data-variant="closed" aria-pressed="false">Closed</button>
+          </span>
+          <span class="pill-group"><i>Finish</i>
+            <button class="pill is-on" type="button" data-finish="line" aria-pressed="true">Line</button>
+            <button class="pill" type="button" data-finish="textured" aria-pressed="false">Textured</button>
+          </span>
+        </div>
+        <figcaption>Drag to turn the model. Scroll to zoom. Click a piece to read its code
+        and size.</figcaption>
+      </figure>
+    </div>
+  </header>
+
+  <section class="sheet" id="beams">
+    <div class="sheet-head"><span class="sheet-no">Sheet A-200</span><h2>Structural timber</h2></div>
+    <p class="sheet-note"><b>Material:</b> Frame timber, 45 × 45 ×
+    4 200 mm. Quantity: 8 lengths.</p>
+    <div class="note">
+      <h3>Caution · verify the stock first</h3>
+      <p>Make sure that your stock matches the material. These sheets are exact only for
+      this material size. One 2.8 mm kerf is used for every piece.</p>
+    </div>
+    <p class="sheet-note">Cut every piece at one stop setting before you change the stop.
+    A batch that reaches the end of a stock length continues on the next length.</p>
+    <div class="table-scroll"><table>
+      <caption>Batch order · A-200</caption>
+      <thead><tr><th>Pass</th><th>Stop</th><th>Saw setup</th><th>Mark these pieces</th></tr></thead>
+      <tbody><tr><td class="pass">1</td><td class="measure">1 315.1</td><td>41.2° mitre, both ends; cuts parallel</td><td class="marks">2 × <b>BWD1</b> <b>DBD1</b></td></tr><tr><td class="pass">2</td><td class="measure">1 202.2</td><td>34.9° mitre, both ends; cuts parallel</td><td class="marks">2 × <b>LSD1</b> <b>RSD1</b></td></tr><tr><td class="pass">3</td><td class="measure">1 150</td><td>90° square</td><td class="marks">4 × <b>LSV1</b> <b>LSV2</b> <b>RSV1</b> <b>RSV2</b></td></tr><tr><td class="pass">4</td><td class="measure">1 050</td><td>90° square</td><td class="marks">2 × <b>DBV1</b> <b>DBV2</b></td></tr><tr><td class="pass">5</td><td class="measure">990</td><td>90° square</td><td class="marks">2 × <b>RBH1</b> <b>RBH2</b></td></tr><tr><td class="pass">6</td><td class="measure">900</td><td>90° square</td><td class="marks">6 × <b>BWH1</b> <b>BWH2</b> <b>DBH1</b> <b>DBH2</b> <b>FBH1</b> <b>RBC1</b></td></tr><tr><td class="pass">7</td><td class="measure">854</td><td>90° square</td><td class="marks">4 × <b>FBB1</b> <b>SBH1</b> <b>SBH2</b> <b>SBH3</b></td></tr><tr><td class="pass">8</td><td class="measure">812.7</td><td>90° square</td><td class="marks">2 × <b>RBS1</b> <b>RBS2</b></td></tr><tr><td class="pass">9</td><td class="measure">725</td><td>90° square</td><td class="marks">4 × <b>LSH1</b> <b>LSH2</b> <b>RSH1</b> <b>RSH2</b></td></tr><tr><td class="pass">10</td><td class="measure">657</td><td>90° square</td><td class="marks">2 × <b>FBS1</b> <b>FBS2</b></td></tr><tr><td class="pass">11</td><td class="measure">387</td><td>90° square</td><td class="marks">2 × <b>SBS1</b> <b>SBS2</b></td></tr></tbody>
+    </table></div>
+    <div class="note">
+      <h3>Brace rule</h3>
+      <p>LSD1 and RSD1 are cut at 34.9° at both ends.
+      BWD1 and DBD1 are cut at 41.2° at both ends.</p>
+      <p>These are long-point lengths. Keep each pair of end cuts parallel. Turn the
+      workpiece, not the saw setting, to make the parallelogram.</p>
+    </div>
+    <div class="stock-list">
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="B01"> <b>B01</b></label>
+        <span class="stock-count">3 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:46.666667"
+          role="img" aria-label="B01: BWD1, 1 315.1 millimetres; DBD1, 1 315.1 millimetres; LSD1, 1 202.2 millimetres; 359.2 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:31.31269%" title="BWD1 · 1 315.1 mm"><b>BWD1</b><span>1 315.1</span></div><i class="saw-tick" style="left:31.31269%" aria-hidden="true"></i><div class="stock-piece" style="left:31.37936%;width:31.31269%" title="DBD1 · 1 315.1 mm"><b>DBD1</b><span>1 315.1</span></div><i class="saw-tick" style="left:62.69205%" aria-hidden="true"></i><div class="stock-piece" style="left:62.75872%;width:28.62297%" title="LSD1 · 1 202.2 mm"><b>LSD1</b><span>1 202.2</span></div><i class="saw-tick" style="left:91.38169%" aria-hidden="true"></i><div class="stock-waste" style="left:91.44835%;width:8.55165%"><span>359.2</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="B02"> <b>B02</b></label>
+        <span class="stock-count">3 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:46.666667"
+          role="img" aria-label="B02: RSD1, 1 202.2 millimetres; LSV1, 1 150 millimetres; LSV2, 1 150 millimetres; 689.4 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:28.62297%" title="RSD1 · 1 202.2 mm"><b>RSD1</b><span>1 202.2</span></div><i class="saw-tick" style="left:28.62297%" aria-hidden="true"></i><div class="stock-piece" style="left:28.68964%;width:27.38095%" title="LSV1 · 1 150 mm"><b>LSV1</b><span>1 150</span></div><i class="saw-tick" style="left:56.07059%" aria-hidden="true"></i><div class="stock-piece" style="left:56.13726%;width:27.38095%" title="LSV2 · 1 150 mm"><b>LSV2</b><span>1 150</span></div><i class="saw-tick" style="left:83.51821%" aria-hidden="true"></i><div class="stock-waste" style="left:83.58487%;width:16.41513%"><span>689.4</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="B03"> <b>B03</b></label>
+        <span class="stock-count">3 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:46.666667"
+          role="img" aria-label="B03: RSV1, 1 150 millimetres; RSV2, 1 150 millimetres; DBV1, 1 050 millimetres; 841.6 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:27.38095%" title="RSV1 · 1 150 mm"><b>RSV1</b><span>1 150</span></div><i class="saw-tick" style="left:27.38095%" aria-hidden="true"></i><div class="stock-piece" style="left:27.44762%;width:27.38095%" title="RSV2 · 1 150 mm"><b>RSV2</b><span>1 150</span></div><i class="saw-tick" style="left:54.82857%" aria-hidden="true"></i><div class="stock-piece" style="left:54.89524%;width:25.00000%" title="DBV1 · 1 050 mm"><b>DBV1</b><span>1 050</span></div><i class="saw-tick" style="left:79.89524%" aria-hidden="true"></i><div class="stock-waste" style="left:79.96190%;width:20.03810%"><span>841.6</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="B04"> <b>B04</b></label>
+        <span class="stock-count">4 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:46.666667"
+          role="img" aria-label="B04: DBV2, 1 050 millimetres; RBH1, 990 millimetres; RBH2, 990 millimetres; BWH1, 900 millimetres; 258.8 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:25.00000%" title="DBV2 · 1 050 mm"><b>DBV2</b><span>1 050</span></div><i class="saw-tick" style="left:25.00000%" aria-hidden="true"></i><div class="stock-piece" style="left:25.06667%;width:23.57143%" title="RBH1 · 990 mm"><b>RBH1</b><span>990</span></div><i class="saw-tick" style="left:48.63810%" aria-hidden="true"></i><div class="stock-piece" style="left:48.70476%;width:23.57143%" title="RBH2 · 990 mm"><b>RBH2</b><span>990</span></div><i class="saw-tick" style="left:72.27619%" aria-hidden="true"></i><div class="stock-piece" style="left:72.34286%;width:21.42857%" title="BWH1 · 900 mm"><b>BWH1</b><span>900</span></div><i class="saw-tick" style="left:93.77143%" aria-hidden="true"></i><div class="stock-waste" style="left:93.83810%;width:6.16190%"><span>258.8</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="B05"> <b>B05</b></label>
+        <span class="stock-count">4 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:46.666667"
+          role="img" aria-label="B05: BWH2, 900 millimetres; DBH1, 900 millimetres; DBH2, 900 millimetres; FBH1, 900 millimetres; 588.8 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:21.42857%" title="BWH2 · 900 mm"><b>BWH2</b><span>900</span></div><i class="saw-tick" style="left:21.42857%" aria-hidden="true"></i><div class="stock-piece" style="left:21.49524%;width:21.42857%" title="DBH1 · 900 mm"><b>DBH1</b><span>900</span></div><i class="saw-tick" style="left:42.92381%" aria-hidden="true"></i><div class="stock-piece" style="left:42.99048%;width:21.42857%" title="DBH2 · 900 mm"><b>DBH2</b><span>900</span></div><i class="saw-tick" style="left:64.41905%" aria-hidden="true"></i><div class="stock-piece" style="left:64.48571%;width:21.42857%" title="FBH1 · 900 mm"><b>FBH1</b><span>900</span></div><i class="saw-tick" style="left:85.91429%" aria-hidden="true"></i><div class="stock-waste" style="left:85.98095%;width:14.01905%"><span>588.8</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="B06"> <b>B06</b></label>
+        <span class="stock-count">4 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:46.666667"
+          role="img" aria-label="B06: RBC1, 900 millimetres; FBB1, 854 millimetres; SBH1, 854 millimetres; SBH2, 854 millimetres; 726.8 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:21.42857%" title="RBC1 · 900 mm"><b>RBC1</b><span>900</span></div><i class="saw-tick" style="left:21.42857%" aria-hidden="true"></i><div class="stock-piece" style="left:21.49524%;width:20.33333%" title="FBB1 · 854 mm"><b>FBB1</b><span>854</span></div><i class="saw-tick" style="left:41.82857%" aria-hidden="true"></i><div class="stock-piece" style="left:41.89524%;width:20.33333%" title="SBH1 · 854 mm"><b>SBH1</b><span>854</span></div><i class="saw-tick" style="left:62.22857%" aria-hidden="true"></i><div class="stock-piece" style="left:62.29524%;width:20.33333%" title="SBH2 · 854 mm"><b>SBH2</b><span>854</span></div><i class="saw-tick" style="left:82.62857%" aria-hidden="true"></i><div class="stock-waste" style="left:82.69524%;width:17.30476%"><span>726.8</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="B07"> <b>B07</b></label>
+        <span class="stock-count">5 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:46.666667"
+          role="img" aria-label="B07: SBH3, 854 millimetres; RBS1, 812.7 millimetres; RBS2, 812.7 millimetres; LSH1, 725 millimetres; LSH2, 725 millimetres; 256.7 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:20.33333%" title="SBH3 · 854 mm"><b>SBH3</b><span>854</span></div><i class="saw-tick" style="left:20.33333%" aria-hidden="true"></i><div class="stock-piece" style="left:20.40000%;width:19.34931%" title="RBS1 · 812.7 mm"><b>RBS1</b><span>812.7</span></div><i class="saw-tick" style="left:39.74931%" aria-hidden="true"></i><div class="stock-piece" style="left:39.81597%;width:19.34931%" title="RBS2 · 812.7 mm"><b>RBS2</b><span>812.7</span></div><i class="saw-tick" style="left:59.16528%" aria-hidden="true"></i><div class="stock-piece" style="left:59.23195%;width:17.26190%" title="LSH1 · 725 mm"><b>LSH1</b><span>725</span></div><i class="saw-tick" style="left:76.49385%" aria-hidden="true"></i><div class="stock-piece" style="left:76.56052%;width:17.26190%" title="LSH2 · 725 mm"><b>LSH2</b><span>725</span></div><i class="saw-tick" style="left:93.82242%" aria-hidden="true"></i><div class="stock-waste" style="left:93.88909%;width:6.11091%"><span>256.7</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="B08"> <b>B08</b></label>
+        <span class="stock-count">6 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:46.666667"
+          role="img" aria-label="B08: RSH1, 725 millimetres; RSH2, 725 millimetres; FBS1, 657 millimetres; FBS2, 657 millimetres; SBS1, 387 millimetres; SBS2, 387 millimetres; 645.2 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:17.26190%" title="RSH1 · 725 mm"><b>RSH1</b><span>725</span></div><i class="saw-tick" style="left:17.26190%" aria-hidden="true"></i><div class="stock-piece" style="left:17.32857%;width:17.26190%" title="RSH2 · 725 mm"><b>RSH2</b><span>725</span></div><i class="saw-tick" style="left:34.59048%" aria-hidden="true"></i><div class="stock-piece" style="left:34.65714%;width:15.64286%" title="FBS1 · 657 mm"><b>FBS1</b><span>657</span></div><i class="saw-tick" style="left:50.30000%" aria-hidden="true"></i><div class="stock-piece" style="left:50.36667%;width:15.64286%" title="FBS2 · 657 mm"><b>FBS2</b><span>657</span></div><i class="saw-tick" style="left:66.00952%" aria-hidden="true"></i><div class="stock-piece" style="left:66.07619%;width:9.21429%" title="SBS1 · 387 mm"><b>SBS1</b><span>387</span></div><i class="saw-tick" style="left:75.29048%" aria-hidden="true"></i><div class="stock-piece" style="left:75.35714%;width:9.21429%" title="SBS2 · 387 mm"><b>SBS2</b><span>387</span></div><i class="saw-tick" style="left:84.57143%" aria-hidden="true"></i><div class="stock-waste" style="left:84.63810%;width:15.36190%"><span>645.2</span></div>
+        </div>
+      </div>
+    </article></div>
+  </section>
+
+  <section class="sheet" id="panels">
+    <div class="sheet-head"><span class="sheet-no">Sheet A-300</span><h2>Råspont</h2></div>
+    <p class="sheet-note"><b>Material:</b> Råspont, 120 × 23 ×
+    4 500 mm. Quantity: 12 lengths.</p>
+    <div class="note">
+      <h3>Caution · verify the stock first</h3>
+      <p>Make sure that your stock matches the material. These sheets are exact only for
+      this material size. One 2.8 mm kerf is used for every piece.</p>
+    </div>
+    <p class="sheet-note">The first 8 stock lengths release all
+    twenty-three 1 175 blanks. Fourteen side boards come first, then nine
+    door boards, at one stop setting.</p>
+    <div class="note">
+      <h3>Operation A · release every 1 175 blank</h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Stock</th><th>Codes, cut in this order</th><th>Available after the batch</th></tr></thead>
+        <tbody><tr><td>P01</td><td class="marks"><b>LSC1</b> <b>LSC2</b> <b>LSC3</b></td><td><span class="measure">966.6</span> · keep for 397</td></tr><tr><td>P02</td><td class="marks"><b>LSC4</b> <b>LSC5</b> <b>LSC6</b></td><td><span class="measure">966.6</span> · keep for 397</td></tr><tr><td>P03</td><td class="marks"><b>LSC7</b> <b>RSC1</b> <b>RSC2</b></td><td><span class="measure">966.6</span> · keep for 397</td></tr><tr><td>P04</td><td class="marks"><b>RSC3</b> <b>RSC4</b> <b>RSC5</b></td><td><span class="measure">966.6</span> · terminal offcut</td></tr><tr><td>P05</td><td class="marks"><b>RSC6</b> <b>RSC7</b> <b>DCB1</b></td><td><span class="measure">966.6</span> · terminal offcut</td></tr><tr><td>P06</td><td class="marks"><b>DCB2</b> <b>DCB3</b> <b>DCB4</b></td><td><span class="measure">966.6</span> · terminal offcut</td></tr><tr><td>P07</td><td class="marks"><b>DCB5</b> <b>DCB6</b> <b>DCB7</b></td><td><span class="measure">966.6</span> · terminal offcut</td></tr><tr><td>P08</td><td class="marks"><b>DCB8</b> <b>DCB9</b></td><td><span class="measure">2 144.4</span> · keep for 1 050</td></tr></tbody>
+      </table></div>
+      <ol>
+        <li>Set the stop once. Cut all twenty-three blanks from P01 onward. Mark each code
+        immediately. When a stock length ends, continue at the same setting on the next one.</li>
+        <li>Label the P01 to P03 remainders. Keep them for the final 397 pass.</li>
+        <li>Move every marked blank to its unit stack. Do not join or trim loose cladding.</li>
+      </ol>
+    </div>
+    <div class="note">
+      <h3>Operation B · cut the remaining pieces</h3>
+      <p>Change the stop only once per row. Cut every piece in that row, then move to the
+      next stop. The final 397 row uses the labeled
+      P01 / P02 / P03 remainders.</p>
+      <div class="table-scroll"><table>
+        <caption>Batch order · A-300 operation B</caption>
+        <thead><tr><th>Pass</th><th>Stop</th><th>Saw setup</th><th>Mark these pieces</th></tr></thead>
+        <tbody><tr><td class="pass">1</td><td class="measure">1 050</td><td>90° square</td><td class="marks">8 × <b>BWC1</b> <b>BWC2</b> <b>BWC3</b> <b>BWC4</b> <b>BWC5</b> <b>BWC6</b> <b>BWC7</b> <b>BWC8</b></td></tr><tr><td class="pass">2</td><td class="measure">747</td><td>90° square</td><td class="marks">8 × <b>FCB1</b> <b>FCB2</b> <b>FCB3</b> <b>FCB4</b> <b>FCB5</b> <b>FCB6</b> <b>FCB7</b> <b>FCB8</b></td></tr><tr><td class="pass">3</td><td class="measure">500</td><td>90° square</td><td class="marks">8 × <b>STB1</b> <b>STB2</b> <b>STB3</b> <b>STB4</b> <b>STB5</b> <b>STB6</b> <b>STB7</b> <b>STB8</b></td></tr><tr><td class="pass">4</td><td class="measure">397</td><td>90° square</td><td class="marks">8 × <b>SFB1</b> <b>SFB2</b> <b>SFB3</b> <b>SFB4</b> <b>SFB5</b> <b>SFB6</b> <b>SFB7</b> <b>SFB8</b></td></tr></tbody>
+      </table></div>
+    </div>
+    <div class="stock-list">
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P01"> <b>P01</b></label>
+        <span class="stock-count">5 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P01: LSC1, 1 175 millimetres; LSC2, 1 175 millimetres; LSC3, 1 175 millimetres; SFB1, 397 millimetres; SFB2, 397 millimetres; 167 millimetre offcut">
+          <div class="stock-piece is-gang" style="left:0.00000%;width:26.11111%" title="LSC1 · 1 175 mm"><b>LSC1</b><span>1 175</span></div><i class="saw-tick" style="left:26.11111%" aria-hidden="true"></i><div class="stock-piece is-gang" style="left:26.17333%;width:26.11111%" title="LSC2 · 1 175 mm"><b>LSC2</b><span>1 175</span></div><i class="saw-tick" style="left:52.28444%" aria-hidden="true"></i><div class="stock-piece is-gang" style="left:52.34667%;width:26.11111%" title="LSC3 · 1 175 mm"><b>LSC3</b><span>1 175</span></div><i class="saw-tick" style="left:78.45778%" aria-hidden="true"></i><div class="stock-piece" style="left:78.52000%;width:8.82222%" title="SFB1 · 397 mm"><b>SFB1</b><span>397</span></div><i class="saw-tick" style="left:87.34222%" aria-hidden="true"></i><div class="stock-piece" style="left:87.40444%;width:8.82222%" title="SFB2 · 397 mm"><b>SFB2</b><span>397</span></div><i class="saw-tick" style="left:96.22667%" aria-hidden="true"></i><div class="stock-waste" style="left:96.28889%;width:3.71111%"><span>167</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P02"> <b>P02</b></label>
+        <span class="stock-count">5 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P02: LSC4, 1 175 millimetres; LSC5, 1 175 millimetres; LSC6, 1 175 millimetres; SFB3, 397 millimetres; SFB4, 397 millimetres; 167 millimetre offcut">
+          <div class="stock-piece is-gang" style="left:0.00000%;width:26.11111%" title="LSC4 · 1 175 mm"><b>LSC4</b><span>1 175</span></div><i class="saw-tick" style="left:26.11111%" aria-hidden="true"></i><div class="stock-piece is-gang" style="left:26.17333%;width:26.11111%" title="LSC5 · 1 175 mm"><b>LSC5</b><span>1 175</span></div><i class="saw-tick" style="left:52.28444%" aria-hidden="true"></i><div class="stock-piece is-gang" style="left:52.34667%;width:26.11111%" title="LSC6 · 1 175 mm"><b>LSC6</b><span>1 175</span></div><i class="saw-tick" style="left:78.45778%" aria-hidden="true"></i><div class="stock-piece" style="left:78.52000%;width:8.82222%" title="SFB3 · 397 mm"><b>SFB3</b><span>397</span></div><i class="saw-tick" style="left:87.34222%" aria-hidden="true"></i><div class="stock-piece" style="left:87.40444%;width:8.82222%" title="SFB4 · 397 mm"><b>SFB4</b><span>397</span></div><i class="saw-tick" style="left:96.22667%" aria-hidden="true"></i><div class="stock-waste" style="left:96.28889%;width:3.71111%"><span>167</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P03"> <b>P03</b></label>
+        <span class="stock-count">5 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P03: LSC7, 1 175 millimetres; RSC1, 1 175 millimetres; RSC2, 1 175 millimetres; SFB5, 397 millimetres; SFB6, 397 millimetres; 167 millimetre offcut">
+          <div class="stock-piece is-gang" style="left:0.00000%;width:26.11111%" title="LSC7 · 1 175 mm"><b>LSC7</b><span>1 175</span></div><i class="saw-tick" style="left:26.11111%" aria-hidden="true"></i><div class="stock-piece is-gang" style="left:26.17333%;width:26.11111%" title="RSC1 · 1 175 mm"><b>RSC1</b><span>1 175</span></div><i class="saw-tick" style="left:52.28444%" aria-hidden="true"></i><div class="stock-piece is-gang" style="left:52.34667%;width:26.11111%" title="RSC2 · 1 175 mm"><b>RSC2</b><span>1 175</span></div><i class="saw-tick" style="left:78.45778%" aria-hidden="true"></i><div class="stock-piece" style="left:78.52000%;width:8.82222%" title="SFB5 · 397 mm"><b>SFB5</b><span>397</span></div><i class="saw-tick" style="left:87.34222%" aria-hidden="true"></i><div class="stock-piece" style="left:87.40444%;width:8.82222%" title="SFB6 · 397 mm"><b>SFB6</b><span>397</span></div><i class="saw-tick" style="left:96.22667%" aria-hidden="true"></i><div class="stock-waste" style="left:96.28889%;width:3.71111%"><span>167</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P04"> <b>P04</b></label>
+        <span class="stock-count">3 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P04: RSC3, 1 175 millimetres; RSC4, 1 175 millimetres; RSC5, 1 175 millimetres; 966.6 millimetre offcut">
+          <div class="stock-piece is-gang" style="left:0.00000%;width:26.11111%" title="RSC3 · 1 175 mm"><b>RSC3</b><span>1 175</span></div><i class="saw-tick" style="left:26.11111%" aria-hidden="true"></i><div class="stock-piece is-gang" style="left:26.17333%;width:26.11111%" title="RSC4 · 1 175 mm"><b>RSC4</b><span>1 175</span></div><i class="saw-tick" style="left:52.28444%" aria-hidden="true"></i><div class="stock-piece is-gang" style="left:52.34667%;width:26.11111%" title="RSC5 · 1 175 mm"><b>RSC5</b><span>1 175</span></div><i class="saw-tick" style="left:78.45778%" aria-hidden="true"></i><div class="stock-waste" style="left:78.52000%;width:21.48000%"><span>966.6</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P05"> <b>P05</b></label>
+        <span class="stock-count">3 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P05: RSC6, 1 175 millimetres; RSC7, 1 175 millimetres; DCB1, 1 175 millimetres; 966.6 millimetre offcut">
+          <div class="stock-piece is-gang" style="left:0.00000%;width:26.11111%" title="RSC6 · 1 175 mm"><b>RSC6</b><span>1 175</span></div><i class="saw-tick" style="left:26.11111%" aria-hidden="true"></i><div class="stock-piece is-gang" style="left:26.17333%;width:26.11111%" title="RSC7 · 1 175 mm"><b>RSC7</b><span>1 175</span></div><i class="saw-tick" style="left:52.28444%" aria-hidden="true"></i><div class="stock-piece" style="left:52.34667%;width:26.11111%" title="DCB1 · 1 175 mm"><b>DCB1</b><span>1 175</span></div><i class="saw-tick" style="left:78.45778%" aria-hidden="true"></i><div class="stock-waste" style="left:78.52000%;width:21.48000%"><span>966.6</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P06"> <b>P06</b></label>
+        <span class="stock-count">3 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P06: DCB2, 1 175 millimetres; DCB3, 1 175 millimetres; DCB4, 1 175 millimetres; 966.6 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:26.11111%" title="DCB2 · 1 175 mm"><b>DCB2</b><span>1 175</span></div><i class="saw-tick" style="left:26.11111%" aria-hidden="true"></i><div class="stock-piece" style="left:26.17333%;width:26.11111%" title="DCB3 · 1 175 mm"><b>DCB3</b><span>1 175</span></div><i class="saw-tick" style="left:52.28444%" aria-hidden="true"></i><div class="stock-piece" style="left:52.34667%;width:26.11111%" title="DCB4 · 1 175 mm"><b>DCB4</b><span>1 175</span></div><i class="saw-tick" style="left:78.45778%" aria-hidden="true"></i><div class="stock-waste" style="left:78.52000%;width:21.48000%"><span>966.6</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P07"> <b>P07</b></label>
+        <span class="stock-count">3 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P07: DCB5, 1 175 millimetres; DCB6, 1 175 millimetres; DCB7, 1 175 millimetres; 966.6 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:26.11111%" title="DCB5 · 1 175 mm"><b>DCB5</b><span>1 175</span></div><i class="saw-tick" style="left:26.11111%" aria-hidden="true"></i><div class="stock-piece" style="left:26.17333%;width:26.11111%" title="DCB6 · 1 175 mm"><b>DCB6</b><span>1 175</span></div><i class="saw-tick" style="left:52.28444%" aria-hidden="true"></i><div class="stock-piece" style="left:52.34667%;width:26.11111%" title="DCB7 · 1 175 mm"><b>DCB7</b><span>1 175</span></div><i class="saw-tick" style="left:78.45778%" aria-hidden="true"></i><div class="stock-waste" style="left:78.52000%;width:21.48000%"><span>966.6</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P08"> <b>P08</b></label>
+        <span class="stock-count">4 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P08: DCB8, 1 175 millimetres; DCB9, 1 175 millimetres; BWC1, 1 050 millimetres; BWC2, 1 050 millimetres; 38.8 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:26.11111%" title="DCB8 · 1 175 mm"><b>DCB8</b><span>1 175</span></div><i class="saw-tick" style="left:26.11111%" aria-hidden="true"></i><div class="stock-piece" style="left:26.17333%;width:26.11111%" title="DCB9 · 1 175 mm"><b>DCB9</b><span>1 175</span></div><i class="saw-tick" style="left:52.28444%" aria-hidden="true"></i><div class="stock-piece" style="left:52.34667%;width:23.33333%" title="BWC1 · 1 050 mm"><b>BWC1</b><span>1 050</span></div><i class="saw-tick" style="left:75.68000%" aria-hidden="true"></i><div class="stock-piece" style="left:75.74222%;width:23.33333%" title="BWC2 · 1 050 mm"><b>BWC2</b><span>1 050</span></div><i class="saw-tick" style="left:99.07556%" aria-hidden="true"></i><div class="stock-waste" style="left:99.13778%;width:0.86222%"><span>38.8</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P09"> <b>P09</b></label>
+        <span class="stock-count">4 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P09: BWC3, 1 050 millimetres; BWC4, 1 050 millimetres; BWC5, 1 050 millimetres; BWC6, 1 050 millimetres; 288.8 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:23.33333%" title="BWC3 · 1 050 mm"><b>BWC3</b><span>1 050</span></div><i class="saw-tick" style="left:23.33333%" aria-hidden="true"></i><div class="stock-piece" style="left:23.39556%;width:23.33333%" title="BWC4 · 1 050 mm"><b>BWC4</b><span>1 050</span></div><i class="saw-tick" style="left:46.72889%" aria-hidden="true"></i><div class="stock-piece" style="left:46.79111%;width:23.33333%" title="BWC5 · 1 050 mm"><b>BWC5</b><span>1 050</span></div><i class="saw-tick" style="left:70.12444%" aria-hidden="true"></i><div class="stock-piece" style="left:70.18667%;width:23.33333%" title="BWC6 · 1 050 mm"><b>BWC6</b><span>1 050</span></div><i class="saw-tick" style="left:93.52000%" aria-hidden="true"></i><div class="stock-waste" style="left:93.58222%;width:6.41778%"><span>288.8</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P10"> <b>P10</b></label>
+        <span class="stock-count">5 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P10: BWC7, 1 050 millimetres; BWC8, 1 050 millimetres; FCB1, 747 millimetres; FCB2, 747 millimetres; FCB3, 747 millimetres; 145 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:23.33333%" title="BWC7 · 1 050 mm"><b>BWC7</b><span>1 050</span></div><i class="saw-tick" style="left:23.33333%" aria-hidden="true"></i><div class="stock-piece" style="left:23.39556%;width:23.33333%" title="BWC8 · 1 050 mm"><b>BWC8</b><span>1 050</span></div><i class="saw-tick" style="left:46.72889%" aria-hidden="true"></i><div class="stock-piece" style="left:46.79111%;width:16.60000%" title="FCB1 · 747 mm"><b>FCB1</b><span>747</span></div><i class="saw-tick" style="left:63.39111%" aria-hidden="true"></i><div class="stock-piece" style="left:63.45333%;width:16.60000%" title="FCB2 · 747 mm"><b>FCB2</b><span>747</span></div><i class="saw-tick" style="left:80.05333%" aria-hidden="true"></i><div class="stock-piece" style="left:80.11556%;width:16.60000%" title="FCB3 · 747 mm"><b>FCB3</b><span>747</span></div><i class="saw-tick" style="left:96.71556%" aria-hidden="true"></i><div class="stock-waste" style="left:96.77778%;width:3.22222%"><span>145</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P11"> <b>P11</b></label>
+        <span class="stock-count">6 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P11: FCB4, 747 millimetres; FCB5, 747 millimetres; FCB6, 747 millimetres; FCB7, 747 millimetres; FCB8, 747 millimetres; STB1, 500 millimetres; 248.2 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:16.60000%" title="FCB4 · 747 mm"><b>FCB4</b><span>747</span></div><i class="saw-tick" style="left:16.60000%" aria-hidden="true"></i><div class="stock-piece" style="left:16.66222%;width:16.60000%" title="FCB5 · 747 mm"><b>FCB5</b><span>747</span></div><i class="saw-tick" style="left:33.26222%" aria-hidden="true"></i><div class="stock-piece" style="left:33.32444%;width:16.60000%" title="FCB6 · 747 mm"><b>FCB6</b><span>747</span></div><i class="saw-tick" style="left:49.92444%" aria-hidden="true"></i><div class="stock-piece" style="left:49.98667%;width:16.60000%" title="FCB7 · 747 mm"><b>FCB7</b><span>747</span></div><i class="saw-tick" style="left:66.58667%" aria-hidden="true"></i><div class="stock-piece" style="left:66.64889%;width:16.60000%" title="FCB8 · 747 mm"><b>FCB8</b><span>747</span></div><i class="saw-tick" style="left:83.24889%" aria-hidden="true"></i><div class="stock-piece" style="left:83.31111%;width:11.11111%" title="STB1 · 500 mm"><b>STB1</b><span>500</span></div><i class="saw-tick" style="left:94.42222%" aria-hidden="true"></i><div class="stock-waste" style="left:94.48444%;width:5.51556%"><span>248.2</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="stock">
+      <header>
+        <label><input type="checkbox" data-check="P12"> <b>P12</b></label>
+        <span class="stock-count">9 pieces</span>
+      </header>
+      <div class="stock-scroll">
+        <div class="stock-track" style="--stock-aspect:18.750000"
+          role="img" aria-label="P12: STB2, 500 millimetres; STB3, 500 millimetres; STB4, 500 millimetres; STB5, 500 millimetres; STB6, 500 millimetres; STB7, 500 millimetres; STB8, 500 millimetres; SFB7, 397 millimetres; SFB8, 397 millimetres; 180.8 millimetre offcut">
+          <div class="stock-piece" style="left:0.00000%;width:11.11111%" title="STB2 · 500 mm"><b>STB2</b><span>500</span></div><i class="saw-tick" style="left:11.11111%" aria-hidden="true"></i><div class="stock-piece" style="left:11.17333%;width:11.11111%" title="STB3 · 500 mm"><b>STB3</b><span>500</span></div><i class="saw-tick" style="left:22.28444%" aria-hidden="true"></i><div class="stock-piece" style="left:22.34667%;width:11.11111%" title="STB4 · 500 mm"><b>STB4</b><span>500</span></div><i class="saw-tick" style="left:33.45778%" aria-hidden="true"></i><div class="stock-piece" style="left:33.52000%;width:11.11111%" title="STB5 · 500 mm"><b>STB5</b><span>500</span></div><i class="saw-tick" style="left:44.63111%" aria-hidden="true"></i><div class="stock-piece" style="left:44.69333%;width:11.11111%" title="STB6 · 500 mm"><b>STB6</b><span>500</span></div><i class="saw-tick" style="left:55.80444%" aria-hidden="true"></i><div class="stock-piece" style="left:55.86667%;width:11.11111%" title="STB7 · 500 mm"><b>STB7</b><span>500</span></div><i class="saw-tick" style="left:66.97778%" aria-hidden="true"></i><div class="stock-piece" style="left:67.04000%;width:11.11111%" title="STB8 · 500 mm"><b>STB8</b><span>500</span></div><i class="saw-tick" style="left:78.15111%" aria-hidden="true"></i><div class="stock-piece" style="left:78.21333%;width:8.82222%" title="SFB7 · 397 mm"><b>SFB7</b><span>397</span></div><i class="saw-tick" style="left:87.03556%" aria-hidden="true"></i><div class="stock-piece" style="left:87.09778%;width:8.82222%" title="SFB8 · 397 mm"><b>SFB8</b><span>397</span></div><i class="saw-tick" style="left:95.92000%" aria-hidden="true"></i><div class="stock-waste" style="left:95.98222%;width:4.01778%"><span>180.8</span></div>
+        </div>
+      </div>
+    </article></div>
+    <div class="note" id="fields">
+      <h3>Do not trim loose cladding</h3>
+      <p>Gaps between boards change the joined width. Fix each board to its unit frame before
+      you mark any final edge.</p>
+      <p>Use the frame edge to set the circular-saw guide. Cut only after the boards are fixed.
+      Sheet A-400 shows each estimated overhang and cut line.</p>
+    </div>
+  </section>
+
+  <section class="sheet" id="stacks">
+    <div class="sheet-head"><span class="sheet-no">Sheet A-400</span><h2>Unit drawings and assembly</h2></div>
+    <p class="sheet-note">Each drawing is an orthographic projection off the model. Solid
+    members are the frame. Tinted fields are cladding. Hatching shows the nominal material
+    left for an on-frame cut.</p>
+    <p class="sheet-note">Use the Frame and Cladding controls to change drawing emphasis.
+    The printed drawing keeps every cut line, trim label, and notch note visible.</p>
+    <div class="drawing-grid">
+          <article class="unit" id="unit-a" data-face="frame">
+            <header><span class="unit-letter">Stack A</span><div><h3>Roof unit</h3></div></header>
+            <figure class="drawing"><svg class="plate" viewBox="0 0 1000 1055" role="img" aria-label="Roof unit: plan"><path class="ghost" d="M62.0 62.0 L938.0 62.0 L938.0 967.2 L62.0 967.2 Z"/><path class="member" d="M87.0 175.4 L124.6 175.4 L124.6 853.8 L87.0 853.8 Z"/><path class="member" d="M875.4 175.4 L913.0 175.4 L913.0 853.8 L875.4 853.8 Z"/><path class="member" d="M87.0 850.2 L913.0 850.2 L913.0 891.2 L87.0 891.2 Z"/><path class="member" d="M87.0 138.0 L913.0 138.0 L913.0 179.0 L87.0 179.0 Z"/><path class="member" d="M124.6 475.4 L875.4 475.4 L875.4 516.4 L124.6 516.4 Z"/><text class="mark" x="105.8" y="514.6" text-anchor="middle" transform="rotate(-90 105.8 514.6)">RBS1</text><text class="mark" x="894.2" y="514.6" text-anchor="middle" transform="rotate(-90 894.2 514.6)">RBS2</text><text class="mark" x="500.0" y="870.7" text-anchor="middle">RBH1</text><text class="mark" x="500.0" y="158.5" text-anchor="middle">RBH2</text><text class="mark" x="500.0" y="495.9" text-anchor="middle">RBC1</text><path class="dim" d="M62.0 967.2 V1007.2 M938.0 967.2 V1007.2 M62.0 1007.2 H938.0"/><path class="dim-tick" d="M58.0 1011.2 L66.0 1003.2"/><path class="dim-tick" d="M934.0 1011.2 L942.0 1003.2"/><text class="dim-text" x="500.0" y="998.2" text-anchor="middle">1 050</text><path class="dim" d="M87.0 138.0 V98.0 M913.0 138.0 V98.0 M87.0 98.0 H913.0"/><path class="dim-tick" d="M83.0 102.0 L91.0 94.0"/><path class="dim-tick" d="M909.0 102.0 L917.0 94.0"/><text class="dim-text" x="500.0" y="89.0" text-anchor="middle">990</text><path class="dim" d="M938.0 62.0 H978.0 M938.0 967.2 H978.0 M978.0 62.0 V967.2"/><path class="dim-tick" d="M974.0 58.0 L982.0 66.0"/><path class="dim-tick" d="M974.0 963.2 L982.0 971.2"/><text class="dim-text" x="970.0" y="514.6" text-anchor="middle" transform="rotate(-90 970.0 514.6)">1 085</text><text class="note-text" x="14" y="28" text-anchor="start">sheet ghosted · slope beams foreshortened, cut them to the batch length</text></svg><figcaption><span class="drawing-name">ROOF UNIT</span><span class="drawing-ref">A-401 · PLAN</span><span class="drawing-note">front edge at the bottom · built flat, then hung</span></figcaption></figure>
+            <div class="unit-steps"><h4>Assembly</h4><ol><li>Lay RBH1 and RBH2 around RBS1 and RBS2. Center RBC1. Match the diagonals, then fasten the frame.</li><li>Center the metal sheet with 30 at each side and 93.1 at the front and rear.</li><li>Fit the moving hinge leaf. After the shell is square, fit the fixed leaf and hang the roof.</li></ol></div>
+            <div class="code-strip"><b class="code">RBC1</b><b class="code">RBH1</b><b class="code">RBH2</b><b class="code">RBS1</b><b class="code">RBS2</b></div>
+            <label class="stack-check"><input type="checkbox" data-check="unit-a"> Unit complete</label>
+          </article>
+          <article class="unit" id="unit-b" data-face="frame">
+            <header><span class="unit-letter">Stack B</span><div><h3>Door unit</h3></div><div class="unit-face" data-unit-face="B" role="group" aria-label="Door unit drawing layer"><button class="is-on" type="button" data-face="frame" aria-pressed="true">Frame</button><button type="button" data-face="cladding" aria-pressed="false">Cladding</button></div></header>
+            <figure class="drawing"><svg class="plate" viewBox="0 0 1000 1190" role="img" aria-label="Door unit: front elevation"><path class="field" d="M938.0 1101.7 L938.0 101.8 L898.2 101.8 L898.2 62.0 L101.8 62.0 L101.8 101.8 L62.0 101.8 L62.0 1101.7 Z"/><path class="trim" d="M938.0 101.8 L946.8 101.8 L946.8 1101.7 L938.0 1101.7 Z"/><line class="cut" x1="938.0" y1="101.8" x2="938.0" y2="1101.7"/><text class="small" x="942.4" y="601.8" text-anchor="middle" transform="rotate(-90 942.4 601.8)">EST. 10 · CUT AFTER FIXING</text><clipPath id="door-field"><path d="M938.0 1101.7 L938.0 101.8 L898.2 101.8 L898.2 62.0 L101.8 62.0 L101.8 101.8 L62.0 101.8 L62.0 1101.7 Z"/></clipPath><g clip-path="url(#door-field)"><line class="joint" x1="159.3" y1="1119.4" x2="159.3" y2="44.3"/><line class="joint" x1="256.7" y1="1119.4" x2="256.7" y2="44.3"/><line class="joint" x1="354.0" y1="1119.4" x2="354.0" y2="44.3"/><line class="joint" x1="451.3" y1="1119.4" x2="451.3" y2="44.3"/><line class="joint" x1="548.7" y1="1119.4" x2="548.7" y2="44.3"/><line class="joint" x1="646.0" y1="1119.4" x2="646.0" y2="44.3"/><line class="joint" x1="743.3" y1="1119.4" x2="743.3" y2="44.3"/><line class="joint" x1="840.7" y1="1119.4" x2="840.7" y2="44.3"/></g><text class="note-text" x="14" y="28" text-anchor="start">DCB1–DCB9 · 9 boards · fix rough, then trim to frame</text><path class="member" d="M62.0 1101.7 L101.8 1101.7 L101.8 172.6 L62.0 172.6 Z"/><path class="member" d="M898.2 1101.7 L938.0 1101.7 L938.0 172.6 L898.2 172.6 Z"/><path class="member" d="M101.8 1101.7 L898.2 1101.7 L898.2 1061.9 L101.8 1061.9 Z"/><path class="member" d="M101.8 212.4 L898.2 212.4 L898.2 172.6 L101.8 172.6 Z"/><path class="member" d="M101.8 212.4 L845.3 1061.9 L898.2 1061.9 L154.7 212.4 Z"/><text class="mark" x="81.9" y="637.2" text-anchor="middle" transform="rotate(-90 81.9 637.2)">DBV1</text><text class="mark" x="918.1" y="637.2" text-anchor="middle" transform="rotate(-90 918.1 637.2)">DBV2</text><text class="mark" x="500.0" y="1081.8" text-anchor="middle">DBH1</text><text class="mark" x="500.0" y="192.5" text-anchor="middle">DBH2</text><text class="mark" x="500.0" y="637.2" text-anchor="middle">DBD1</text><path class="dim" d="M62.0 172.6 V132.6 M938.0 172.6 V132.6 M62.0 132.6 H938.0"/><path class="dim-tick" d="M58.0 136.6 L66.0 128.6"/><path class="dim-tick" d="M934.0 136.6 L942.0 128.6"/><text class="dim-text" x="500.0" y="123.6" text-anchor="middle">990</text><path class="dim" d="M62.0 172.6 H22.0 M62.0 1101.7 H22.0 M22.0 172.6 V1101.7"/><path class="dim-tick" d="M18.0 168.6 L26.0 176.6"/><path class="dim-tick" d="M18.0 1097.7 L26.0 1105.7"/><text class="dim-text" x="14.0" y="637.2" text-anchor="middle" transform="rotate(-90 14.0 637.2)">1 050</text><path class="dim" d="M938.0 62.0 H978.0 M938.0 1101.7 H978.0 M978.0 62.0 V1101.7"/><path class="dim-tick" d="M974.0 58.0 L982.0 66.0"/><path class="dim-tick" d="M974.0 1097.7 L982.0 1105.7"/><text class="dim-text" x="970.0" y="581.8" text-anchor="middle" transform="rotate(-90 970.0 581.8)">1 175</text></svg><figcaption><span class="drawing-name">DOOR UNIT</span><span class="drawing-ref">A-402 · FRONT ELEVATION</span><span class="drawing-note">seen from outside the door · hatched edge is the estimated on-frame trim</span></figcaption></figure>
+            <div class="unit-steps"><h4>Assembly</h4><ol><li>Build the DBV and DBH frame. Fit DBD1 and match the diagonals.</li><li>Fix DCB1 to DCB9 on the inside face. Align DCB1 with the left frame edge.</li><li>Use the right frame edge to set the circular-saw guide. Cut the estimated 10 overhang after the boards are fixed.</li><li>Cut the two top reliefs shown. Fit the moving hinge leaves, then hang the door with a 10 gap after the shell is square.</li></ol></div>
+            <div class="code-strip"><b class="code">DBD1</b><b class="code">DBH1</b><b class="code">DBH2</b><b class="code">DBV1</b><b class="code">DBV2</b><b class="code">DCB1</b><b class="code">DCB2</b><b class="code">DCB3</b><b class="code">DCB4</b><b class="code">DCB5</b><b class="code">DCB6</b><b class="code">DCB7</b><b class="code">DCB8</b><b class="code">DCB9</b></div>
+            <label class="stack-check"><input type="checkbox" data-check="unit-b"> Unit complete</label>
+          </article>
+          <article class="unit" id="unit-c" data-face="frame">
+            <header><span class="unit-letter">Stack C</span><div><h3>Left side</h3></div><div class="unit-face" data-unit-face="C" role="group" aria-label="Left side drawing layer"><button class="is-on" type="button" data-face="frame" aria-pressed="true">Frame</button><button type="button" data-face="cladding" aria-pressed="false">Cladding</button></div></header>
+            <figure class="drawing"><svg class="plate" viewBox="0 0 1000 1520" role="img" aria-label="Left side unit: left elevation"><path class="field" d="M110.4 1324.9 L889.6 1324.9 L889.6 1276.6 L938.0 1276.6 L938.0 62.0 L110.4 169.5 Z"/><path class="trim" d="M110.4 169.5 L99.6 169.5 L99.6 1324.9 L110.4 1324.9 Z"/><line class="cut" x1="110.4" y1="169.5" x2="110.4" y2="1324.9"/><text class="small" x="105.0" y="747.2" text-anchor="middle" transform="rotate(-90 105.0 747.2)">EST. 10 · CUT AFTER FIXING</text><path class="trim" d="M938.0 62.0 L110.4 62.0 L110.4 169.5 Z"/><line class="cut" x1="938.0" y1="62.0" x2="110.4" y2="169.5"/><text class="small" x="386.2" y="97.8" text-anchor="middle">MARK · GANG CUT AFTER FIXING</text><clipPath id="left-field"><path d="M110.4 1324.9 L889.6 1324.9 L889.6 1276.6 L938.0 1276.6 L938.0 62.0 L110.4 169.5 Z"/></clipPath><g clip-path="url(#left-field)"><line class="joint" x1="819.8" y1="1346.4" x2="819.8" y2="40.5"/><line class="joint" x1="701.5" y1="1346.4" x2="701.5" y2="40.5"/><line class="joint" x1="583.3" y1="1346.4" x2="583.3" y2="40.5"/><line class="joint" x1="465.1" y1="1346.4" x2="465.1" y2="40.5"/><line class="joint" x1="346.8" y1="1346.4" x2="346.8" y2="40.5"/><line class="joint" x1="228.6" y1="1346.4" x2="228.6" y2="40.5"/></g><text class="note-text" x="14" y="28" text-anchor="start">LSC1–LSC7 · 7 boards · fix rough, then trim to frame</text><path class="member" d="M938.0 1432.4 L938.0 196.4 L889.6 196.4 L889.6 1432.4 Z"/><path class="member" d="M110.4 1432.4 L110.4 196.4 L62.0 196.4 L62.0 1432.4 Z"/><path class="member" d="M889.6 1324.9 L889.6 1276.6 L110.4 1276.6 L110.4 1324.9 Z"/><path class="member" d="M889.6 244.7 L889.6 196.4 L110.4 196.4 L110.4 244.7 Z"/><path class="member" d="M889.6 244.7 L169.4 1276.6 L110.4 1276.6 L830.6 244.7 Z"/><text class="mark" x="913.8" y="814.4" text-anchor="middle" transform="rotate(-90 913.8 814.4)">LSV1</text><text class="mark" x="86.2" y="814.4" text-anchor="middle" transform="rotate(-90 86.2 814.4)">LSV2</text><text class="mark" x="500.0" y="1300.8" text-anchor="middle">LSH1</text><text class="mark" x="500.0" y="220.5" text-anchor="middle">LSH2</text><text class="mark" x="500.0" y="760.7" text-anchor="middle">LSD1</text><path class="dim" d="M110.4 1324.9 V1364.9 M938.0 1324.9 V1364.9 M110.4 1364.9 H938.0"/><path class="dim-tick" d="M106.4 1368.9 L114.4 1360.9"/><path class="dim-tick" d="M934.0 1368.9 L942.0 1360.9"/><text class="dim-text" x="524.2" y="1355.9" text-anchor="middle">770</text><path class="dim" d="M938.0 62.0 H978.0 M938.0 1324.9 H978.0 M978.0 62.0 V1324.9"/><path class="dim-tick" d="M974.0 58.0 L982.0 66.0"/><path class="dim-tick" d="M974.0 1320.9 L982.0 1328.9"/><text class="dim-text" x="970.0" y="693.5" text-anchor="middle" transform="rotate(-90 970.0 693.5)">1 175</text><path class="leader" d="M913.8 1300.8 L749.9 1190.6"/><circle class="leader-dot" cx="913.8" cy="1300.8" r="4"/><text class="small" x="740.9" y="1196.6" text-anchor="end">45 × 45 NOTCH</text></svg><figcaption><span class="drawing-name">LEFT SIDE UNIT</span><span class="drawing-ref">A-403 · LEFT ELEVATION</span><span class="drawing-note">front edge to the right · 100 fall over 770 · 45 × 45 bottom-front notch</span></figcaption></figure>
+            <div class="unit-steps"><h4>Assembly</h4><ol><li>Build the frame. Match its diagonals before you fix LSC1 to LSC7.</li><li>Fix the square LSC boards from front to rear. Align their lower and front edges.</li><li>Mark 1 175 at the front and 1 075 at the rear. Set the circular-saw guide and make one gang cut after the boards are fixed.</li><li>Use the rear frame edge to set the circular-saw guide. Cut the estimated 10 overhang, then cut the 45 × 45 bottom-front notch.</li><li>Do not pre-cut the roof reliefs. Hang and close the roof, then cut only to the scribe.</li></ol></div>
+            <div class="code-strip"><b class="code">LSC1</b><b class="code">LSC2</b><b class="code">LSC3</b><b class="code">LSC4</b><b class="code">LSC5</b><b class="code">LSC6</b><b class="code">LSC7</b><b class="code">LSD1</b><b class="code">LSH1</b><b class="code">LSH2</b><b class="code">LSV1</b><b class="code">LSV2</b></div>
+            <label class="stack-check"><input type="checkbox" data-check="unit-c"> Unit complete</label>
+          </article>
+          <article class="unit" id="unit-d" data-face="frame">
+            <header><span class="unit-letter">Stack D</span><div><h3>Right side</h3></div><div class="unit-face" data-unit-face="D" role="group" aria-label="Right side drawing layer"><button class="is-on" type="button" data-face="frame" aria-pressed="true">Frame</button><button type="button" data-face="cladding" aria-pressed="false">Cladding</button></div></header>
+            <figure class="drawing"><svg class="plate" viewBox="0 0 1000 1520" role="img" aria-label="Right side unit: right elevation"><path class="field" d="M110.4 1324.9 L889.6 1324.9 L889.6 169.5 L62.0 62.0 L62.0 1276.6 L110.4 1276.6 Z"/><path class="trim" d="M889.6 169.5 L900.4 169.5 L900.4 1324.9 L889.6 1324.9 Z"/><line class="cut" x1="889.6" y1="169.5" x2="889.6" y2="1324.9"/><text class="small" x="895.0" y="747.2" text-anchor="middle" transform="rotate(-90 895.0 747.2)">EST. 10 · CUT AFTER FIXING</text><path class="trim" d="M62.0 62.0 L889.6 62.0 L889.6 169.5 Z"/><line class="cut" x1="62.0" y1="62.0" x2="889.6" y2="169.5"/><text class="small" x="613.8" y="97.8" text-anchor="middle">MARK · GANG CUT AFTER FIXING</text><clipPath id="right-field"><path d="M110.4 1324.9 L889.6 1324.9 L889.6 169.5 L62.0 62.0 L62.0 1276.6 L110.4 1276.6 Z"/></clipPath><g clip-path="url(#right-field)"><line class="joint" x1="180.2" y1="1346.4" x2="180.2" y2="40.5"/><line class="joint" x1="298.5" y1="1346.4" x2="298.5" y2="40.5"/><line class="joint" x1="416.7" y1="1346.4" x2="416.7" y2="40.5"/><line class="joint" x1="534.9" y1="1346.4" x2="534.9" y2="40.5"/><line class="joint" x1="653.2" y1="1346.4" x2="653.2" y2="40.5"/><line class="joint" x1="771.4" y1="1346.4" x2="771.4" y2="40.5"/></g><text class="note-text" x="14" y="28" text-anchor="start">RSC1–RSC7 · 7 boards · fix rough, then trim to frame</text><path class="member" d="M62.0 1432.4 L62.0 196.4 L110.4 196.4 L110.4 1432.4 Z"/><path class="member" d="M889.6 1432.4 L889.6 196.4 L938.0 196.4 L938.0 1432.4 Z"/><path class="member" d="M110.4 1324.9 L110.4 1276.6 L889.6 1276.6 L889.6 1324.9 Z"/><path class="member" d="M110.4 244.7 L110.4 196.4 L889.6 196.4 L889.6 244.7 Z"/><path class="member" d="M110.4 244.7 L830.6 1276.6 L889.6 1276.6 L169.4 244.7 Z"/><text class="mark" x="86.2" y="814.4" text-anchor="middle" transform="rotate(-90 86.2 814.4)">RSV1</text><text class="mark" x="913.8" y="814.4" text-anchor="middle" transform="rotate(-90 913.8 814.4)">RSV2</text><text class="mark" x="500.0" y="1300.8" text-anchor="middle">RSH1</text><text class="mark" x="500.0" y="220.5" text-anchor="middle">RSH2</text><text class="mark" x="500.0" y="760.7" text-anchor="middle">RSD1</text><path class="dim" d="M62.0 1324.9 V1364.9 M889.6 1324.9 V1364.9 M62.0 1364.9 H889.6"/><path class="dim-tick" d="M58.0 1368.9 L66.0 1360.9"/><path class="dim-tick" d="M885.6 1368.9 L893.6 1360.9"/><text class="dim-text" x="475.8" y="1355.9" text-anchor="middle">770</text><path class="dim" d="M62.0 62.0 H22.0 M62.0 1324.9 H22.0 M22.0 62.0 V1324.9"/><path class="dim-tick" d="M18.0 58.0 L26.0 66.0"/><path class="dim-tick" d="M18.0 1320.9 L26.0 1328.9"/><text class="dim-text" x="14.0" y="693.5" text-anchor="middle" transform="rotate(-90 14.0 693.5)">1 175</text><path class="leader" d="M86.2 1300.8 L250.1 1190.6"/><circle class="leader-dot" cx="86.2" cy="1300.8" r="4"/><text class="small" x="259.1" y="1196.6" text-anchor="start">45 × 45 NOTCH</text></svg><figcaption><span class="drawing-name">RIGHT SIDE UNIT</span><span class="drawing-ref">A-404 · RIGHT ELEVATION</span><span class="drawing-note">front edge to the left · 100 fall over 770 · 45 × 45 bottom-front notch</span></figcaption></figure>
+            <div class="unit-steps"><h4>Assembly</h4><ol><li>Build the frame. Match its diagonals before you fix RSC1 to RSC7.</li><li>Fix the square RSC boards from front to rear. Align their lower and front edges.</li><li>Mark 1 175 at the front and 1 075 at the rear. Set the circular-saw guide and make one gang cut after the boards are fixed.</li><li>Use the rear frame edge to set the circular-saw guide. Cut the estimated 10 overhang, then cut the 45 × 45 bottom-front notch.</li><li>Do not pre-cut the roof reliefs. Hang and close the roof, then cut only to the scribe.</li></ol></div>
+            <div class="code-strip"><b class="code">RSC1</b><b class="code">RSC2</b><b class="code">RSC3</b><b class="code">RSC4</b><b class="code">RSC5</b><b class="code">RSC6</b><b class="code">RSC7</b><b class="code">RSD1</b><b class="code">RSH1</b><b class="code">RSH2</b><b class="code">RSV1</b><b class="code">RSV2</b></div>
+            <label class="stack-check"><input type="checkbox" data-check="unit-d"> Unit complete</label>
+          </article>
+          <article class="unit" id="unit-e" data-face="frame">
+            <header><span class="unit-letter">Stack E</span><div><h3>Back unit</h3></div><div class="unit-face" data-unit-face="E" role="group" aria-label="Back unit drawing layer"><button class="is-on" type="button" data-face="frame" aria-pressed="true">Frame</button><button type="button" data-face="cladding" aria-pressed="false">Cladding</button></div></header>
+            <figure class="drawing"><svg class="plate" viewBox="0 0 1000 1168" role="img" aria-label="Back unit: rear elevation"><path class="ghost" d="M938.0 1079.6 L898.2 1079.6 L898.2 62.0 L938.0 62.0 Z"/><path class="ghost" d="M101.8 1079.6 L62.0 1079.6 L62.0 62.0 L101.8 62.0 Z"/><path class="field" d="M877.8 991.1 L122.2 991.1 L122.2 62.0 L877.8 62.0 Z"/><path class="trim" d="M122.2 62.0 L90.3 62.0 L90.3 991.1 L122.2 991.1 Z"/><line class="cut" x1="122.2" y1="62.0" x2="122.2" y2="991.1"/><text class="small" x="106.2" y="526.5" text-anchor="middle" transform="rotate(-90 106.2 526.5)">EST. 36 · CUT AFTER FIXING</text><clipPath id="back-field"><path d="M877.8 991.1 L122.2 991.1 L122.2 62.0 L877.8 62.0 Z"/></clipPath><g clip-path="url(#back-field)"><line class="joint" x1="780.5" y1="1008.8" x2="780.5" y2="44.3"/><line class="joint" x1="683.2" y1="1008.8" x2="683.2" y2="44.3"/><line class="joint" x1="585.8" y1="1008.8" x2="585.8" y2="44.3"/><line class="joint" x1="488.5" y1="1008.8" x2="488.5" y2="44.3"/><line class="joint" x1="391.2" y1="1008.8" x2="391.2" y2="44.3"/><line class="joint" x1="293.8" y1="1008.8" x2="293.8" y2="44.3"/><line class="joint" x1="196.5" y1="1008.8" x2="196.5" y2="44.3"/></g><text class="note-text" x="14" y="28" text-anchor="start">BWC1–BWC8 · 8 boards · fix rough, then trim to frame</text><path class="member" d="M898.2 991.1 L101.8 991.1 L101.8 951.3 L898.2 951.3 Z"/><path class="member" d="M898.2 101.8 L101.8 101.8 L101.8 62.0 L898.2 62.0 Z"/><path class="member" d="M101.8 101.8 L845.3 951.3 L898.2 951.3 L154.7 101.8 Z"/><text class="mark" x="500.0" y="971.2" text-anchor="middle">BWH1</text><text class="mark" x="500.0" y="81.9" text-anchor="middle">BWH2</text><text class="mark" x="500.0" y="526.5" text-anchor="middle">BWD1</text><path class="dim" d="M62.0 62.0 V22.0 M938.0 62.0 V22.0 M62.0 22.0 H938.0"/><path class="dim-tick" d="M58.0 26.0 L66.0 18.0"/><path class="dim-tick" d="M934.0 26.0 L942.0 18.0"/><text class="dim-text" x="500.0" y="13.0" text-anchor="middle">990</text><path class="dim" d="M122.2 991.1 V1031.1 M877.8 991.1 V1031.1 M122.2 1031.1 H877.8"/><path class="dim-tick" d="M118.2 1035.1 L126.2 1027.1"/><path class="dim-tick" d="M873.8 1035.1 L881.8 1027.1"/><text class="dim-text" x="500.0" y="1022.1" text-anchor="middle">854</text><path class="dim" d="M62.0 991.1 V1075.1 M122.2 991.1 V1075.1 M62.0 1075.1 H122.2"/><path class="dim-tick" d="M58.0 1079.1 L66.0 1071.1"/><path class="dim-tick" d="M118.2 1079.1 L126.2 1071.1"/><text class="dim-text" x="92.1" y="1066.1" text-anchor="middle">68</text><path class="dim" d="M938.0 62.0 H974.0 M938.0 991.1 H974.0 M974.0 62.0 V991.1"/><path class="dim-tick" d="M970.0 58.0 L978.0 66.0"/><path class="dim-tick" d="M970.0 987.1 L978.0 995.1"/><text class="dim-text" x="966.0" y="526.5" text-anchor="middle" transform="rotate(-90 966.0 526.5)">1 050</text></svg><figcaption><span class="drawing-name">BACK UNIT</span><span class="drawing-ref">A-405 · REAR ELEVATION</span><span class="drawing-note">seen from outside the back wall · posts ghosted · trim after the boards are fixed</span></figcaption></figure>
+            <div class="unit-steps"><h4>Assembly</h4><ol><li>Build BWH1 and BWH2 with BWD1. Install this bare frame between the two side units.</li><li>Fix BWC1 to BWC8 inside the side cladding. Align BWC1 with the left landing mark.</li><li>Use the right landing mark to set the circular-saw guide. Cut the estimated 36 overhang after the boards are fixed.</li></ol></div>
+            <div class="code-strip"><b class="code">BWC1</b><b class="code">BWC2</b><b class="code">BWC3</b><b class="code">BWC4</b><b class="code">BWC5</b><b class="code">BWC6</b><b class="code">BWC7</b><b class="code">BWC8</b><b class="code">BWD1</b><b class="code">BWH1</b><b class="code">BWH2</b></div>
+            <label class="stack-check"><input type="checkbox" data-check="unit-e"> Unit complete</label>
+          </article>
+          <article class="unit" id="unit-f" data-face="frame">
+            <header><span class="unit-letter">Stack F</span><div><h3>Floor deck</h3></div><div class="unit-face" data-unit-face="F" role="group" aria-label="Floor deck drawing layer"><button class="is-on" type="button" data-face="frame" aria-pressed="true">Frame</button><button type="button" data-face="cladding" aria-pressed="false">Cladding</button></div></header>
+            <figure class="drawing"><svg class="plate" viewBox="0 0 1000 877" role="img" aria-label="Floor deck: plan"><path class="ghost" d="M62.0 789.1 L62.0 745.3 L938.0 745.3 L938.0 789.1 Z"/><path class="field" d="M84.4 789.1 L84.4 62.0 L915.6 62.0 L915.6 789.1 Z"/><path class="trim" d="M915.6 62.0 L950.7 62.0 L950.7 789.1 L915.6 789.1 Z"/><line class="cut" x1="915.6" y1="62.0" x2="915.6" y2="789.1"/><text class="small" x="933.1" y="425.5" text-anchor="middle" transform="rotate(-90 933.1 425.5)">EST. 36 · CUT AFTER FIXING</text><clipPath id="floor-field"><path d="M84.4 789.1 L84.4 62.0 L915.6 62.0 L915.6 789.1 Z"/></clipPath><g clip-path="url(#floor-field)"><line class="joint" x1="191.5" y1="808.5" x2="191.5" y2="42.5"/><line class="joint" x1="298.5" y1="808.5" x2="298.5" y2="42.5"/><line class="joint" x1="405.6" y1="808.5" x2="405.6" y2="42.5"/><line class="joint" x1="512.7" y1="808.5" x2="512.7" y2="42.5"/><line class="joint" x1="619.7" y1="808.5" x2="619.7" y2="42.5"/><line class="joint" x1="726.8" y1="808.5" x2="726.8" y2="42.5"/><line class="joint" x1="833.9" y1="808.5" x2="833.9" y2="42.5"/></g><text class="note-text" x="14" y="28" text-anchor="start">FCB1–FCB8 · 8 boards · fix rough, then trim to frame</text><path class="member" d="M84.4 105.8 L84.4 62.0 L915.6 62.0 L915.6 105.8 Z"/><path class="member" d="M84.4 745.3 L84.4 105.8 L128.2 105.8 L128.2 745.3 Z"/><path class="member" d="M871.8 745.3 L871.8 105.8 L915.6 105.8 L915.6 745.3 Z"/><text class="mark" x="500.0" y="83.9" text-anchor="middle">FBB1</text><text class="mark" x="106.3" y="425.5" text-anchor="middle" transform="rotate(-90 106.3 425.5)">FBS1</text><text class="mark" x="893.7" y="425.5" text-anchor="middle" transform="rotate(-90 893.7 425.5)">FBS2</text><path class="dim" d="M84.4 789.1 V833.1 M915.6 789.1 V833.1 M84.4 833.1 H915.6"/><path class="dim-tick" d="M80.4 837.1 L88.4 829.1"/><path class="dim-tick" d="M911.6 837.1 L919.6 829.1"/><text class="dim-text" x="500.0" y="824.1" text-anchor="middle">854</text><path class="dim" d="M84.4 62.0 H44.4 M84.4 789.1 H44.4 M44.4 62.0 V789.1"/><path class="dim-tick" d="M40.4 58.0 L48.4 66.0"/><path class="dim-tick" d="M40.4 785.1 L48.4 793.1"/><text class="dim-text" x="36.4" y="425.5" text-anchor="middle" transform="rotate(-90 36.4 425.5)">747</text><text class="small" x="500.0" y="767.2" text-anchor="middle">FBH1 · FRONT EDGE LANDS HERE LAST</text></svg><figcaption><span class="drawing-name">FLOOR DECK</span><span class="drawing-ref">A-406 · PLAN</span><span class="drawing-note">front edge at the bottom · trim on the bearers before fitting the deck</span></figcaption></figure>
+            <div class="unit-steps"><h4>Assembly</h4><ol><li>Build the three-sided bearer frame from FBS1, FBS2, and FBB1.</li><li>Fix FCB1 to FCB8 to the bearers. Align FCB1 with the left bearer edge.</li><li>Use the right bearer edge to set the circular-saw guide. Cut the estimated 36 overhang after the boards are fixed.</li><li>Lower the deck into the square shell. Fasten its front edge to FBH1.</li></ol></div>
+            <div class="code-strip"><b class="code">FBB1</b><b class="code">FBS1</b><b class="code">FBS2</b><b class="code">FCB1</b><b class="code">FCB2</b><b class="code">FCB3</b><b class="code">FCB4</b><b class="code">FCB5</b><b class="code">FCB6</b><b class="code">FCB7</b><b class="code">FCB8</b></div>
+            <label class="stack-check"><input type="checkbox" data-check="unit-f"> Unit complete</label>
+          </article>
+          <article class="unit" id="unit-g" data-face="frame">
+            <header><span class="unit-letter">Stack G</span><div><h3>Shell joint</h3></div></header>
+            <figure class="drawing"><svg class="plate" viewBox="0 0 1000 941" role="img" aria-label="Shell joint: plan section at 122.5"><path class="cut-field" d="M105.5 105.5 L125.6 105.5 L125.6 741.1 L105.5 741.1 Z"/><path class="cut-field" d="M874.4 105.5 L894.5 105.5 L894.5 741.1 L874.4 741.1 Z"/><path class="cut-field" d="M125.6 105.5 L874.4 105.5 L874.4 125.6 L125.6 125.6 Z"/><path class="cut-field" d="M66.0 789.3 L934.0 789.3 L934.0 809.5 L66.0 809.5 Z"/><path class="cut-member" d="M66.0 741.1 L105.5 741.1 L105.5 780.6 L66.0 780.6 Z"/><path class="cut-member" d="M894.5 741.1 L934.0 741.1 L934.0 780.6 L894.5 780.6 Z"/><path class="cut-member" d="M66.0 66.0 L105.5 66.0 L105.5 105.5 L66.0 105.5 Z"/><path class="cut-member" d="M894.5 66.0 L934.0 66.0 L934.0 105.5 L894.5 105.5 Z"/><path class="cut-member" d="M105.5 741.1 L894.5 741.1 L894.5 780.6 L105.5 780.6 Z"/><path class="cut-member" d="M105.5 66.0 L894.5 66.0 L894.5 105.5 L105.5 105.5 Z"/><path class="cut-member" d="M66.0 105.5 L105.5 105.5 L105.5 741.1 L66.0 741.1 Z"/><path class="cut-member" d="M894.5 105.5 L934.0 105.5 L934.0 741.1 L894.5 741.1 Z"/><path class="cut-member" d="M125.6 125.6 L874.4 125.6 L874.4 165.1 L125.6 165.1 Z"/><path class="cut-member" d="M125.6 165.1 L165.1 165.1 L165.1 741.1 L125.6 741.1 Z"/><path class="cut-member" d="M834.9 165.1 L874.4 165.1 L874.4 741.1 L834.9 741.1 Z"/><path class="cut-member" d="M66.0 809.5 L105.5 809.5 L105.5 849.0 L66.0 849.0 Z"/><path class="cut-member" d="M894.5 809.5 L934.0 809.5 L934.0 849.0 L894.5 849.0 Z"/><path class="cut-member" d="M105.5 809.5 L894.5 809.5 L894.5 849.0 L105.5 849.0 Z"/><text class="mark" x="500.0" y="760.8" text-anchor="middle">FBH1</text><text class="mark" x="500.0" y="85.7" text-anchor="middle">BWH1</text><text class="mark" x="85.7" y="423.3" text-anchor="middle" transform="rotate(-90 85.7 423.3)">LSH1</text><text class="mark" x="914.3" y="423.3" text-anchor="middle" transform="rotate(-90 914.3 423.3)">RSH1</text><text class="mark" x="500.0" y="145.3" text-anchor="middle">FBB1</text><text class="mark" x="145.3" y="453.1" text-anchor="middle" transform="rotate(-90 145.3 453.1)">FBS1</text><text class="mark" x="854.7" y="453.1" text-anchor="middle" transform="rotate(-90 854.7 453.1)">FBS2</text><text class="mark" x="115.5" y="423.3" text-anchor="middle" transform="rotate(-90 115.5 423.3)"></text><text class="mark" x="884.5" y="423.3" text-anchor="middle" transform="rotate(-90 884.5 423.3)"></text><text class="mark" x="500.0" y="115.5" text-anchor="middle"></text><text class="mark" x="500.0" y="829.2" text-anchor="middle">DBH1</text><text class="mark" x="500.0" y="799.4" text-anchor="middle"></text><path class="dim" d="M66.0 66.0 V26.0 M934.0 66.0 V26.0 M66.0 26.0 H934.0"/><path class="dim-tick" d="M62.0 30.0 L70.0 22.0"/><path class="dim-tick" d="M930.0 30.0 L938.0 22.0"/><text class="dim-text" x="500.0" y="17.0" text-anchor="middle">990</text><path class="dim" d="M66.0 780.6 H32.0 M66.0 66.0 H32.0 M32.0 780.6 V66.0"/><path class="dim-tick" d="M28.0 776.6 L36.0 784.6"/><path class="dim-tick" d="M28.0 62.0 L36.0 70.0"/><text class="dim-text" x="24.0" y="423.3" text-anchor="middle" transform="rotate(-90 24.0 423.3)">815</text><path class="leader" d="M85.7 423.3 L335.1 423.3"/><circle class="leader-dot" cx="85.7" cy="423.3" r="4"/><text class="small" x="344.1" y="429.3" text-anchor="start">45 FRAME</text><path class="leader" d="M115.5 502.2 L335.1 502.2"/><circle class="leader-dot" cx="115.5" cy="502.2" r="4"/><text class="small" x="344.1" y="508.2" text-anchor="start">23 FIELD INSIDE IT</text></svg><figcaption><span class="drawing-name">SHELL JOINT</span><span class="drawing-ref">A-407 · PLAN SECTION AT 122.5</span><span class="drawing-note">every landing shown, measured off the ground</span></figcaption></figure>
+            <div class="unit-steps"><h4>Assembly</h4><ol><li>Brace the left and right units upright. Install the back frame between them.</li><li>Install FBH1 across the front at the 100 leg datum.</li><li>Match the shell diagonals before the final fasteners. Then install the floor deck.</li></ol></div>
+            <div class="code-strip"><b class="code">FBH1</b></div>
+            <label class="stack-check"><input type="checkbox" data-check="unit-g"> Unit complete</label>
+          </article>
+          <article class="unit" id="unit-h" data-face="frame">
+            <header><span class="unit-letter">Stack H</span><div><h3>Seat box</h3></div><div class="unit-face" data-unit-face="H" role="group" aria-label="Seat box drawing layer"><button class="is-on" type="button" data-face="frame" aria-pressed="true">Frame</button><button type="button" data-face="cladding" aria-pressed="false">Cladding</button></div></header>
+            <figure class="drawing"><svg class="plate" viewBox="0 0 1000 663" role="img" aria-label="Seat box: plan"><path class="field" d="M62.0 62.0 L62.0 574.9 L938.0 574.9 L938.0 62.0 Z"/><path class="trim" d="M938.0 62.0 L974.9 62.0 L974.9 574.9 L938.0 574.9 Z"/><line class="cut" x1="938.0" y1="62.0" x2="938.0" y2="574.9"/><text class="small" x="956.5" y="318.4" text-anchor="middle" transform="rotate(-90 956.5 318.4)">EST. 36 · CUT AFTER FIXING</text><clipPath id="seat-field"><path d="M62.0 62.0 L62.0 574.9 L938.0 574.9 L938.0 62.0 Z"/></clipPath><g clip-path="url(#seat-field)"><line class="joint" x1="174.8" y1="595.4" x2="174.8" y2="41.5"/><line class="joint" x1="287.7" y1="595.4" x2="287.7" y2="41.5"/><line class="joint" x1="400.5" y1="595.4" x2="400.5" y2="41.5"/><line class="joint" x1="513.3" y1="595.4" x2="513.3" y2="41.5"/><line class="joint" x1="626.2" y1="595.4" x2="626.2" y2="41.5"/><line class="joint" x1="739.0" y1="595.4" x2="739.0" y2="41.5"/><line class="joint" x1="851.8" y1="595.4" x2="851.8" y2="41.5"/></g><path class="under" d="M62.0 551.3 L62.0 505.1 L938.0 505.1 L938.0 551.3 Z"/><text class="mark" x="500.0" y="528.2" text-anchor="middle">SBH1</text><path class="under" d="M62.0 108.2 L62.0 62.0 L938.0 62.0 L938.0 108.2 Z"/><text class="mark" x="500.0" y="85.1" text-anchor="middle">SBH2</text><path class="under" d="M315.4 505.1 L315.4 108.2 L361.5 108.2 L361.5 505.1 Z"/><text class="mark" x="338.4" y="306.6" text-anchor="middle" transform="rotate(-90 338.4 306.6)">SBS1</text><path class="under" d="M638.5 505.1 L638.5 108.2 L684.6 108.2 L684.6 505.1 Z"/><text class="mark" x="661.6" y="306.6" text-anchor="middle" transform="rotate(-90 661.6 306.6)">SBS2</text><ellipse class="opening" cx="500.0" cy="318.4" rx="138.5" ry="169.3"/><path class="dim" d="M62.0 574.9 V618.9 M938.0 574.9 V618.9 M62.0 618.9 H938.0"/><path class="dim-tick" d="M58.0 622.9 L66.0 614.9"/><path class="dim-tick" d="M934.0 622.9 L942.0 614.9"/><text class="dim-text" x="500.0" y="609.9" text-anchor="middle">854</text><path class="dim" d="M938.0 62.0 H978.0 M938.0 574.9 H978.0 M978.0 62.0 V574.9"/><path class="dim-tick" d="M974.0 58.0 L982.0 66.0"/><path class="dim-tick" d="M974.0 570.9 L982.0 578.9"/><text class="dim-text" x="970.0" y="318.4" text-anchor="middle" transform="rotate(-90 970.0 318.4)">500</text><text class="small" x="500.0" y="318.4" text-anchor="middle">270 × 330</text><text class="note-text" x="14" y="28" text-anchor="start">STB1–STB8 · joined, then the opening is cut</text></svg><figcaption><span class="drawing-name">SEAT BOX</span><span class="drawing-ref">A-408 · PLAN</span><span class="drawing-note">front edge at the bottom · trim the fixed top before cutting its opening</span></figcaption></figure>
+            <div class="unit-steps"><h4>Assembly</h4><ol><li>Install SBH3, SBH1, SBH2, SBS1, and SBS2 after the shell and floor are fixed.</li><li>Fix SFB1 to SFB8 to the seat front. Trim the fixed field from the frame landing.</li><li>Fix STB1 to STB8 to the top frame. Use its right edge to set the circular-saw guide.</li><li>Cut the estimated 36 overhang. Then cut the 270 × 330 opening.</li><li>Make sure that the opening clears both bearers and rails. Seal every fresh cladding cut.</li></ol></div>
+            <div class="code-strip"><b class="code">SBH1</b><b class="code">SBH2</b><b class="code">SBH3</b><b class="code">SBS1</b><b class="code">SBS2</b><b class="code">SFB1</b><b class="code">SFB2</b><b class="code">SFB3</b><b class="code">SFB4</b><b class="code">SFB5</b><b class="code">SFB6</b><b class="code">SFB7</b><b class="code">SFB8</b><b class="code">STB1</b><b class="code">STB2</b><b class="code">STB3</b><b class="code">STB4</b><b class="code">STB5</b><b class="code">STB6</b><b class="code">STB7</b><b class="code">STB8</b></div>
+            <label class="stack-check"><input type="checkbox" data-check="unit-h"> Unit complete</label>
+          </article></div>
+  </section>
+
+  <footer class="set-foot">
+    <p>The checks are saved in this browser. Print removes the controls and keeps
+    every code and dimension.</p>
+    <button class="reset" type="button">Clear all checks</button>
+  </footer>
+</main>
+<script>
+  const key = "dass-cut-guide-checks-v1";
+  const saved = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+  document.querySelectorAll("[data-check]").forEach(input => {
+    input.checked = saved.has(input.dataset.check);
+    input.addEventListener("change", () => {
+      input.checked ? saved.add(input.dataset.check) : saved.delete(input.dataset.check);
+      localStorage.setItem(key, JSON.stringify([...saved]));
+    });
+  });
+  document.querySelector(".reset").addEventListener("click", () => {
+    saved.clear(); localStorage.removeItem(key);
+    document.querySelectorAll("[data-check]").forEach(input => input.checked = false);
+  });
+  document.querySelectorAll("[data-unit-face]").forEach(group => {
+    const unit = group.closest(".unit");
+    const buttons = [...group.querySelectorAll("[data-face]")];
+    buttons.forEach(button => button.addEventListener("click", () => {
+      unit.dataset.face = button.dataset.face;
+      buttons.forEach(other => {
+        const active = other === button;
+        other.classList.toggle("is-on", active);
+        other.setAttribute("aria-pressed", String(active));
+      });
+    }));
+  });
+
+  document.querySelectorAll(".gallery").forEach((gallery) => {
+    const shots = [...gallery.querySelectorAll(".shot")];
+    const pills = [...gallery.querySelectorAll(".pill")];
+    const caption = gallery.querySelector(".gallery-caption");
+    pills.forEach((pill) => pill.addEventListener("click", () => {
+      pills.forEach((other) => {
+        other.classList.toggle("is-on", other === pill);
+        other.setAttribute("aria-pressed", String(other === pill));
+      });
+      shots.forEach((shot) => {
+        const showing = shot.dataset.view === pill.dataset.view;
+        if (showing && !shot.getAttribute("src")) shot.src = shot.dataset.src;
+        shot.classList.toggle("is-on", showing);
+        if (showing) caption.textContent = shot.dataset.caption;
+      });
+    }));
+  });
+
+</script>
+<script type="module">
+
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+// One timber pipeline, shared with the photoreal renderer.
+import {
+  dressModel,
+  groupByPart,
+  loadTexture,
+  partKeyFor,
+  plankFrame,
+} from "./vendor/materials.mjs";
+
+// Every piece the viewer can name, keyed by the node name the CAD export writes.
+const PARTS = {"front_post_left":{"name":"left front post","code":"LSV1","size":"1 150 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"V1","material":"wood","tone":"frame"},"back_post_left":{"name":"left rear post","code":"LSV2","size":"1 150 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"V1","material":"wood","tone":"frame"},"front_post_right":{"name":"right front post","code":"RSV1","size":"1 150 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"V1","material":"wood","tone":"frame"},"back_post_right":{"name":"right rear post","code":"RSV2","size":"1 150 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"V1","material":"wood","tone":"frame"},"front_bottom":{"name":"front opening rail","code":"FBH1","size":"900 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"front opening rail","material":"wood","tone":"frame"},"back_bottom":{"name":"back lower rail","code":"BWH1","size":"900 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HL1","material":"wood","tone":"frame"},"left_bottom":{"name":"left lower rail","code":"LSH1","size":"725 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HK1","material":"wood","tone":"frame"},"left_top":{"name":"left upper rail","code":"LSH2","size":"725 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HK1","material":"wood","tone":"frame"},"right_bottom":{"name":"right lower rail","code":"RSH1","size":"725 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HK1","material":"wood","tone":"frame"},"right_top":{"name":"right upper rail","code":"RSH2","size":"725 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HK1","material":"wood","tone":"frame"},"back_top":{"name":"back upper rail","code":"BWH2","size":"900 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HL1","material":"wood","tone":"frame"},"roof_front":{"name":"roof front cross-beam","code":"RBH1","size":"990 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HL2","material":"wood","tone":"frame"},"roof_back":{"name":"roof rear cross-beam","code":"RBH2","size":"990 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HL2","material":"wood","tone":"frame"},"roof_left":{"name":"roof left slope beam","code":"RBS1","size":"812.7 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HK2","material":"wood","tone":"frame"},"roof_right":{"name":"roof right slope beam","code":"RBS2","size":"812.7 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HK2","material":"wood","tone":"frame"},"roof_middle":{"name":"roof middle connector","code":"RBC1","size":"900 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"roof connector","material":"wood","tone":"frame"},"left_wall":{"name":"left wall","code":"LSC1\u2013LSC7","size":"770 \u00d7 1 175 \u00d7 23","detail":"7 joined boards","category":"side cladding","material":"wood","tone":"field"},"right_wall":{"name":"right wall","code":"RSC1\u2013RSC7","size":"770 \u00d7 1 175 \u00d7 23","detail":"7 joined boards","category":"side cladding","material":"wood","tone":"field"},"back_wall":{"name":"back wall","code":"BWC1\u2013BWC8","size":"854 \u00d7 1 050 \u00d7 23","detail":"8 joined boards","category":"back cladding","material":"wood","tone":"field"},"floor":{"name":"floor","code":"FCB1\u2013FCB8","size":"854 \u00d7 747 \u00d7 23","detail":"8 joined boards","category":"floor","material":"dark wood","tone":"deck"},"floor_back_support":{"name":"floor rear bearer","code":"FBB1","size":"854 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"floor support","material":"wood","tone":"frame"},"floor_left_support":{"name":"floor left bearer","code":"FBS1","size":"657 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"floor support","material":"wood","tone":"frame"},"floor_right_support":{"name":"floor right bearer","code":"FBS2","size":"657 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"floor support","material":"wood","tone":"frame"},"seat_front":{"name":"seat front","code":"SFB1\u2013SFB8","size":"854 \u00d7 397 \u00d7 23","detail":"8 joined boards","category":"seat side","material":"wood","tone":"field"},"seat_top":{"name":"seat top","code":"STB1\u2013STB8","size":"854 \u00d7 500 \u00d7 23","detail":"8 joined boards","category":"seat top","material":"wood","tone":"field"},"seat_rail_1":{"name":"seat upper front rail","code":"SBH1","size":"854 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HL1","material":"wood","tone":"frame"},"seat_rail_2":{"name":"seat upper rear rail","code":"SBH2","size":"854 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HL1","material":"wood","tone":"frame"},"seat_lower_rail":{"name":"seat lower front rail","code":"SBH3","size":"854 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HL1","material":"wood","tone":"frame"},"seat_support_left":{"name":"seat opening left bearer","code":"SBS1","size":"387 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"seat support","material":"wood","tone":"frame"},"seat_support_right":{"name":"seat opening right bearer","code":"SBS2","size":"387 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"seat support","material":"wood","tone":"frame"},"left_brace":{"name":"left diagonal brace","code":"LSD1","size":"1 202.2 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"D1","material":"wood","tone":"frame"},"right_brace":{"name":"right diagonal brace","code":"RSD1","size":"1 202.2 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"D1","material":"wood","tone":"frame"},"back_brace":{"name":"back diagonal brace","code":"BWD1","size":"1 315.1 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"D2","material":"wood","tone":"frame"},"roof":{"name":"roof","code":"","size":"1 085 \u00d7 1 050 \u00d7 1","detail":"bought in","category":"metal roof","material":"metal roof","tone":"roof"},"roof_hinge_fixed":{"name":"roof hinge fixed","code":"","size":"900 \u00d7 53 \u00d7 5","detail":"bought in","category":"roof hinge leaf","material":"metal","tone":"metal"},"roof_hinge_moving":{"name":"roof hinge moving","code":"","size":"900 \u00d7 45 \u00d7 5","detail":"bought in","category":"roof hinge leaf","material":"metal","tone":"metal"},"roof_hinge_pin":{"name":"roof hinge pin","code":"","size":"900 \u00d7 16 \u00d7 16","detail":"bought in","category":"roof hinge pin","material":"metal","tone":"metal"},"door_panel":{"name":"door panel","code":"DCB1\u2013DCB9","size":"990 \u00d7 1 175 \u00d7 23","detail":"9 joined boards","category":"cladding","material":"wood","tone":"field"},"door_left":{"name":"door left stile","code":"DBV1","size":"1 050 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"V2","material":"wood","tone":"frame"},"door_right":{"name":"door right stile","code":"DBV2","size":"1 050 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"V2","material":"wood","tone":"frame"},"door_bottom":{"name":"door lower rail","code":"DBH1","size":"900 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HL2","material":"wood","tone":"frame"},"door_top":{"name":"door upper rail","code":"DBH2","size":"900 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"HL2","material":"wood","tone":"frame"},"door_brace":{"name":"door diagonal brace","code":"DBD1","size":"1 315.1 \u00d7 45 \u00d7 45","detail":"blank length \u00d7 section","category":"D2","material":"wood","tone":"frame"},"hinge_fixed_1":{"name":"hinge fixed 1","code":"","size":"150 \u00d7 45 \u00d7 5","detail":"bought in","category":"hinge leaf","material":"metal","tone":"metal"},"hinge_door_1":{"name":"hinge door 1","code":"","size":"150 \u00d7 50 \u00d7 5","detail":"bought in","category":"hinge leaf","material":"metal","tone":"metal"},"door_hinge_1":{"name":"door hinge 1","code":"","size":"150 \u00d7 12 \u00d7 12","detail":"bought in","category":"hinge pin","material":"metal","tone":"metal"},"hinge_fixed_2":{"name":"hinge fixed 2","code":"","size":"150 \u00d7 45 \u00d7 5","detail":"bought in","category":"hinge leaf","material":"metal","tone":"metal"},"hinge_door_2":{"name":"hinge door 2","code":"","size":"150 \u00d7 50 \u00d7 5","detail":"bought in","category":"hinge leaf","material":"metal","tone":"metal"},"door_hinge_2":{"name":"door hinge 2","code":"","size":"150 \u00d7 12 \u00d7 12","detail":"bought in","category":"hinge pin","material":"metal","tone":"metal"}};
+const ATLAS = {"cells":8,"lengthMm":1200.0,"boardMm":120.0,"coverMm":110.0};
+
+// The model is drawn, not photographed, until the reader asks for the material.
+const SHEET = 0xffffff;
+const CODE = 0xbb261a;
+const INK = 0x151515;
+const SHADE = { frame: 0xffffff, field: 0xf2f2f0, deck: 0xe6e6e6, metal: 0xdededc, roof: 0xe6e6e6 };
+
+const figure = document.querySelector(".viewer");
+const frame = figure.querySelector(".viewer-frame");
+const canvas = figure.querySelector(".viewer-canvas");
+const tip = figure.querySelector(".viewer-tip");
+const status = figure.querySelector(".viewer-status");
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+} catch (error) {
+  status.textContent = "This browser cannot draw the model; the renders alongside show the same geometry.";
+  throw error;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = false;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(SHEET);
+const camera = new THREE.PerspectiveCamera(30, 1, 10, 40000);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.enablePan = false;
+controls.minDistance = 900;
+controls.maxDistance = 9000;
+controls.maxPolarAngle = Math.PI;
+const IN_SITU_CAMERA = Object.freeze({
+  aspect: 3 / 4,
+  azimuth: -44,
+  cameraHeight: 1300,
+  distance: 4200,
+  frameWidth: 2500,
+  offsetX: 0,
+});
+
+// Flat, even light for the drawn finish; the sun only wakes up for the material.
+const sky = new THREE.HemisphereLight(0xffffff, 0xd7d7d4, 2.6);
+scene.add(sky);
+const sun = new THREE.DirectionalLight(0xfff2dc, 0);
+sun.position.set(-1600, 2600, 1900);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0012;
+const shadowBox = sun.shadow.camera;
+shadowBox.left = shadowBox.bottom = -1600;
+shadowBox.right = shadowBox.top = 1600;
+shadowBox.near = 100;
+shadowBox.far = 6000;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xdfe9ee, 0.35);
+fill.position.set(1600, 700, -1500);
+scene.add(fill);
+
+// The model stands on its own posts, so it needs a floor to cast onto.
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(9000, 9000),
+  new THREE.ShadowMaterial({ opacity: 0 }),
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const edgeInk = new THREE.LineBasicMaterial({ color: INK });
+const edgeCode = new THREE.LineBasicMaterial({ color: CODE });
+const plankInk = new THREE.LineBasicMaterial({ color: INK });
+
+const lineMaterials = new Map();
+function lineMaterialFor(key) {
+  if (!lineMaterials.has(key)) {
+    const tone = PARTS[key] ? PARTS[key].tone : "frame";
+    lineMaterials.set(key, new THREE.MeshLambertMaterial({
+      color: SHADE[tone] ?? SHEET,
+      side: THREE.DoubleSide,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
+    }));
+  }
+  return lineMaterials.get(key);
+}
+
+let finish = "line";
+
+// Highlighting has to work in both finishes: the drawn one tints its flat fill
+// and turns its outline red, the textured one lifts the piece with emissive.
+function paint(key, mode) {
+  for (const mesh of meshesFor(key)) {
+    const line = mesh.userData.lineMaterial;
+    if (line) {
+      const tone = PARTS[key] ? PARTS[key].tone : "frame";
+      line.color.setHex(
+        mode === "select" ? 0xf6dedc : mode === "hover" ? 0xefefed : (SHADE[tone] ?? SHEET),
+      );
+    }
+    if (mesh.userData.edges) {
+      mesh.userData.edges.material = mode === "select" ? edgeCode : edgeInk;
+    }
+    const textured = mesh.userData.texturedMaterial;
+    if (textured) {
+      textured.emissive.setHex(
+        mode === "select" ? 0x4a1109 : mode === "hover" ? 0x201a14 : 0x000000,
+      );
+    }
+  }
+}
+
+// The export can write one mesh per box face, named `<part>_1` ... `<part>_6`,
+// and some part names end in a digit of their own, so walk the name back.
+function keyForObject(object) {
+  for (let node = object; node; node = node.parent) {
+    if (!node.name) continue;
+    const key = partKeyFor(PARTS, node.name);
+    if (key) return key;
+  }
+  return null;
+}
+
+function meshesFor(key) {
+  const found = [];
+  if (current) {
+    current.traverse((node) => {
+      if (node.isMesh && keyForObject(node) === key) found.push(node);
+    });
+  }
+  return found;
+}
+
+const loader = new GLTFLoader();
+const variants = new Map();
+let current = null;
+let framed = false;
+let textures = null;
+let environment = null;
+
+/**
+ * A sky-to-ground gradient, blurred into an environment map.
+ *
+ * The roof sheet is metal, and a metal with nothing to reflect renders black.
+ * This is drawn rather than loaded so the page gains no new asset for it.
+ */
+function environmentMap() {
+  if (environment) return environment;
+  const canvas = document.createElement("canvas");
+  canvas.width = 16;
+  canvas.height = 128;
+  const context = canvas.getContext("2d");
+  const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, "#dfe7ee");
+  gradient.addColorStop(0.48, "#f6f5f1");
+  gradient.addColorStop(0.52, "#b9b3a6");
+  gradient.addColorStop(1, "#6f6a5e");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const sky = new THREE.CanvasTexture(canvas);
+  sky.mapping = THREE.EquirectangularReflectionMapping;
+  sky.colorSpace = THREE.SRGBColorSpace;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  environment = pmrem.fromEquirectangular(sky).texture;
+  pmrem.dispose();
+  sky.dispose();
+  return environment;
+}
+
+async function loadTextures() {
+  if (textures) return textures;
+  status.hidden = false;
+  status.textContent = "Loading the material…";
+  const anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const lap = {
+    wrapS: THREE.MirroredRepeatWrapping,
+    wrapT: THREE.ClampToEdgeWrapping,
+    anisotropy,
+  };
+  const [map, normalMap, roughnessMap, corrugation, plankMap, plankNormal, plankRoughness] =
+    await Promise.all([
+      loadTexture("textures/wood-color.jpg", THREE.SRGBColorSpace, { anisotropy }),
+      loadTexture("textures/wood-normal.jpg", THREE.NoColorSpace, { anisotropy }),
+      loadTexture("textures/wood-roughness.jpg", THREE.NoColorSpace, { anisotropy }),
+      loadTexture("textures/corrugation-normal.png", THREE.NoColorSpace, { anisotropy }),
+      loadTexture("textures/plank-atlas.jpg", THREE.SRGBColorSpace, lap),
+      loadTexture("textures/plank-normal.jpg", THREE.NoColorSpace, lap),
+      loadTexture("textures/plank-roughness.jpg", THREE.NoColorSpace, lap),
+    ]);
+  textures = {
+    textures: { map, normalMap, roughnessMap, corrugation },
+    plank: { map: plankMap, normalMap: plankNormal, roughnessMap: plankRoughness },
+  };
+  return textures;
+}
+
+async function setFinish(next) {
+  finish = next;
+  const wanted = next === "textured";
+  if (wanted && current && !current.userData.dressed) {
+    const loaded = await loadTextures();
+    // The roof tells its painted face from its galvanised one by world normal,
+    // and the open variant arrives rotated, so the matrices must be current.
+    current.updateMatrixWorld(true);
+    dressModel(current, {
+      parts: PARTS,
+      textures: loaded.textures,
+      plank: loaded.plank,
+      atlas: ATLAS,
+    });
+    current.traverse((node) => {
+      if (node.isMesh && !node.userData.isEdge) node.userData.texturedMaterial = node.material;
+    });
+    current.userData.dressed = true;
+    status.hidden = true;
+  }
+  // The drawn finish wants flat light and no shadow; the material wants a sun.
+  sky.intensity = wanted ? 1.5 : 2.6;
+  sun.intensity = wanted ? 2.4 : 0;
+  fill.intensity = wanted ? 0.7 : 0.35;
+  ground.material.opacity = wanted ? 0.22 : 0;
+  renderer.shadowMap.enabled = wanted;
+  scene.environment = wanted ? environmentMap() : null;
+  applyFinish();
+  select(selected);
+  draw();
+}
+
+function applyFinish() {
+  if (!current) return;
+  const wanted = finish === "textured";
+  current.traverse((node) => {
+    if (!node.isMesh || node.userData.isEdge) return;
+    const material = wanted ? node.userData.texturedMaterial : node.userData.lineMaterial;
+    if (material) node.material = material;
+    node.castShadow = wanted;
+    node.receiveShadow = wanted;
+    if (node.userData.edges) node.userData.edges.visible = !wanted;
+  });
+  current.traverse((node) => {
+    if (node.userData.isPlankSeam) node.visible = !wanted;
+  });
+}
+
+function trianglePlaneSegment(a, b, c, axis, cut) {
+  const points = [];
+  const vertices = [a, b, c];
+  const epsilon = 1e-5;
+  for (let i = 0; i < 3; i += 1) {
+    const start = vertices[i];
+    const end = vertices[(i + 1) % 3];
+    const da = start.dot(axis) - cut;
+    const db = end.dot(axis) - cut;
+    if (Math.abs(da) <= epsilon) points.push(start.clone());
+    if (da * db < -epsilon * epsilon) {
+      points.push(start.clone().lerp(end, da / (da - db)));
+    }
+  }
+  const unique = points.filter(
+    (point, index) => !points.slice(0, index).some((other) => other.distanceToSquared(point) < 1e-8),
+  );
+  if (unique.length !== 2 || unique[0].distanceToSquared(unique[1]) < 1e-8) return null;
+  return unique;
+}
+
+/**
+ * Draw the 110 mm råspont covers on every boarded CAD panel.
+ *
+ * CAD keeps a joined field as one solid. These plane intersections add only
+ * the board joints, using the same layout data as the textured finish.
+ */
+function addPlankLines(root) {
+  for (const group of groupByPart(root, PARTS).values()) {
+    if (!group.planked) continue;
+    for (const mesh of group.meshes) {
+      if (mesh.geometry.index) mesh.geometry = mesh.geometry.toNonIndexed();
+    }
+    const frame = plankFrame(group);
+    let acrossMax = -Infinity;
+    const point = new THREE.Vector3();
+    for (const mesh of group.meshes) {
+      const position = mesh.geometry.attributes.position;
+      for (let i = 0; i < position.count; i += 1) {
+        point.fromBufferAttribute(position, i);
+        acrossMax = Math.max(acrossMax, point.dot(frame.across));
+      }
+    }
+    for (
+      let cut = frame.origin.across + ATLAS.coverMm;
+      cut < acrossMax - 1e-3;
+      cut += ATLAS.coverMm
+    ) {
+      for (const mesh of group.meshes) {
+        const positions = [];
+        const attribute = mesh.geometry.attributes.position;
+        const index = mesh.geometry.index;
+        const count = index ? index.count : attribute.count;
+        const a = new THREE.Vector3();
+        const b = new THREE.Vector3();
+        const c = new THREE.Vector3();
+        const normal = new THREE.Vector3();
+        for (let i = 0; i < count; i += 3) {
+          a.fromBufferAttribute(attribute, index ? index.getX(i) : i);
+          b.fromBufferAttribute(attribute, index ? index.getX(i + 1) : i + 1);
+          c.fromBufferAttribute(attribute, index ? index.getX(i + 2) : i + 2);
+          const segment = trianglePlaneSegment(a, b, c, frame.across, cut);
+          if (!segment) continue;
+          normal.copy(b).sub(a).cross(c.clone().sub(a)).normalize().multiplyScalar(0.2);
+          positions.push(segment[0].clone().add(normal), segment[1].clone().add(normal));
+        }
+        if (!positions.length) continue;
+        const geometry = new THREE.BufferGeometry().setFromPoints(positions);
+        const seams = new THREE.LineSegments(geometry, plankInk);
+        seams.userData.isEdge = true;
+        seams.userData.isPlankSeam = true;
+        seams.raycast = () => {};
+        seams.renderOrder = 2;
+        mesh.add(seams);
+      }
+    }
+  }
+}
+
+async function show(name) {
+  if (!variants.has(name)) {
+    status.hidden = false;
+    status.textContent = "Loading the " + name + " model…";
+    const gltf = await loader.loadAsync("renders/dass-" + name + ".glb");
+    addPlankLines(gltf.scene);
+    gltf.scene.traverse((node) => {
+      if (!node.isMesh) return;
+      const key = keyForObject(node);
+      const material = lineMaterialFor(key ?? "frame");
+      node.material = material;
+      node.userData.lineMaterial = material;
+      // The outline is what makes this read as a drawing rather than a render.
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(node.geometry, 18), edgeInk,
+      );
+      edges.userData.isEdge = true;
+      edges.raycast = () => {};
+      node.add(edges);
+      node.userData.edges = edges;
+    });
+    variants.set(name, gltf.scene);
+  }
+  if (current) scene.remove(current);
+  current = variants.get(name);
+  scene.add(current);
+  await setFinish(finish);
+  if (!framed) {
+    const box = new THREE.Box3().setFromObject(current);
+    const centre = box.getCenter(new THREE.Vector3());
+    const azimuth = THREE.MathUtils.degToRad(IN_SITU_CAMERA.azimuth);
+    const direction = new THREE.Vector3(Math.sin(azimuth), 0, Math.cos(azimuth));
+    const base = new THREE.Vector3(
+      centre.x,
+      box.min.y + IN_SITU_CAMERA.cameraHeight,
+      centre.z,
+    );
+    camera.position.copy(base).addScaledVector(direction, IN_SITU_CAMERA.distance);
+    controls.target.copy(base).addScaledVector(
+      new THREE.Vector3(-direction.z, 0, direction.x),
+      IN_SITU_CAMERA.offsetX * IN_SITU_CAMERA.frameWidth,
+    );
+    const horizontal = 2 * Math.atan(
+      IN_SITU_CAMERA.frameWidth / 2 / IN_SITU_CAMERA.distance,
+    );
+    camera.fov = THREE.MathUtils.radToDeg(
+      2 * Math.atan(Math.tan(horizontal / 2) / IN_SITU_CAMERA.aspect),
+    );
+    camera.aspect = IN_SITU_CAMERA.aspect;
+    // The composite is a bottom-aligned square crop of its 3:4 photo plate.
+    camera.setViewOffset(3, 4, 0, 1, 3, 3);
+    camera.lookAt(controls.target);
+    camera.updateProjectionMatrix();
+    framed = true;
+  }
+  select(null);
+  status.hidden = true;
+  draw();
+}
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let hovered = null;
+let selected = null;
+
+function pick(event) {
+  const box = canvas.getBoundingClientRect();
+  pointer.x = ((event.clientX - box.left) / box.width) * 2 - 1;
+  pointer.y = -((event.clientY - box.top) / box.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hit = current ? raycaster.intersectObject(current, true)[0] : null;
+  return hit ? keyForObject(hit.object) : null;
+}
+
+function select(key, event) {
+  if (selected && selected !== key) paint(selected, "base");
+  selected = key;
+  if (!key) {
+    tip.hidden = true;
+    return;
+  }
+  paint(key, "select");
+  const part = PARTS[key];
+  tip.textContent = "";
+  const code = document.createElement("b");
+  code.textContent = part.code || part.category;
+  const name = document.createElement("span");
+  name.className = "tip-name";
+  name.textContent = part.name;
+  const size = document.createElement("span");
+  size.className = "tip-size";
+  size.textContent = part.size + " mm";
+  const detail = document.createElement("span");
+  detail.textContent = part.detail;
+  tip.append(code, name, size, detail);
+  tip.hidden = false;
+  const box = frame.getBoundingClientRect();
+  const x = event ? event.clientX - box.left : box.width / 2;
+  const y = event ? event.clientY - box.top : box.height / 2;
+  tip.style.left = Math.min(Math.max(10, x + 14), box.width - tip.offsetWidth - 10) + "px";
+  tip.style.top = Math.min(Math.max(10, y + 14), box.height - tip.offsetHeight - 10) + "px";
+  draw();
+}
+
+canvas.addEventListener("pointermove", (event) => {
+  const key = pick(event);
+  frame.classList.toggle("is-over", Boolean(key));
+  if (key === hovered) return;
+  if (hovered && hovered !== selected) paint(hovered, "base");
+  hovered = key;
+  if (hovered && hovered !== selected) paint(hovered, "hover");
+  draw();
+});
+
+let pressed = null;
+canvas.addEventListener("pointerdown", (event) => { pressed = [event.clientX, event.clientY]; });
+canvas.addEventListener("pointerup", (event) => {
+  if (!pressed) return;
+  const moved = Math.hypot(event.clientX - pressed[0], event.clientY - pressed[1]);
+  pressed = null;
+  if (moved > 5) return;
+  select(pick(event), event);
+});
+
+function wireGroup(attribute, run) {
+  const pills = [...figure.querySelectorAll(`.pill[data-${attribute}]`)];
+  pills.forEach((pill) => pill.addEventListener("click", () => {
+    pills.forEach((other) => {
+      other.classList.toggle("is-on", other === pill);
+      other.setAttribute("aria-pressed", String(other === pill));
+    });
+    Promise.resolve(run(pill.dataset[attribute])).catch((error) => {
+      status.hidden = false;
+      status.textContent = "That finish did not load; the drawn model still works.";
+      console.error(error);
+    });
+  }));
+}
+
+wireGroup("variant", show);
+wireGroup("finish", setFinish);
+
+let pending = false;
+function draw() {
+  if (pending) return;
+  pending = true;
+  requestAnimationFrame(() => {
+    pending = false;
+    const width = frame.clientWidth;
+    const height = frame.clientHeight;
+    if (canvas.width !== width || canvas.height !== height) {
+      renderer.setSize(width, height, false);
+      camera.aspect = IN_SITU_CAMERA.aspect;
+      camera.updateProjectionMatrix();
+    }
+    ground.visible = camera.position.y >= ground.position.y;
+    if (controls.update()) draw();
+    renderer.render(scene, camera);
+  });
+}
+
+controls.addEventListener("change", draw);
+new ResizeObserver(draw).observe(frame);
+show("open").catch((error) => {
+  status.hidden = false;
+  status.textContent = "The model did not load; the renders alongside show the same geometry.";
+  console.error(error);
+});
+
+</script>
+</body>
+</html>

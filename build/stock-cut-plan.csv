@@ -1,35 +1,21 @@
-material,stock,stock_length_mm,cuts,pieces,piece_lengths_mm,kerf_mm,used_mm,waste_mm
-beam_45x45,1,2400,2,seat_support_left + seat_support_right,375.0 + 375.0,2,752,1648
-beam_50x50,1,2400,2,back_brace + door_left,1273.8 + 1050.0,2,2325.8,74.2
-beam_50x50,2,2400,2,door_brace + door_right,1273.8 + 1050.0,2,2325.8,74.2
-beam_50x50,3,2400,2,left_brace + front_post_left,1209.3 + 1150.0,2,2361.3,38.7
-beam_50x50,4,2400,2,right_brace + back_post_left,1209.3 + 1150.0,2,2361.3,38.7
-beam_50x50,5,2400,2,front_post_right + back_post_right,1150.0 + 1150.0,2,2302,98
-beam_50x50,6,2400,2,roof_front + roof_back,950.0 + 950.0,2,1902,498
-beam_50x50,7,2400,3,front_bottom + back_bottom + floor_left_support,850.0 + 850.0 + 675.0,4,2379,21
-beam_50x50,8,2400,3,back_top + door_bottom + floor_right_support,850.0 + 850.0 + 675.0,4,2379,21
-beam_50x50,9,2400,2,door_top + roof_left,850.0 + 842.3,2,1694.3,705.7
-beam_50x50,10,2400,3,roof_right + floor_back_support + left_bottom,842.3 + 800.0 + 750.0,4,2396.3,3.7
-beam_50x50,11,2400,3,seat_rail_1 + seat_rail_2 + left_top,800.0 + 800.0 + 750.0,4,2354,46
-beam_50x50,12,2400,3,seat_lower_rail + right_bottom + right_top,800.0 + 750.0 + 750.0,4,2304,96
-beam_65x23,1,2400,1,roof_middle,850.0,0,850,1550
-cladding_120x25,1,2400,2,door_1 + door_2,1175.0 + 1175.0,2,2352,48
-cladding_120x25,2,2400,2,door_3 + door_4,1175.0 + 1175.0,2,2352,48
-cladding_120x25,3,2400,2,door_5 + door_6,1175.0 + 1175.0,2,2352,48
-cladding_120x25,4,2400,2,door_7 + door_8,1175.0 + 1175.0,2,2352,48
-cladding_120x25,5,2400,2,left_wall_1 + right_wall_1,1175.0 + 1175.0,2,2352.0,48.0
-cladding_120x25,6,2400,2,left_wall_2 + right_wall_2,1160.0 + 1160.0,2,2322.0,78.0
-cladding_120x25,7,2400,2,left_wall_3 + right_wall_3,1145.0 + 1145.0,2,2292.0,108.0
-cladding_120x25,8,2400,2,left_wall_4 + right_wall_4,1130.0 + 1130.0,2,2262.0,138.0
-cladding_120x25,9,2400,2,left_wall_5 + right_wall_5,1115.0 + 1115.0,2,2232.0,168.0
-cladding_120x25,10,2400,2,left_wall_6 + right_wall_6,1100.0 + 1100.0,2,2202.0,198.0
-cladding_120x25,11,2400,2,left_wall_7 + right_wall_7,1085.0 + 1085.0,2,2172.0,228.0
-cladding_120x25,12,2400,2,back_wall_1 + back_wall_2,1050.0 + 1050.0,2,2102,298
-cladding_120x25,13,2400,2,back_wall_3 + back_wall_4,1050.0 + 1050.0,2,2102,298
-cladding_120x25,14,2400,2,back_wall_5 + back_wall_6,1050.0 + 1050.0,2,2102,298
-cladding_120x25,15,2400,3,back_wall_7 + floor_1 + seat_top_1,1050.0 + 775.0 + 500.0,4,2329,71
-cladding_120x25,16,2400,3,floor_2 + floor_3 + floor_4,775.0 + 775.0 + 775.0,4,2329,71
-cladding_120x25,17,2400,3,floor_5 + floor_6 + floor_7,775.0 + 775.0 + 775.0,4,2329,71
-cladding_120x25,18,2400,4,seat_top_2 + seat_top_3 + seat_top_4 + seat_top_5,500.0 + 500.0 + 500.0 + 500.0,6,2006,394
-cladding_120x25,19,2400,5,seat_top_6 + seat_top_7 + seat_front_1 + seat_front_2 + seat_front_3,500.0 + 500.0 + 395.0 + 395.0 + 395.0,8,2193,207
-cladding_120x25,20,2400,4,seat_front_4 + seat_front_5 + seat_front_6 + seat_front_7,395.0 + 395.0 + 395.0 + 395.0,6,1586,814
+material,stock,stock_length_mm,cuts,piece_codes,piece_lengths_mm,kerf_mm,used_mm,waste_mm
+beam_45x45,1,4200,3,BWD1 + DBD1 + LSD1,1315.1 + 1315.1 + 1202.2,8.4,3840.8,359.2
+beam_45x45,2,4200,3,RSD1 + LSV1 + LSV2,1202.2 + 1150.0 + 1150.0,8.4,3510.6,689.4
+beam_45x45,3,4200,3,RSV1 + RSV2 + DBV1,1150.0 + 1150.0 + 1050.0,8.4,3358.4,841.6
+beam_45x45,4,4200,4,DBV2 + RBH1 + RBH2 + BWH1,1050.0 + 990.0 + 990.0 + 900.0,11.2,3941.2,258.8
+beam_45x45,5,4200,4,BWH2 + DBH1 + DBH2 + FBH1,900.0 + 900.0 + 900.0 + 900.0,11.2,3611.2,588.8
+beam_45x45,6,4200,4,RBC1 + FBB1 + SBH1 + SBH2,900.0 + 854.0 + 854.0 + 854.0,11.2,3473.2,726.8
+beam_45x45,7,4200,5,SBH3 + RBS1 + RBS2 + LSH1 + LSH2,854.0 + 812.7 + 812.7 + 725.0 + 725.0,14.0,3943.3,256.7
+beam_45x45,8,4200,6,RSH1 + RSH2 + FBS1 + FBS2 + SBS1 + SBS2,725.0 + 725.0 + 657.0 + 657.0 + 387.0 + 387.0,16.8,3554.8,645.2
+cladding_120x23,1,4500,5,LSC1 + LSC2 + LSC3 + SFB1 + SFB2,1175.0 + 1175.0 + 1175.0 + 397.0 + 397.0,14.0,4333.0,167.0
+cladding_120x23,2,4500,5,LSC4 + LSC5 + LSC6 + SFB3 + SFB4,1175.0 + 1175.0 + 1175.0 + 397.0 + 397.0,14.0,4333.0,167.0
+cladding_120x23,3,4500,5,LSC7 + RSC1 + RSC2 + SFB5 + SFB6,1175.0 + 1175.0 + 1175.0 + 397.0 + 397.0,14.0,4333.0,167.0
+cladding_120x23,4,4500,3,RSC3 + RSC4 + RSC5,1175.0 + 1175.0 + 1175.0,8.4,3533.4,966.6
+cladding_120x23,5,4500,3,RSC6 + RSC7 + DCB1,1175.0 + 1175.0 + 1175.0,8.4,3533.4,966.6
+cladding_120x23,6,4500,3,DCB2 + DCB3 + DCB4,1175.0 + 1175.0 + 1175.0,8.4,3533.4,966.6
+cladding_120x23,7,4500,3,DCB5 + DCB6 + DCB7,1175.0 + 1175.0 + 1175.0,8.4,3533.4,966.6
+cladding_120x23,8,4500,4,DCB8 + DCB9 + BWC1 + BWC2,1175.0 + 1175.0 + 1050.0 + 1050.0,11.2,4461.2,38.8
+cladding_120x23,9,4500,4,BWC3 + BWC4 + BWC5 + BWC6,1050.0 + 1050.0 + 1050.0 + 1050.0,11.2,4211.2,288.8
+cladding_120x23,10,4500,5,BWC7 + BWC8 + FCB1 + FCB2 + FCB3,1050.0 + 1050.0 + 747.0 + 747.0 + 747.0,14.0,4355.0,145.0
+cladding_120x23,11,4500,6,FCB4 + FCB5 + FCB6 + FCB7 + FCB8 + STB1,747.0 + 747.0 + 747.0 + 747.0 + 747.0 + 500.0,16.8,4251.8,248.2
+cladding_120x23,12,4500,9,STB2 + STB3 + STB4 + STB5 + STB6 + STB7 + STB8 + SFB7 + SFB8,500.0 + 500.0 + 500.0 + 500.0 + 500.0 + 500.0 + 500.0 + 397.0 + 397.0,25.2,4319.2,180.8

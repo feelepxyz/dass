@@ -1,6 +1,6 @@
 # 45×45 frame / 120×23 cladding material options
 
-All plans include a 2 mm kerf between pieces cut from the same stock length.
+All plans include a 2.8 mm kerf between pieces cut from the same stock length.
 They are feasible best-fit plans, not proofs of minimum stock. Allow extra
 length for squaring rough ends.
 
@@ -24,11 +24,11 @@ Wall, door, and roof dimensions do not change. There are 28 beam pieces and
 
 | Material | Stock length | Lengths to buy | Scheduled pieces/cuts | Total waste |
 |---|---:|---:|---:|---:|
-| 45×45 beam | 2.4 m | 13 | 28 | 4.447 m |
-| 45×45 beam | 3.6 m | 8 | 28 | 2.037 m |
-| 120×23 cladding | 3.6 m | 14 | 51 | 5.106 m |
-| 120×23 cladding | 4.2 m | 12 | 51 | 5.102 m |
-| 120×23 cladding | 5.4 m | 9 | 51 | 3.296 m |
+| 45×45 beam | 2.4 m | 13 | 28 | 4.435 m |
+| 45×45 beam | 3.6 m | 8 | 28 | 2.021 m |
+| 120×23 cladding | 3.6 m | 14 | 51 | 5.076 m |
+| 120×23 cladding | 4.2 m | 12 | 51 | 5.070 m |
+| 120×23 cladding | 5.4 m | 9 | 51 | 3.262 m |
 
 Detailed per-board plans:
 

@@ -21,10 +21,10 @@ from PIL import Image
 @dataclass(frozen=True)
 class Design:
     # Primary parameters
-    width: float = 950
-    depth: float = 850
-    frame: float = 50
-    cladding: float = 25
+    width: float = 990
+    depth: float = 815
+    frame: float = 45
+    cladding: float = 23
     front_post_height: float = 1150
     front_height: float = 1275
     back_height: float = 1150
@@ -36,7 +36,7 @@ class Design:
     seat_support: float = 45
     roof_overhang: float = 65
     roof_thickness: float = 1
-    roof_beam_run: float = 833
+    roof_beam_run: float = 803
     door_brace_rise: float = 850
     leg_extension: float = 100
     door_frame_height: float = 1050
@@ -44,8 +44,8 @@ class Design:
     hinge_pin_radius: float = 6
     hinge_leaf_thickness: float = 5
     roof_hinge_pin_radius: float = 8
-    roof_connector_width: float = 65
-    roof_connector_thickness: float = 23
+    roof_connector_width: float = 45
+    roof_connector_thickness: float = 45
     side_back_lift: float = 25
 
     @property
@@ -111,6 +111,61 @@ class Design:
     def roof_frame_depth(self) -> float:
         return self.roof_run + 2 * self.frame
 
+    @property
+    def roof_seat_angle(self) -> float:
+        """Extra hinge rotation that seats the roof beams in the door notches."""
+        slope_length = math.hypot(self.roof_run, self.roof_rise)
+        pitch_rear_y = -self.cladding - self.hinge_gap + self.frame + self.roof_run
+        hinge_top = self.back_height + self.frame
+        flat_front = pitch_rear_y - self.frame - slope_length
+        hinge_y = self.depth
+        hinge_z = self.back_height + self.roof_hinge_pin_radius
+
+        def rotate_yz(
+            y: float,
+            z: float,
+            centre_y: float,
+            centre_z: float,
+            angle: float,
+        ) -> tuple[float, float]:
+            cosine = math.cos(angle)
+            sine = math.sin(angle)
+            return (
+                centre_y + cosine * (y - centre_y) - sine * (z - centre_z),
+                centre_z + sine * (y - centre_y) + cosine * (z - centre_z),
+            )
+
+        pitch = -math.radians(self.roof_angle)
+        underside = (
+            rotate_yz(flat_front, self.back_height, pitch_rear_y, hinge_top, pitch),
+            rotate_yz(
+                flat_front + slope_length,
+                self.back_height,
+                pitch_rear_y,
+                hinge_top,
+                pitch,
+            ),
+        )
+
+        def underside_z(angle: float) -> float:
+            first = rotate_yz(*underside[0], hinge_y, hinge_z, angle)
+            second = rotate_yz(*underside[1], hinge_y, hinge_z, angle)
+            target_y = -self.hinge_gap
+            fraction = (target_y - first[0]) / (second[0] - first[0])
+            return first[1] + fraction * (second[1] - first[1])
+
+        target_z = self.door_top - self.frame
+        low = math.radians(-15)
+        high = math.radians(15)
+        assert underside_z(low) >= target_z >= underside_z(high)
+        for _ in range(60):
+            middle = (low + high) / 2
+            if underside_z(middle) > target_z:
+                low = middle
+            else:
+                high = middle
+        return math.degrees((low + high) / 2)
+
     def validate(self) -> None:
         assert self.frame > 0 and self.cladding > 0
         assert self.width > 2 * self.frame and self.depth > 2 * self.frame
@@ -122,12 +177,14 @@ class Design:
     def validate_reference(self) -> None:
         """Prove that defaults reproduce the dimensions repeated in the sources."""
         self.validate()
-        assert self.inner_width == 850, "HL1/back-wall span must be 850 mm"
-        assert self.inner_depth == 750, "HK1 side span must be 750 mm"
+        assert self.width == 990, "door field is nine 110 mm råspont covers"
+        assert self.plan_grid_depth == 770, "side fields are seven 110 mm covers"
+        assert self.inner_width == 900
+        assert self.inner_depth == 725
         assert self.door_height == 1175
         assert self.door_frame_height == 1050
-        assert self.roof_run == 833 and self.roof_rise == 125
-        assert self.seat_depth == 500 and self.seat_height - self.cladding == 395
+        assert self.roof_run == 803 and self.roof_rise == 125
+        assert self.seat_depth == 500 and self.seat_height - self.cladding == 397
 
 
 @dataclass
@@ -252,6 +309,33 @@ def side_panel(d: Design, x: float, right: bool) -> cq.Shape:
     return profile.val()
 
 
+def door_cladding_panel(d: Design) -> cq.Shape:
+    """Door cladding with top-corner notches around the roof side beams."""
+    panel = box_at(
+        0,
+        -d.cladding - d.hinge_gap,
+        d.door_bottom,
+        d.width,
+        d.cladding,
+        d.door_height,
+    )
+    notch = d.frame
+    notch_y = -d.cladding - d.hinge_gap - 1
+    notch_z = d.door_top - notch
+    for notch_x in (-1, d.width - notch):
+        panel = panel.cut(
+            box_at(
+                notch_x,
+                notch_y,
+                notch_z,
+                notch + 1,
+                d.cladding + 2,
+                notch + 1,
+            )
+        )
+    return panel
+
+
 def build(
     d: Design,
     door_angle: float = 0,
@@ -290,8 +374,6 @@ def build(
             (d.inner_depth, d.frame, d.frame))
     # The fixed rear support is distinct from the hinged roof frame.
     roof_slope_length = math.hypot(d.roof_run, d.roof_rise)
-    roof_pitch_cos = d.roof_run / roof_slope_length
-    roof_pitch_sin = d.roof_rise / roof_slope_length
     roof_contact_y = -d.cladding - d.hinge_gap + d.frame
     roof_pitch_rear_y = roof_contact_y + d.roof_run
     roof_hinge_y = d.depth
@@ -307,6 +389,13 @@ def build(
             (0, roof_pitch_rear_y, roof_hinge_top),
             (1, roof_pitch_rear_y, roof_hinge_top),
             -d.roof_angle,
+        )
+
+    def seat_roof_part(solid: cq.Shape) -> cq.Shape:
+        return solid.rotate(
+            (0, roof_hinge_y, roof_hinge_z),
+            (1, roof_hinge_y, roof_hinge_z),
+            d.roof_seat_angle,
         )
 
     def lift_roof_part(solid: cq.Shape) -> cq.Shape:
@@ -353,17 +442,58 @@ def build(
          ), "wood"),
     ]
     pitched_roof_parts = [pitch_roof_part(solid) for _, _, solid, _, _ in roof_parts]
-    for (name, category, _, dims, material), solid in zip(roof_parts, pitched_roof_parts):
+    closed_roof_parts = [seat_roof_part(solid) for solid in pitched_roof_parts]
+    closed_roof_by_name = {
+        name: solid
+        for (name, _, _, _, _), solid in zip(roof_parts, closed_roof_parts)
+    }
+    for (name, category, _, dims, material), solid in zip(roof_parts, closed_roof_parts):
         add(name, category, lift_roof_part(solid), dims, material)
 
-    # 25 mm tongue-and-groove wall fields. The lifted back edge rises past the
+    # The metal sheet is centred over the roof frame before the complete unit
+    # seats on its hinge. The frame and sheet then use the same two rotations.
+    roof_width = 1050
+    roof_depth = 1085
+    roof_frame_box = cq.Compound.makeCompound(closed_roof_parts).BoundingBox()
+    roof_center_x = (roof_frame_box.xmin + roof_frame_box.xmax) / 2
+    roof_center_y = (roof_frame_box.ymin + roof_frame_box.ymax) / 2
+    closed_roof_angle = math.radians(d.roof_seat_angle - d.roof_angle)
+    roof_flat_depth = (
+        roof_depth - d.roof_thickness * abs(math.sin(closed_roof_angle))
+    ) / abs(math.cos(closed_roof_angle))
+    roof_flat_center_y = (roof_flat_front + roof_flat_rear) / 2
+    roof_blank = box_at(
+        roof_center_x - roof_width / 2,
+        roof_flat_center_y - roof_flat_depth / 2,
+        roof_hinge_top,
+        roof_width,
+        roof_flat_depth,
+        d.roof_thickness,
+    )
+    closed_roof = seat_roof_part(pitch_roof_part(roof_blank))
+    sheet_box = closed_roof.BoundingBox()
+    sheet_shift_y = roof_center_y - (sheet_box.ymin + sheet_box.ymax) / 2
+    closed_roof = closed_roof.translate(
+        (0, sheet_shift_y, math.tan(closed_roof_angle) * sheet_shift_y)
+    )
+    roof = lift_roof_part(closed_roof)
+
+    # Tongue-and-groove wall fields. The lifted back edge rises past the
     # closed roof frame, so each panel is notched where that frame crosses it.
-    roof_closed = cq.Compound.makeCompound(pitched_roof_parts)
-    add("left_wall", "side cladding",
-        side_panel(d, d.frame, False).cut(roof_closed),
+    # Cut the actual interferences separately. Subtracting the whole roof
+    # compound leaves invalid sliver faces between the reliefs and rear edge.
+    left_wall = side_panel(d, d.frame, False)
+    right_wall = side_panel(d, d.width - d.frame, True)
+    for relief in (
+        closed_roof_by_name["roof_back"],
+        closed_roof_by_name["roof_middle"],
+        closed_roof,
+    ):
+        left_wall = left_wall.cut(relief)
+        right_wall = right_wall.cut(relief)
+    add("left_wall", "side cladding", left_wall,
         (d.plan_grid_depth, d.door_height, d.cladding))
-    add("right_wall", "side cladding",
-        side_panel(d, d.width - d.frame, True).cut(roof_closed),
+    add("right_wall", "side cladding", right_wall,
         (d.plan_grid_depth, d.door_height, d.cladding))
     # The back field is fitted between the two side skins, not behind them.
     add("back_wall", "back cladding",
@@ -481,26 +611,6 @@ def build(
     )
     add("back_brace", "D2", back_brace, (cut_length(back_brace), d.frame, d.frame))
 
-    # The metal sheet is centred over the closed roof frame. Compensate for
-    # pitch so its plan-view envelope remains exactly 1050 × 1085 mm.
-    roof_width = 1050
-    roof_depth = 1085
-    roof_frame_box = cq.Compound.makeCompound(pitched_roof_parts).BoundingBox()
-    roof_center_x = (roof_frame_box.xmin + roof_frame_box.xmax) / 2
-    roof_center_y = (roof_frame_box.ymin + roof_frame_box.ymax) / 2
-    roof_flat_depth = (roof_depth - d.roof_thickness * roof_pitch_sin) / roof_pitch_cos
-    roof_flat_center_y = roof_pitch_rear_y + (
-        roof_center_y - roof_pitch_rear_y - d.roof_thickness * roof_pitch_sin / 2
-    ) / roof_pitch_cos
-    roof = box_at(
-        roof_center_x - roof_width / 2,
-        roof_flat_center_y - roof_flat_depth / 2,
-        roof_hinge_top,
-        roof_width,
-        roof_flat_depth,
-        d.roof_thickness,
-    )
-    roof = lift_roof_part(pitch_roof_part(roof))
     if roof_visible:
         add("roof", "metal roof", roof, (roof_depth, roof_width, d.roof_thickness), "metal roof")
 
@@ -509,11 +619,11 @@ def build(
         d.inner_width, d.hinge_leaf_thickness,
         d.frame + d.roof_hinge_pin_radius,
     )
-    roof_moving_leaf = pitch_roof_part(box_at(
+    roof_moving_leaf = seat_roof_part(pitch_roof_part(box_at(
         d.frame, roof_pitch_rear_y,
         roof_hinge_top - d.frame,
         d.inner_width, d.hinge_leaf_thickness, d.frame,
-    ))
+    )))
     # Pitching swings the leaf's outer bottom corner below the fixed rear rail.
     # Relieve it there so the closed roof seats without fouling the rail.
     roof_moving_leaf = roof_moving_leaf.cut(
@@ -551,9 +661,7 @@ def build(
                d.inner_width, d.frame, d.door_frame_height - 2 * d.frame),
     )
     door_parts: list[tuple[str, cq.Shape, tuple[float, float, float], str]] = [
-        ("door_panel", box_at(0, -d.cladding - d.hinge_gap,
-                              d.door_bottom,
-                              door_width, d.cladding, door_height),
+        ("door_panel", door_cladding_panel(d),
          (door_height, door_width, d.cladding), "cladding"),
         ("door_left", box_at(0, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom,
                              d.frame, d.frame, d.door_frame_height),
