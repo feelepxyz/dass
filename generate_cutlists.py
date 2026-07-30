@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, replace
 from pathlib import Path
 
 from dass import Design, build
@@ -30,7 +30,10 @@ def beam_pieces(design: Design) -> list[CutPiece]:
         CutPiece(part.name, part.length, part.width, part.thickness)
         for part in parts
         if part.material == "wood"
-        and (part.width, part.thickness) in {(50, 50), (65, 25)}
+        and (part.width, part.thickness) in {
+            (design.frame, design.frame),
+            (design.roof_connector_width, design.roof_connector_thickness),
+        }
     ]
 
 
@@ -169,10 +172,30 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("build"))
     parser.add_argument("--stock-length", type=float, default=2400)
     parser.add_argument("--kerf", type=float, default=2)
+    parser.add_argument(
+        "--set",
+        action="append",
+        default=[],
+        metavar="NAME=MM",
+        help="override any numeric Design parameter; may be repeated",
+    )
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
 
-    design = Design()
+    overrides = {}
+    parameter_names = {field.name for field in fields(Design)}
+    for item in args.set:
+        name, separator, value = item.partition("=")
+        if not separator or name not in parameter_names:
+            parser.error(
+                f"--set must be NAME=MM where NAME is one of: "
+                f"{', '.join(sorted(parameter_names))}"
+            )
+        try:
+            overrides[name] = float(value)
+        except ValueError:
+            parser.error(f"--set {name} requires a numeric value, got {value!r}")
+    design = replace(Design(), **overrides)
     beams = beam_pieces(design)
     cladding = cladding_pieces(design)
     write_schedule(beams, args.output / "beam-pieces.csv")
@@ -182,7 +205,7 @@ def main() -> None:
         (f"beam_{profile}", [piece for piece in beams if piece.profile == profile])
         for profile in sorted({piece.profile for piece in beams})
     ]
-    stock_groups = beam_groups + [("cladding_120x25", cladding)]
+    stock_groups = beam_groups + [(f"cladding_120x{design.cladding:g}", cladding)]
     write_stock_plan(
         stock_groups,
         args.output / "stock-cut-plan.csv",

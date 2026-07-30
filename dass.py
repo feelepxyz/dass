@@ -41,6 +41,8 @@ class Design:
     hinge_pin_radius: float = 6
     hinge_leaf_thickness: float = 5
     roof_hinge_pin_radius: float = 8
+    roof_connector_width: float = 65
+    roof_connector_thickness: float = 25
 
     @property
     def inner_width(self) -> float:
@@ -268,9 +270,19 @@ def build(
                 d.frame, roof_slope_length, d.frame),
          (roof_slope_length, d.frame, d.frame), "wood"),
         ("roof_middle", "roof connector",
-         box_at(d.frame, (roof_flat_front + roof_flat_rear) / 2 - 65 / 2,
-                roof_hinge_top - 25, d.inner_width, 65, 25),
-         (d.inner_width, 65, 25), "wood"),
+         box_at(
+             d.frame,
+             (roof_flat_front + roof_flat_rear) / 2 - d.roof_connector_width / 2,
+             roof_hinge_top - d.roof_connector_thickness,
+             d.inner_width,
+             d.roof_connector_width,
+             d.roof_connector_thickness,
+         ),
+         (
+             d.inner_width,
+             d.roof_connector_width,
+             d.roof_connector_thickness,
+         ), "wood"),
     ]
     pitched_roof_parts = [pitch_roof_part(solid) for _, _, solid, _, _ in roof_parts]
     for (name, category, _, dims, material), solid in zip(roof_parts, pitched_roof_parts):

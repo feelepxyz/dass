@@ -60,6 +60,22 @@ class CutListTest(unittest.TestCase):
         self.assertTrue(rows)
         self.assertTrue(all(float(row["used_mm"]) <= 2400 for row in rows))
 
+    def test_45x45_120x20_variant_cut_pieces_use_requested_profiles(self):
+        design = Design(
+            frame=45,
+            cladding=20,
+            roof_connector_width=45,
+            roof_connector_thickness=45,
+        )
+        self.assertEqual(
+            {(piece.width, piece.thickness) for piece in beam_pieces(design)},
+            {(45, 45)},
+        )
+        cladding = cladding_pieces(design)
+        self.assertTrue(all(piece.thickness == 20 for piece in cladding))
+        self.assertTrue(all(0 < piece.width <= 120 for piece in cladding))
+        self.assertIn(120, {piece.width for piece in cladding})
+
 
 if __name__ == "__main__":
     unittest.main()

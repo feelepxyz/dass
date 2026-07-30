@@ -1,0 +1,35 @@
+material,stock,stock_length_mm,cuts,pieces,piece_lengths_mm,kerf_mm,used_mm,waste_mm
+beam_45x45,1,2400,2,door_brace + door_left,1288.9 + 1050.0,2,2340.9,59.1
+beam_45x45,2,2400,2,left_brace + front_post_left,1224.4 + 1150.0,2,2376.4,23.6
+beam_45x45,3,2400,2,right_brace + back_post_left,1224.4 + 1150.0,2,2376.4,23.6
+beam_45x45,4,2400,2,front_post_right + back_post_right,1150.0 + 1150.0,2,2302,98
+beam_45x45,5,2400,2,door_right + roof_front,1050.0 + 950.0,2,2002,398
+beam_45x45,6,2400,2,roof_back + door_bottom,950.0 + 950.0,2,1902,498
+beam_45x45,7,2400,2,door_top + front_bottom,950.0 + 860.0,2,1812.0,588.0
+beam_45x45,8,2400,2,back_bottom + back_top,860.0 + 860.0,2,1722.0,678.0
+beam_45x45,9,2400,2,roof_middle + roof_left,860.0 + 842.3,2,1704.3,695.7
+beam_45x45,10,2400,2,roof_right + floor_back_support,842.3 + 820.0,2,1664.3,735.7
+beam_45x45,11,2400,2,seat_rail_1 + seat_rail_2,820.0 + 820.0,2,1642.0,758.0
+beam_45x45,12,2400,3,seat_lower_rail + left_bottom + left_top,820.0 + 760.0 + 760.0,4,2344.0,56.0
+beam_45x45,13,2400,2,right_bottom + right_top,760.0 + 760.0,2,1522.0,878.0
+cladding_120x20,1,2400,2,door_1 + door_2,1175.0 + 1175.0,2,2352,48
+cladding_120x20,2,2400,2,door_3 + door_4,1175.0 + 1175.0,2,2352,48
+cladding_120x20,3,2400,2,door_5 + door_6,1175.0 + 1175.0,2,2352,48
+cladding_120x20,4,2400,2,door_7 + door_8,1175.0 + 1175.0,2,2352,48
+cladding_120x20,5,2400,2,left_wall_1 + right_wall_1,1175.0 + 1175.0,2,2352.0,48.0
+cladding_120x20,6,2400,2,left_wall_2 + right_wall_2,1156.4 + 1156.4,2,2314.7,85.3
+cladding_120x20,7,2400,2,left_wall_3 + right_wall_3,1137.7 + 1137.7,2,2277.5,122.5
+cladding_120x20,8,2400,2,left_wall_4 + right_wall_4,1119.1 + 1119.1,2,2240.2,159.8
+cladding_120x20,9,2400,2,left_wall_5 + right_wall_5,1100.5 + 1100.5,2,2202.9,197.1
+cladding_120x20,10,2400,2,left_wall_6 + right_wall_6,1081.8 + 1081.8,2,2165.7,234.3
+cladding_120x20,11,2400,2,left_wall_7 + right_wall_7,1063.2 + 1063.2,2,2128.4,271.6
+cladding_120x20,12,2400,2,back_wall_1 + back_wall_2,1050.0 + 1050.0,2,2102,298
+cladding_120x20,13,2400,2,back_wall_3 + back_wall_4,1050.0 + 1050.0,2,2102,298
+cladding_120x20,14,2400,2,back_wall_5 + back_wall_6,1050.0 + 1050.0,2,2102,298
+cladding_120x20,15,2400,2,back_wall_7 + back_wall_8,1050.0 + 1050.0,2,2102,298
+cladding_120x20,16,2400,3,floor_1 + floor_2 + floor_3,785.0 + 785.0 + 785.0,4,2359.0,41.0
+cladding_120x20,17,2400,3,floor_4 + floor_5 + floor_6,785.0 + 785.0 + 785.0,4,2359.0,41.0
+cladding_120x20,18,2400,4,floor_7 + seat_top_1 + seat_top_2 + seat_top_3,785.0 + 500.0 + 500.0 + 500.0,6,2291.0,109.0
+cladding_120x20,19,2400,4,seat_top_4 + seat_top_5 + seat_top_6 + seat_top_7,500.0 + 500.0 + 500.0 + 500.0,6,2006,394
+cladding_120x20,20,2400,5,seat_front_1 + seat_front_2 + seat_front_3 + seat_front_4 + seat_front_5,400.0 + 400.0 + 400.0 + 400.0 + 400.0,8,2008.0,392.0
+cladding_120x20,21,2400,2,seat_front_6 + seat_front_7,400.0 + 400.0,2,802.0,1598.0

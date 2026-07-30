@@ -7,6 +7,11 @@ closed/open renders, STEP and GLB CAD files, and a CSV cut list with:
 uv run dass.py
 uv run dass.py --output build-wide --set width=1050 --set seat_depth=550
 uv run generate_cutlists.py
+uv run dass.py --output build-45x45-120x20 --set frame=45 --set cladding=20 \
+  --set roof_connector_width=45 --set roof_connector_thickness=45
+uv run generate_cutlists.py --output build-45x45-120x20 \
+  --set frame=45 --set cladding=20 \
+  --set roof_connector_width=45 --set roof_connector_thickness=45
 ```
 
 Primary parameters live in the `Design` dataclass and may be edited together.

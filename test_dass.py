@@ -33,6 +33,24 @@ class DassModelTest(unittest.TestCase):
         self.assertIn(("HL2", 1050), grouped)
         self.assertIn(("D2", round(((1050 - 100) ** 2 + 950**2) ** 0.5)), grouped)
 
+    def test_45x45_120x20_variant_uses_requested_profiles(self):
+        design = Design(
+            frame=45,
+            cladding=20,
+            roof_connector_width=45,
+            roof_connector_thickness=45,
+        )
+        _, parts = build(design)
+        structural = [
+            part for part in parts
+            if part.material == "wood" and part.thickness != design.cladding
+        ]
+        self.assertTrue(structural)
+        self.assertEqual(
+            {(part.width, part.thickness) for part in structural},
+            {(45, 45)},
+        )
+
     def test_floor_seat_and_hinge_follow_section_datums(self):
         design = Design()
         _, parts = build(design)
