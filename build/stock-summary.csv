@@ -1,0 +1,4 @@
+material,stock_quantity,stock_length_mm,total_waste_mm
+beam_50x50,12,2400,4141.8
+beam_65x25,1,2400,1550
+cladding_120x25,21,2400,5187.5

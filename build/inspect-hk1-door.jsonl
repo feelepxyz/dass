@@ -1,0 +1,1485 @@
+{
+  "ok": true,
+  "tokens": [
+    {
+      "line": 1,
+      "token": "#o1.7",
+      "cadPath": "build/dass-closed",
+      "stepPath": "build/dass-closed.step",
+      "stepHash": "4a83ce2e3c59f863039cc50eb5fe6e33434be69754315253f6a40b4acfdab32e",
+      "summary": {
+        "kind": "assembly",
+        "occurrenceCount": 38,
+        "leafOccurrenceCount": 37,
+        "shapeCount": 37,
+        "faceCount": 222,
+        "edgeCount": 444,
+        "vertexCount": 0,
+        "bounds": {
+          "min": [
+            0.0,
+            -60.0,
+            0.0
+          ],
+          "max": [
+            956.0,
+            891.5,
+            1275.0
+          ]
+        }
+      },
+      "selections": [
+        {
+          "status": "resolved",
+          "selectorType": "occurrence",
+          "normalizedSelector": "o1.7",
+          "displaySelector": "o1.7",
+          "copyText": "#o1.7",
+          "label": "Occurrence o1.7",
+          "summary": "left_bottom",
+          "detail": {
+            "path": "1.7",
+            "name": "left_bottom",
+            "sourceName": "left_bottom",
+            "parentId": "o1",
+            "childCount": 0,
+            "descendantOccurrenceIds": [],
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "bbox": {
+              "min": [
+                0.0,
+                50.0,
+                100.0
+              ],
+              "max": [
+                50.0,
+                800.0,
+                150.0
+              ]
+            },
+            "shapeCount": 1,
+            "faceCount": 6,
+            "edgeCount": 12,
+            "vertexCount": null
+          },
+          "positioning": {
+            "selectorType": "occurrence",
+            "selector": "o1.7",
+            "bbox": {
+              "min": [
+                0.0,
+                50.0,
+                100.0
+              ],
+              "max": [
+                50.0,
+                800.0,
+                150.0
+              ]
+            },
+            "bboxFacts": {
+              "size": [
+                50.0,
+                750.0,
+                50.0
+              ],
+              "extentAxis": "y",
+              "center": [
+                25.0,
+                425.0,
+                125.0
+              ],
+              "diag": 753.3259586659682
+            },
+            "center": [
+              25.0,
+              425.0,
+              125.0
+            ],
+            "kind": "frame",
+            "name": "left_bottom",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "localAxes": {
+              "x": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "y": [
+                0.0,
+                1.0,
+                0.0
+              ],
+              "z": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": []
+}
+{
+  "ok": true,
+  "tokens": [
+    {
+      "line": 1,
+      "token": "#o1.8",
+      "cadPath": "build/dass-closed",
+      "stepPath": "build/dass-closed.step",
+      "stepHash": "4a83ce2e3c59f863039cc50eb5fe6e33434be69754315253f6a40b4acfdab32e",
+      "summary": {
+        "kind": "assembly",
+        "occurrenceCount": 38,
+        "leafOccurrenceCount": 37,
+        "shapeCount": 37,
+        "faceCount": 222,
+        "edgeCount": 444,
+        "vertexCount": 0,
+        "bounds": {
+          "min": [
+            0.0,
+            -60.0,
+            0.0
+          ],
+          "max": [
+            956.0,
+            891.5,
+            1275.0
+          ]
+        }
+      },
+      "selections": [
+        {
+          "status": "resolved",
+          "selectorType": "occurrence",
+          "normalizedSelector": "o1.8",
+          "displaySelector": "o1.8",
+          "copyText": "#o1.8",
+          "label": "Occurrence o1.8",
+          "summary": "left_top",
+          "detail": {
+            "path": "1.8",
+            "name": "left_top",
+            "sourceName": "left_top",
+            "parentId": "o1",
+            "childCount": 0,
+            "descendantOccurrenceIds": [],
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "bbox": {
+              "min": [
+                0.0,
+                50.0,
+                1100.0
+              ],
+              "max": [
+                50.0,
+                800.0,
+                1150.0
+              ]
+            },
+            "shapeCount": 1,
+            "faceCount": 6,
+            "edgeCount": 12,
+            "vertexCount": null
+          },
+          "positioning": {
+            "selectorType": "occurrence",
+            "selector": "o1.8",
+            "bbox": {
+              "min": [
+                0.0,
+                50.0,
+                1100.0
+              ],
+              "max": [
+                50.0,
+                800.0,
+                1150.0
+              ]
+            },
+            "bboxFacts": {
+              "size": [
+                50.0,
+                750.0,
+                50.0
+              ],
+              "extentAxis": "y",
+              "center": [
+                25.0,
+                425.0,
+                1125.0
+              ],
+              "diag": 753.3259586659682
+            },
+            "center": [
+              25.0,
+              425.0,
+              1125.0
+            ],
+            "kind": "frame",
+            "name": "left_top",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "localAxes": {
+              "x": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "y": [
+                0.0,
+                1.0,
+                0.0
+              ],
+              "z": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": []
+}
+{
+  "ok": true,
+  "tokens": [
+    {
+      "line": 1,
+      "token": "#o1.9",
+      "cadPath": "build/dass-closed",
+      "stepPath": "build/dass-closed.step",
+      "stepHash": "4a83ce2e3c59f863039cc50eb5fe6e33434be69754315253f6a40b4acfdab32e",
+      "summary": {
+        "kind": "assembly",
+        "occurrenceCount": 38,
+        "leafOccurrenceCount": 37,
+        "shapeCount": 37,
+        "faceCount": 222,
+        "edgeCount": 444,
+        "vertexCount": 0,
+        "bounds": {
+          "min": [
+            0.0,
+            -60.0,
+            0.0
+          ],
+          "max": [
+            956.0,
+            891.5,
+            1275.0
+          ]
+        }
+      },
+      "selections": [
+        {
+          "status": "resolved",
+          "selectorType": "occurrence",
+          "normalizedSelector": "o1.9",
+          "displaySelector": "o1.9",
+          "copyText": "#o1.9",
+          "label": "Occurrence o1.9",
+          "summary": "right_bottom",
+          "detail": {
+            "path": "1.9",
+            "name": "right_bottom",
+            "sourceName": "right_bottom",
+            "parentId": "o1",
+            "childCount": 0,
+            "descendantOccurrenceIds": [],
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "bbox": {
+              "min": [
+                900.0,
+                50.0,
+                100.0
+              ],
+              "max": [
+                950.0,
+                800.0,
+                150.0
+              ]
+            },
+            "shapeCount": 1,
+            "faceCount": 6,
+            "edgeCount": 12,
+            "vertexCount": null
+          },
+          "positioning": {
+            "selectorType": "occurrence",
+            "selector": "o1.9",
+            "bbox": {
+              "min": [
+                900.0,
+                50.0,
+                100.0
+              ],
+              "max": [
+                950.0,
+                800.0,
+                150.0
+              ]
+            },
+            "bboxFacts": {
+              "size": [
+                50.0,
+                750.0,
+                50.0
+              ],
+              "extentAxis": "y",
+              "center": [
+                925.0,
+                425.0,
+                125.0
+              ],
+              "diag": 753.3259586659682
+            },
+            "center": [
+              925.0,
+              425.0,
+              125.0
+            ],
+            "kind": "frame",
+            "name": "right_bottom",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "localAxes": {
+              "x": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "y": [
+                0.0,
+                1.0,
+                0.0
+              ],
+              "z": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": []
+}
+{
+  "ok": true,
+  "tokens": [
+    {
+      "line": 1,
+      "token": "#o1.10",
+      "cadPath": "build/dass-closed",
+      "stepPath": "build/dass-closed.step",
+      "stepHash": "4a83ce2e3c59f863039cc50eb5fe6e33434be69754315253f6a40b4acfdab32e",
+      "summary": {
+        "kind": "assembly",
+        "occurrenceCount": 38,
+        "leafOccurrenceCount": 37,
+        "shapeCount": 37,
+        "faceCount": 222,
+        "edgeCount": 444,
+        "vertexCount": 0,
+        "bounds": {
+          "min": [
+            0.0,
+            -60.0,
+            0.0
+          ],
+          "max": [
+            956.0,
+            891.5,
+            1275.0
+          ]
+        }
+      },
+      "selections": [
+        {
+          "status": "resolved",
+          "selectorType": "occurrence",
+          "normalizedSelector": "o1.10",
+          "displaySelector": "o1.10",
+          "copyText": "#o1.10",
+          "label": "Occurrence o1.10",
+          "summary": "right_top",
+          "detail": {
+            "path": "1.10",
+            "name": "right_top",
+            "sourceName": "right_top",
+            "parentId": "o1",
+            "childCount": 0,
+            "descendantOccurrenceIds": [],
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "bbox": {
+              "min": [
+                900.0,
+                50.0,
+                1100.0
+              ],
+              "max": [
+                950.0,
+                800.0,
+                1150.0
+              ]
+            },
+            "shapeCount": 1,
+            "faceCount": 6,
+            "edgeCount": 12,
+            "vertexCount": null
+          },
+          "positioning": {
+            "selectorType": "occurrence",
+            "selector": "o1.10",
+            "bbox": {
+              "min": [
+                900.0,
+                50.0,
+                1100.0
+              ],
+              "max": [
+                950.0,
+                800.0,
+                1150.0
+              ]
+            },
+            "bboxFacts": {
+              "size": [
+                50.0,
+                750.0,
+                50.0
+              ],
+              "extentAxis": "y",
+              "center": [
+                925.0,
+                425.0,
+                1125.0
+              ],
+              "diag": 753.3259586659682
+            },
+            "center": [
+              925.0,
+              425.0,
+              1125.0
+            ],
+            "kind": "frame",
+            "name": "right_top",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "localAxes": {
+              "x": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "y": [
+                0.0,
+                1.0,
+                0.0
+              ],
+              "z": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": []
+}
+{
+  "ok": true,
+  "tokens": [
+    {
+      "line": 1,
+      "token": "#o1.29",
+      "cadPath": "build/dass-closed",
+      "stepPath": "build/dass-closed.step",
+      "stepHash": "4a83ce2e3c59f863039cc50eb5fe6e33434be69754315253f6a40b4acfdab32e",
+      "summary": {
+        "kind": "assembly",
+        "occurrenceCount": 38,
+        "leafOccurrenceCount": 37,
+        "shapeCount": 37,
+        "faceCount": 222,
+        "edgeCount": 444,
+        "vertexCount": 0,
+        "bounds": {
+          "min": [
+            0.0,
+            -60.0,
+            0.0
+          ],
+          "max": [
+            956.0,
+            891.5,
+            1275.0
+          ]
+        }
+      },
+      "selections": [
+        {
+          "status": "resolved",
+          "selectorType": "occurrence",
+          "normalizedSelector": "o1.29",
+          "displaySelector": "o1.29",
+          "copyText": "#o1.29",
+          "label": "Occurrence o1.29",
+          "summary": "door_bottom",
+          "detail": {
+            "path": "1.29",
+            "name": "door_bottom",
+            "sourceName": "door_bottom",
+            "parentId": "o1",
+            "childCount": 0,
+            "descendantOccurrenceIds": [],
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "bbox": {
+              "min": [
+                0.0,
+                -60.0,
+                100.0
+              ],
+              "max": [
+                950.0,
+                -10.0,
+                150.0
+              ]
+            },
+            "shapeCount": 1,
+            "faceCount": 6,
+            "edgeCount": 12,
+            "vertexCount": null
+          },
+          "positioning": {
+            "selectorType": "occurrence",
+            "selector": "o1.29",
+            "bbox": {
+              "min": [
+                0.0,
+                -60.0,
+                100.0
+              ],
+              "max": [
+                950.0,
+                -10.0,
+                150.0
+              ]
+            },
+            "bboxFacts": {
+              "size": [
+                950.0,
+                50.0,
+                50.0
+              ],
+              "extentAxis": "x",
+              "center": [
+                475.0,
+                -35.0,
+                125.0
+              ],
+              "diag": 952.6279441628825
+            },
+            "center": [
+              475.0,
+              -35.0,
+              125.0
+            ],
+            "kind": "frame",
+            "name": "door_bottom",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "localAxes": {
+              "x": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "y": [
+                0.0,
+                1.0,
+                0.0
+              ],
+              "z": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": []
+}
+{
+  "ok": true,
+  "tokens": [
+    {
+      "line": 1,
+      "token": "#o1.3",
+      "cadPath": "build/dass-closed",
+      "stepPath": "build/dass-closed.step",
+      "stepHash": "4a83ce2e3c59f863039cc50eb5fe6e33434be69754315253f6a40b4acfdab32e",
+      "summary": {
+        "kind": "assembly",
+        "occurrenceCount": 38,
+        "leafOccurrenceCount": 37,
+        "shapeCount": 37,
+        "faceCount": 222,
+        "edgeCount": 444,
+        "vertexCount": 0,
+        "bounds": {
+          "min": [
+            0.0,
+            -60.0,
+            0.0
+          ],
+          "max": [
+            956.0,
+            891.5,
+            1275.0
+          ]
+        }
+      },
+      "selections": [
+        {
+          "status": "resolved",
+          "selectorType": "occurrence",
+          "normalizedSelector": "o1.3",
+          "displaySelector": "o1.3",
+          "copyText": "#o1.3",
+          "label": "Occurrence o1.3",
+          "summary": "front_post_right",
+          "detail": {
+            "path": "1.3",
+            "name": "front_post_right",
+            "sourceName": "front_post_right",
+            "parentId": "o1",
+            "childCount": 0,
+            "descendantOccurrenceIds": [],
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "bbox": {
+              "min": [
+                900.0,
+                0.0,
+                0.0
+              ],
+              "max": [
+                950.0,
+                50.0,
+                1150.0
+              ]
+            },
+            "shapeCount": 1,
+            "faceCount": 6,
+            "edgeCount": 12,
+            "vertexCount": null
+          },
+          "positioning": {
+            "selectorType": "occurrence",
+            "selector": "o1.3",
+            "bbox": {
+              "min": [
+                900.0,
+                0.0,
+                0.0
+              ],
+              "max": [
+                950.0,
+                50.0,
+                1150.0
+              ]
+            },
+            "bboxFacts": {
+              "size": [
+                50.0,
+                50.0,
+                1150.0
+              ],
+              "extentAxis": "z",
+              "center": [
+                925.0,
+                25.0,
+                575.0
+              ],
+              "diag": 1152.1718621802913
+            },
+            "center": [
+              925.0,
+              25.0,
+              575.0
+            ],
+            "kind": "frame",
+            "name": "front_post_right",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "localAxes": {
+              "x": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "y": [
+                0.0,
+                1.0,
+                0.0
+              ],
+              "z": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": []
+}
+{
+  "ok": true,
+  "tokens": [
+    {
+      "line": 1,
+      "token": "#o1.33",
+      "cadPath": "build/dass-closed",
+      "stepPath": "build/dass-closed.step",
+      "stepHash": "4a83ce2e3c59f863039cc50eb5fe6e33434be69754315253f6a40b4acfdab32e",
+      "summary": {
+        "kind": "assembly",
+        "occurrenceCount": 38,
+        "leafOccurrenceCount": 37,
+        "shapeCount": 37,
+        "faceCount": 222,
+        "edgeCount": 444,
+        "vertexCount": 0,
+        "bounds": {
+          "min": [
+            0.0,
+            -60.0,
+            0.0
+          ],
+          "max": [
+            956.0,
+            891.5,
+            1275.0
+          ]
+        }
+      },
+      "selections": [
+        {
+          "status": "resolved",
+          "selectorType": "occurrence",
+          "normalizedSelector": "o1.33",
+          "displaySelector": "o1.33",
+          "copyText": "#o1.33",
+          "label": "Occurrence o1.33",
+          "summary": "hinge_door_1",
+          "detail": {
+            "path": "1.33",
+            "name": "hinge_door_1",
+            "sourceName": "hinge_door_1",
+            "parentId": "o1",
+            "childCount": 0,
+            "descendantOccurrenceIds": [],
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "bbox": {
+              "min": [
+                900.0,
+                -10.0,
+                325.0
+              ],
+              "max": [
+                950.0,
+                -5.0,
+                475.0
+              ]
+            },
+            "shapeCount": 1,
+            "faceCount": 6,
+            "edgeCount": 12,
+            "vertexCount": null
+          },
+          "positioning": {
+            "selectorType": "occurrence",
+            "selector": "o1.33",
+            "bbox": {
+              "min": [
+                900.0,
+                -10.0,
+                325.0
+              ],
+              "max": [
+                950.0,
+                -5.0,
+                475.0
+              ]
+            },
+            "bboxFacts": {
+              "size": [
+                50.0,
+                5.0,
+                150.0
+              ],
+              "extentAxis": "z",
+              "center": [
+                925.0,
+                -7.5,
+                400.0
+              ],
+              "diag": 158.19292019556374
+            },
+            "center": [
+              925.0,
+              -7.5,
+              400.0
+            ],
+            "kind": "frame",
+            "name": "hinge_door_1",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "localAxes": {
+              "x": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "y": [
+                0.0,
+                1.0,
+                0.0
+              ],
+              "z": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": []
+}
+{
+  "ok": true,
+  "tokens": [
+    {
+      "line": 1,
+      "token": "#o1.34",
+      "cadPath": "build/dass-closed",
+      "stepPath": "build/dass-closed.step",
+      "stepHash": "4a83ce2e3c59f863039cc50eb5fe6e33434be69754315253f6a40b4acfdab32e",
+      "summary": {
+        "kind": "assembly",
+        "occurrenceCount": 38,
+        "leafOccurrenceCount": 37,
+        "shapeCount": 37,
+        "faceCount": 222,
+        "edgeCount": 444,
+        "vertexCount": 0,
+        "bounds": {
+          "min": [
+            0.0,
+            -60.0,
+            0.0
+          ],
+          "max": [
+            956.0,
+            891.5,
+            1275.0
+          ]
+        }
+      },
+      "selections": [
+        {
+          "status": "resolved",
+          "selectorType": "occurrence",
+          "normalizedSelector": "o1.34",
+          "displaySelector": "o1.34",
+          "copyText": "#o1.34",
+          "label": "Occurrence o1.34",
+          "summary": "door_hinge_1",
+          "detail": {
+            "path": "1.34",
+            "name": "door_hinge_1",
+            "sourceName": "door_hinge_1",
+            "parentId": "o1",
+            "childCount": 0,
+            "descendantOccurrenceIds": [],
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "bbox": {
+              "min": [
+                944.0,
+                -11.0,
+                325.0
+              ],
+              "max": [
+                956.0,
+                1.0,
+                475.0
+              ]
+            },
+            "shapeCount": 1,
+            "faceCount": 3,
+            "edgeCount": 3,
+            "vertexCount": null
+          },
+          "positioning": {
+            "selectorType": "occurrence",
+            "selector": "o1.34",
+            "bbox": {
+              "min": [
+                944.0,
+                -11.0,
+                325.0
+              ],
+              "max": [
+                956.0,
+                1.0,
+                475.0
+              ]
+            },
+            "bboxFacts": {
+              "size": [
+                12.0,
+                12.0,
+                150.0
+              ],
+              "extentAxis": "z",
+              "center": [
+                950.0,
+                -5.0,
+                400.0
+              ],
+              "diag": 150.9569475049095
+            },
+            "center": [
+              950.0,
+              -5.0,
+              400.0
+            ],
+            "kind": "frame",
+            "name": "door_hinge_1",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "localAxes": {
+              "x": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "y": [
+                0.0,
+                1.0,
+                0.0
+              ],
+              "z": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": []
+}
+{
+  "ok": true,
+  "tokens": [
+    {
+      "line": 1,
+      "token": "#o1.35",
+      "cadPath": "build/dass-closed",
+      "stepPath": "build/dass-closed.step",
+      "stepHash": "4a83ce2e3c59f863039cc50eb5fe6e33434be69754315253f6a40b4acfdab32e",
+      "summary": {
+        "kind": "assembly",
+        "occurrenceCount": 38,
+        "leafOccurrenceCount": 37,
+        "shapeCount": 37,
+        "faceCount": 222,
+        "edgeCount": 444,
+        "vertexCount": 0,
+        "bounds": {
+          "min": [
+            0.0,
+            -60.0,
+            0.0
+          ],
+          "max": [
+            956.0,
+            891.5,
+            1275.0
+          ]
+        }
+      },
+      "selections": [
+        {
+          "status": "resolved",
+          "selectorType": "occurrence",
+          "normalizedSelector": "o1.35",
+          "displaySelector": "o1.35",
+          "copyText": "#o1.35",
+          "label": "Occurrence o1.35",
+          "summary": "hinge_fixed_2",
+          "detail": {
+            "path": "1.35",
+            "name": "hinge_fixed_2",
+            "sourceName": "hinge_fixed_2",
+            "parentId": "o1",
+            "childCount": 0,
+            "descendantOccurrenceIds": [],
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "bbox": {
+              "min": [
+                900.0,
+                -5.0,
+                925.0
+              ],
+              "max": [
+                950.0,
+                0.0,
+                1075.0
+              ]
+            },
+            "shapeCount": 1,
+            "faceCount": 6,
+            "edgeCount": 12,
+            "vertexCount": null
+          },
+          "positioning": {
+            "selectorType": "occurrence",
+            "selector": "o1.35",
+            "bbox": {
+              "min": [
+                900.0,
+                -5.0,
+                925.0
+              ],
+              "max": [
+                950.0,
+                0.0,
+                1075.0
+              ]
+            },
+            "bboxFacts": {
+              "size": [
+                50.0,
+                5.0,
+                150.0
+              ],
+              "extentAxis": "z",
+              "center": [
+                925.0,
+                -2.5,
+                1000.0
+              ],
+              "diag": 158.19292019556374
+            },
+            "center": [
+              925.0,
+              -2.5,
+              1000.0
+            ],
+            "kind": "frame",
+            "name": "hinge_fixed_2",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "localAxes": {
+              "x": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "y": [
+                0.0,
+                1.0,
+                0.0
+              ],
+              "z": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "transform": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "errors": []
+}

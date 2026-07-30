@@ -1,0 +1,5 @@
+.cache/
+.uv-cache/
+.venv/
+__pycache__/
+build-wide/
