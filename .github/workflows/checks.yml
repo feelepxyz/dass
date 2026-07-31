@@ -20,7 +20,9 @@ jobs:
         python: ["3.11", "3.14"]
 
     steps:
-      - uses: actions/checkout@v7
+      # Pinned to exact releases, as the Python tools are. setup-uv publishes
+      # v9.0.0 without a moving v9 tag, so the major alias does not resolve.
+      - uses: actions/checkout@v7.0.1
 
       # Importing cadquery loads OCP and VTK, which link against libGL. A
       # headless runner has no GL stack until these are installed, and the
@@ -31,7 +33,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             libgl1 libglx-mesa0 libxrender1 libxext6
 
-      - uses: astral-sh/setup-uv@v9
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
