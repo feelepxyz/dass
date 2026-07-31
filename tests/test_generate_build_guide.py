@@ -44,10 +44,12 @@ class BuildGuideTest(unittest.TestCase):
                 Counter(piece.code for stock in stocks for piece in stock),
                 Counter(piece.code for piece in pieces),
             )
-            self.assertTrue(all(
-                sum(piece.length + self.kerf for piece in stock) <= stock_length
-                for stock in stocks
-            ))
+            self.assertTrue(
+                all(
+                    sum(piece.length + self.kerf for piece in stock) <= stock_length
+                    for stock in stocks
+                )
+            )
         self.assertEqual(len(plans[0][1]), 8)
         self.assertEqual(len(plans[1][1]), 12)
 
@@ -58,9 +60,7 @@ class BuildGuideTest(unittest.TestCase):
             [sum(bool(piece.gang_cut) for piece in stock) for stock in stocks[:5]],
             [3, 3, 3, 3, 2],
         )
-        self.assertFalse(any(
-            piece.gang_cut for stock in stocks[5:] for piece in stock
-        ))
+        self.assertFalse(any(piece.gang_cut for stock in stocks[5:] for piece in stock))
         self.assertEqual(
             [piece.code for stock in stocks[:5] for piece in stock if piece.gang_cut],
             [f"LSC{index}" for index in range(1, 8)]
@@ -97,7 +97,7 @@ class BuildGuideTest(unittest.TestCase):
         self.assertIn("do not pre-cut the roof reliefs", document.lower())
         self.assertIn("--stock-aspect:46.666667", document)
         self.assertIn("--stock-aspect:18.750000", document)
-        self.assertIn('<h3>Operation B · cut the remaining pieces</h3>', document)
+        self.assertIn("<h3>Operation B · cut the remaining pieces</h3>", document)
         self.assertIn("run every beam in a serial pass", document)
         self.assertIn("run every plank in a serial pass", document)
         self.assertIn("Frame fastening and finished-angle check", document)
@@ -108,7 +108,7 @@ class BuildGuideTest(unittest.TestCase):
     def test_masthead_names_the_project_and_credits_its_sources(self):
         document = guide_html(self.design)
 
-        self.assertIn("<span class=\"sheet-no\">WORKING DRAWING</span>", document)
+        self.assertIn('<span class="sheet-no">WORKING DRAWING</span>', document)
         self.assertIn("<h1>Can AI build a toilet yet?</h1>", document)
         self.assertIn(
             "Outdoor toilet drawn from a parametric model using claude and codex.",
@@ -120,7 +120,9 @@ class BuildGuideTest(unittest.TestCase):
         self.assertIn("https://github.com/feelepxyz/dass", document)
         self.assertIn('class="source-icon"', document)
         self.assertIn("controls.maxPolarAngle = Math.PI;", document)
-        self.assertIn("ground.visible = camera.position.y >= ground.position.y;", document)
+        self.assertIn(
+            "ground.visible = camera.position.y >= ground.position.y;", document
+        )
         self.assertIn("camera.setViewOffset(3, 4, 0, 1, 3, 3);", document)
         self.assertIn("azimuth: -44", document)
         self.assertIn("frameWidth: 2500", document)
@@ -175,7 +177,9 @@ class BuildGuideTest(unittest.TestCase):
                 '<meta property="og:image" content="https://canaibuildatoiletyet.com/web-renders/in-situ-open.jpg">',
                 document,
             )
-            self.assertIn('<meta name="twitter:card" content="summary_large_image">', document)
+            self.assertIn(
+                '<meta name="twitter:card" content="summary_large_image">', document
+            )
             self.assertIn(
                 '<meta name="twitter:site" content="@feelepxyz">',
                 document,
@@ -184,15 +188,29 @@ class BuildGuideTest(unittest.TestCase):
     def test_story_navigation_links_the_drawing_and_progress_pages(self):
         document = guide_html(self.design)
 
-        self.assertIn('class="story-link story-link-start" href="how-it-started.html#story-nav"', document)
-        self.assertIn('class="story-link story-link-drawing" href="#story-nav" aria-current="page"', document)
-        self.assertIn('class="story-link story-link-going" href="how-its-going.html#story-nav"', document)
+        self.assertIn(
+            'class="story-link story-link-start" href="how-it-started.html#story-nav"',
+            document,
+        )
+        self.assertIn(
+            'class="story-link story-link-drawing" href="#story-nav" aria-current="page"',
+            document,
+        )
+        self.assertIn(
+            'class="story-link story-link-going" href="how-its-going.html#story-nav"',
+            document,
+        )
         self.assertIn('<nav class="story-nav" id="story-nav"', document)
         self.assertIn("scroll-margin-top:16px;", document)
         self.assertIn('class="view-grid" id="render"', document)
         self.assertIn('class="set-foot-copy"', document)
-        self.assertLess(document.index("The checks are saved in this browser"), document.index('class="reset"'))
-        self.assertIn('class="set-foot-link" href="how-its-going.html#story-nav"', document)
+        self.assertLess(
+            document.index("The checks are saved in this browser"),
+            document.index('class="reset"'),
+        )
+        self.assertIn(
+            'class="set-foot-link" href="how-its-going.html#story-nav"', document
+        )
         self.assertIn('path d="M21 12H4m0 0 6 6m-6-6 6-6"', document)
         self.assertIn('path d="M12 3v17m0 0 6-6m-6 6-6-6"', document)
         self.assertIn('path d="M3 12h17m0 0-6-6m6 6-6 6"', document)
@@ -229,8 +247,14 @@ class BuildGuideTest(unittest.TestCase):
         self.assertIn('class="set-foot-link" href="cut-guide.html#story-nav"', document)
         self.assertIn("<span>Working drawing</span>", document)
         self.assertIn('class="story-link story-link-start" href="#story-nav"', document)
-        self.assertIn('class="story-link story-link-drawing" href="cut-guide.html#story-nav"', document)
-        self.assertIn('class="story-link story-link-going" href="how-its-going.html#story-nav"', document)
+        self.assertIn(
+            'class="story-link story-link-drawing" href="cut-guide.html#story-nav"',
+            document,
+        )
+        self.assertIn(
+            'class="story-link story-link-going" href="how-its-going.html#story-nav"',
+            document,
+        )
         self.assertIn('path d="M12 3v17m0 0 6-6m-6 6-6-6"', document)
         self.assertIn('path d="M12 21V4m0 0 6 6m-6-6-6 6"', document)
 
@@ -251,15 +275,23 @@ class BuildGuideTest(unittest.TestCase):
             document,
         )
         self.assertNotIn('class="title-block"', document)
-        self.assertIn('class="story-link story-link-start" href="how-it-started.html#story-nav"', document)
-        self.assertIn('class="story-link story-link-drawing" href="cut-guide.html#story-nav"', document)
+        self.assertIn(
+            'class="story-link story-link-start" href="how-it-started.html#story-nav"',
+            document,
+        )
+        self.assertIn(
+            'class="story-link story-link-drawing" href="cut-guide.html#story-nav"',
+            document,
+        )
         self.assertIn('class="story-link story-link-going" href="#story-nav"', document)
         self.assertIn('path d="M21 12H4m0 0 6 6m-6-6 6-6"', document)
         self.assertIn('path d="M12 3v17m0 0 6-6m-6 6-6-6"', document)
         self.assertIn('path d="M12 21V4m0 0 6 6m-6-6-6 6"', document)
-        self.assertIn('class="set-foot-link" href="how-it-started.html#story-nav"', document)
+        self.assertIn(
+            'class="set-foot-link" href="how-it-started.html#story-nav"', document
+        )
         self.assertIn("<span>How it started</span>", document)
-        self.assertNotIn('<span>Working drawing</span>', document)
+        self.assertNotIn("<span>Working drawing</span>", document)
         self.assertIn('path d="M3 12h17m0 0-6-6m6 6-6 6"', document)
         self.assertIn('path d="M21 12H4m0 0 6 6m-6-6 6-6"', document)
         self.assertLess(
@@ -304,13 +336,17 @@ class BuildGuideTest(unittest.TestCase):
         self.assertIn('printShot.className = "viewer-print";', document)
         self.assertIn("function takePrintStill()", document)
         self.assertIn('finish = "line";', document)
-        self.assertIn('window.addEventListener("beforeprint", takePrintStill);', document)
+        self.assertIn(
+            'window.addEventListener("beforeprint", takePrintStill);', document
+        )
         # Print preview and print-to-PDF never fire beforeprint.
         self.assertIn('window.matchMedia("print")', document)
         self.assertIn("has-print-model", document)
         # Photographs stay on screen; they only return if no still was taken.
         self.assertIn(".gallery, .viewer { display:none; }", document)
-        self.assertIn("body:not(.has-print-model) .gallery { display:block; }", document)
+        self.assertIn(
+            "body:not(.has-print-model) .gallery { display:block; }", document
+        )
         # The still ships with its own width and height, so a max-width and a
         # max-height would each be applied on their own and stretch the model
         # across the sheet. One stated side, and the other follows the ratio.
@@ -329,7 +365,9 @@ class BuildGuideTest(unittest.TestCase):
         # A guessed plate height letterboxes the drawing to a fraction of its
         # column; the page has to set the size instead.
         self.assertNotIn("height:74mm", document)
-        self.assertIn(".unit .drawing .plate { flex:1 1 auto; min-height:0; }", document)
+        self.assertIn(
+            ".unit .drawing .plate { flex:1 1 auto; min-height:0; }", document
+        )
         # One unit per sheet: the drawing, its steps and its codes travel
         # together, under the same head of air every printed page opens with.
         # That air is the page box, not padding on the sheet: padding only
@@ -340,14 +378,20 @@ class BuildGuideTest(unittest.TestCase):
         self.assertIn(".sheet, .masthead { border:0; padding:0; margin:0; }", document)
         # Nothing may push an empty sheet out of the end of the set.
         self.assertIn(".sheet:last-of-type { break-after:auto; }", document)
-        self.assertIn(".drawing, .unit, .stock, .note { break-inside:avoid; }", document)
+        self.assertIn(
+            ".drawing, .unit, .stock, .note { break-inside:avoid; }", document
+        )
 
     def test_printed_story_pages_keep_their_figures_whole_and_open_with_work(self):
         for document in (started_html(), progress_html()):
             # The story masthead is a title bar, not a title sheet: nothing is
             # drawn beside it, so a page of its own printed all but empty.
-            self.assertIn(".masthead-progress { break-after:auto; padding-bottom:8mm; }", document)
-            self.assertIn(".masthead-progress + .sheet { break-before:auto; }", document)
+            self.assertIn(
+                ".masthead-progress { break-after:auto; padding-bottom:8mm; }", document
+            )
+            self.assertIn(
+                ".masthead-progress + .sheet { break-before:auto; }", document
+            )
             # `break-inside` is only honoured while a block still fits the page,
             # so each figure is bound on its height before it is asked to stay
             # whole. Otherwise the image split and the caption was orphaned.
@@ -414,7 +458,8 @@ class BuildGuideTest(unittest.TestCase):
         post = outline(parts["front_post_left"], FRONT)
         self.assertEqual(len(post), 4)
         self.assertAlmostEqual(
-            max(u for u, _ in post) - min(u for u, _ in post), self.design.frame,
+            max(u for u, _ in post) - min(u for u, _ in post),
+            self.design.frame,
         )
         self.assertAlmostEqual(
             max(v for _, v in post) - min(v for _, v in post),
@@ -431,9 +476,13 @@ class BuildGuideTest(unittest.TestCase):
         wall = cross_section(parts["left_wall"], PLAN, cut)
         frame = cross_section(parts["front_post_left"], PLAN, cut)
         self.assertAlmostEqual(
-            max(u for u, _ in wall) - min(u for u, _ in wall), self.design.cladding, places=3,
+            max(u for u, _ in wall) - min(u for u, _ in wall),
+            self.design.cladding,
+            places=3,
         )
-        self.assertGreaterEqual(min(u for u, _ in wall), max(u for u, _ in frame) - 1e-6)
+        self.assertGreaterEqual(
+            min(u for u, _ in wall), max(u for u, _ in frame) - 1e-6
+        )
 
     def test_every_stack_gets_a_plate_carrying_its_own_codes(self):
         plates = module_plates(self.design, self.boards)

@@ -51,14 +51,25 @@ def main() -> None:
         "| Part | reconciled cut list | reconciled drawing | generated CAD | Result |",
         "|---|---|---|---|---|",
     ]
-    csv_rows = [("part", "image_quantity", "image_length_mm", "cad_quantity", "cad_length_mm", "result")]
+    csv_rows = [
+        (
+            "part",
+            "image_quantity",
+            "image_length_mm",
+            "cad_quantity",
+            "cad_length_mm",
+            "result",
+        )
+    ]
     errors: list[str] = []
     for name in IMAGE_CUTLIST:
         image_quantity, image_length, _ = IMAGE_CUTLIST[name]
         drawing_quantity, drawing_length, _ = DRAWING_CUTLIST[name]
         cad_lengths = cad.get(name, [])
         cad_quantity = len(cad_lengths)
-        cad_length_text = ", ".join(f"{value:.1f}" for value in sorted(cad_lengths)) or "—"
+        cad_length_text = (
+            ", ".join(f"{value:.1f}" for value in sorted(cad_lengths)) or "—"
+        )
         values = (
             f"{image_quantity} × {image_length}",
             f"{drawing_quantity} × {drawing_length}",
@@ -67,25 +78,44 @@ def main() -> None:
         matches = (
             image_quantity == drawing_quantity == cad_quantity
             and image_length == drawing_length
-            and all(math.isclose(length, image_length, abs_tol=0.5) for length in cad_lengths)
+            and all(
+                math.isclose(length, image_length, abs_tol=0.5)
+                for length in cad_lengths
+            )
         )
         result = "match" if matches else "ERROR"
         if not matches:
-            errors.append(f"{name}: image={values[0]}, drawing={values[1]}, CAD={values[2]}")
+            errors.append(
+                f"{name}: image={values[0]}, drawing={values[1]}, CAD={values[2]}"
+            )
         lines.append(f"| {name} | {values[0]} | {values[1]} | {values[2]} | {result} |")
-        csv_rows.append((name, image_quantity, image_length, cad_quantity, cad_length_text, result))
+        csv_rows.append(
+            (name, image_quantity, image_length, cad_quantity, cad_length_text, result)
+        )
 
     lines.extend(("", "## Notes", ""))
     lines.append("- The source image specifies 50×50 stock for every row.")
-    lines.append("- User reconciliation assigns V1 to four structural uprights, V2 to two door uprights, and D2 to the single door diagonal.")
-    lines.append("- The image specifies −36° cuts at both D1 ends and −40° cuts at both D2 ends.")
-    lines.append("- CAD quantities are derived from the model, not copied from either reference table.")
-    lines.append("- Exact side-frame corner geometry gives D1 = 1210.4 mm and a 38.3° cut.")
-    lines.append("- Exact 850 × 950 mm door opening geometry gives D2 = 1274.8 mm and a 41.8° cut.")
+    lines.append(
+        "- User reconciliation assigns V1 to four structural uprights, V2 to two door uprights, and D2 to the single door diagonal."
+    )
+    lines.append(
+        "- The image specifies −36° cuts at both D1 ends and −40° cuts at both D2 ends."
+    )
+    lines.append(
+        "- CAD quantities are derived from the model, not copied from either reference table."
+    )
+    lines.append(
+        "- Exact side-frame corner geometry gives D1 = 1210.4 mm and a 38.3° cut."
+    )
+    lines.append(
+        "- Exact 850 × 950 mm door opening geometry gives D2 = 1274.8 mm and a 41.8° cut."
+    )
     if errors:
         lines.extend(("", "## Errors", "", *(f"- {error}" for error in errors)))
     else:
-        lines.append("- No discrepancies were found among the eight labeled structural stock rows.")
+        lines.append(
+            "- No discrepancies were found among the eight labeled structural stock rows."
+        )
     OUTPUT.write_text("\n".join(lines) + "\n")
     with CSV_OUTPUT.open("w", newline="") as stream:
         csv.writer(stream, lineterminator="\n").writerows(csv_rows)

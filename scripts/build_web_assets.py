@@ -63,7 +63,9 @@ def stage_renders(source: Path, target: Path) -> list[Path]:
         for name, _, _ in views:
             original = source / f"{name}.png"
             if not original.exists():
-                raise SystemExit(f"missing render {original}; run `uv run render-photo` first")
+                raise SystemExit(
+                    f"missing render {original}; run `uv run render-photo` first"
+                )
             image = Image.open(original).convert("RGB")
             # Only the in-situ plates fill their frame; the renders and the flat
             # elevations must stay whole, so they are never cropped.
@@ -140,7 +142,9 @@ def stage_textures(target: Path) -> list[Path]:
     for name, relative, long_edge, quality, subsample in WEB_TEXTURES:
         original = ROOT / relative
         if not original.exists():
-            raise SystemExit(f"missing texture {original}; run `uv run render-photo` first")
+            raise SystemExit(
+                f"missing texture {original}; run `uv run render-photo` first"
+            )
         image = Image.open(original)
         image = image.convert("L" if image.mode == "L" else "RGB")
         scale = long_edge / max(image.size)
@@ -151,7 +155,10 @@ def stage_textures(target: Path) -> list[Path]:
             )
         out = target / name
         image.save(
-            out, "JPEG", quality=quality, optimize=True,
+            out,
+            "JPEG",
+            quality=quality,
+            optimize=True,
             subsampling=2 if subsample else 0,
         )
         written.append(out)
@@ -173,7 +180,9 @@ def stage_fonts(target: Path) -> list[Path]:
 def stage_vendor(target: Path) -> list[Path]:
     three = ROOT / "web/render/node_modules/three"
     if not three.exists():
-        raise SystemExit("web/render/node_modules/three is missing; run npm install in web/render/")
+        raise SystemExit(
+            "web/render/node_modules/three is missing; run npm install in web/render/"
+        )
     written = []
     for name, relative in VENDOR.items():
         out = target / name

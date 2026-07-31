@@ -18,9 +18,14 @@ def clashes(parts, tolerance=1.0):
         if a.category in PIN_CATEGORIES or b.category in PIN_CATEGORIES:
             continue
         first, second = a.solid.BoundingBox(), b.solid.BoundingBox()
-        if (first.xmin >= second.xmax or second.xmin >= first.xmax
-                or first.ymin >= second.ymax or second.ymin >= first.ymax
-                or first.zmin >= second.zmax or second.zmin >= first.zmax):
+        if (
+            first.xmin >= second.xmax
+            or second.xmin >= first.xmax
+            or first.ymin >= second.ymax
+            or second.ymin >= first.ymax
+            or first.zmin >= second.zmax
+            or second.zmin >= first.zmax
+        ):
             continue
         volume = a.solid.intersect(b.solid).Volume()
         if volume > tolerance:
@@ -44,7 +49,11 @@ class DassModelTest(unittest.TestCase):
         }:
             self.assertIn(expected, panels)
         self.assertEqual(
-            sorted((part.category, part.length) for part in parts if part.category in {"V1", "V2"}),
+            sorted(
+                (part.category, part.length)
+                for part in parts
+                if part.category in {"V1", "V2"}
+            ),
             [("V1", 1150)] * 4 + [("V2", 1050)] * 2,
         )
 
@@ -55,7 +64,10 @@ class DassModelTest(unittest.TestCase):
         self.assertIn(("HL1", 960), grouped)
         self.assertIn(("HL2", 1050), grouped)
         self.assertIn(
-            ("D2", round(next(part.length for part in parts if part.name == "door_brace"))),
+            (
+                "D2",
+                round(next(part.length for part in parts if part.name == "door_brace")),
+            ),
             grouped,
         )
 
@@ -68,7 +80,8 @@ class DassModelTest(unittest.TestCase):
         )
         _, parts = build(design)
         structural = [
-            part for part in parts
+            part
+            for part in parts
             if part.material == "wood" and part.thickness != design.cladding
         ]
         self.assertTrue(structural)
@@ -92,8 +105,13 @@ class DassModelTest(unittest.TestCase):
         )
         floor_support = by_name["floor_back_support"].solid.BoundingBox()
         self.assertEqual(
-            (floor_support.xmin, floor_support.xmax,
-             floor_support.ymin, floor_support.ymax, floor_support.zmax),
+            (
+                floor_support.xmin,
+                floor_support.xmax,
+                floor_support.ymin,
+                floor_support.ymax,
+                floor_support.zmax,
+            ),
             (68, 922, 702, 747, floor.zmin),
         )
         self.assertNotIn("floor_diagonal", by_name)
@@ -102,8 +120,14 @@ class DassModelTest(unittest.TestCase):
         for name, xmin in (("floor_left_support", 68), ("floor_right_support", 877)):
             bearer = by_name[name].solid.BoundingBox()
             self.assertEqual(
-                (bearer.xmin, bearer.xmax, bearer.ymin, bearer.ymax,
-                 bearer.zmin, bearer.zmax),
+                (
+                    bearer.xmin,
+                    bearer.xmax,
+                    bearer.ymin,
+                    bearer.ymax,
+                    bearer.zmin,
+                    bearer.zmax,
+                ),
                 (xmin, xmin + 45, 45, 702, 100, floor.zmin),
             )
             self.assertEqual(by_name[name].length, 657)
@@ -121,13 +145,17 @@ class DassModelTest(unittest.TestCase):
         bottom_rail = by_name["front_bottom"].solid.BoundingBox()
         self.assertEqual(bottom_rail.zmin - front_post.zmin, design.leg_extension)
         for name in ("left_wall", "right_wall", "back_wall"):
-            self.assertEqual(by_name[name].solid.BoundingBox().zmin, design.leg_extension)
+            self.assertEqual(
+                by_name[name].solid.BoundingBox().zmin, design.leg_extension
+            )
 
         door = by_name["door_right"].solid.BoundingBox()
         door_panel = by_name["door_panel"].solid.BoundingBox()
         self.assertEqual((door.zmin, door.zmax), (100, 1150))
         self.assertEqual((door_panel.zmin, door_panel.zmax), (100, 1275))
-        self.assertEqual(door_panel.zmin, by_name["door_bottom"].solid.BoundingBox().zmin)
+        self.assertEqual(
+            door_panel.zmin, by_name["door_bottom"].solid.BoundingBox().zmin
+        )
         self.assertEqual(door_panel.ymin, door.ymax)
         structure = by_name["front_post_right"].solid.BoundingBox()
         self.assertLessEqual(door.ymax, structure.ymin - design.hinge_gap)
@@ -143,20 +171,32 @@ class DassModelTest(unittest.TestCase):
         back = by_name["back_wall"].solid.BoundingBox()
         self.assertAlmostEqual(left.ymin, 0)
         self.assertAlmostEqual(left.ymax, design.plan_grid_depth)
-        self.assertAlmostEqual(left.ymin, by_name["front_post_left"].solid.BoundingBox().ymin)
+        self.assertAlmostEqual(
+            left.ymin, by_name["front_post_left"].solid.BoundingBox().ymin
+        )
 
         for name in (
-            "floor", "seat_front", "seat_top",
-            "seat_rail_1", "seat_rail_2", "seat_lower_rail",
+            "floor",
+            "seat_front",
+            "seat_top",
+            "seat_rail_1",
+            "seat_rail_2",
+            "seat_lower_rail",
         ):
             # Boolean cuts leave sub-nanometre noise on the cladding faces.
             box = by_name[name].solid.BoundingBox()
             self.assertGreaterEqual(box.xmin, left.xmax - 1e-6)
             self.assertLessEqual(box.xmax, right.xmin + 1e-6)
             self.assertLessEqual(box.ymax, back.ymin + 1e-6)
-            self.assertAlmostEqual(by_name[name].solid.intersect(by_name["left_wall"].solid).Volume(), 0)
-            self.assertAlmostEqual(by_name[name].solid.intersect(by_name["right_wall"].solid).Volume(), 0)
-            self.assertAlmostEqual(by_name[name].solid.intersect(by_name["back_wall"].solid).Volume(), 0)
+            self.assertAlmostEqual(
+                by_name[name].solid.intersect(by_name["left_wall"].solid).Volume(), 0
+            )
+            self.assertAlmostEqual(
+                by_name[name].solid.intersect(by_name["right_wall"].solid).Volume(), 0
+            )
+            self.assertAlmostEqual(
+                by_name[name].solid.intersect(by_name["back_wall"].solid).Volume(), 0
+            )
 
     def test_hk1_rails_are_unique_and_frame_each_side_brace(self):
         design = Design()
@@ -170,7 +210,10 @@ class DassModelTest(unittest.TestCase):
             {"left_bottom", "left_top", "right_bottom", "right_top"},
         )
         self.assertEqual(
-            {(part.solid.BoundingBox().xmin, part.solid.BoundingBox().zmin) for part in rails},
+            {
+                (part.solid.BoundingBox().xmin, part.solid.BoundingBox().zmin)
+                for part in rails
+            },
             {(0, 100), (0, 1105), (945, 100), (945, 1105)},
         )
 
@@ -179,17 +222,25 @@ class DassModelTest(unittest.TestCase):
         for angle in (0, 105):
             _, parts = build(design, door_angle=angle)
             by_name = {part.name: part for part in parts}
-            door = cq.Compound.makeCompound([
-                by_name[name].solid
-                for name in (
-                    "door_panel", "door_left", "door_right",
-                    "door_bottom", "door_top", "door_brace",
-                )
-            ])
-            structure = cq.Compound.makeCompound([
-                by_name[name].solid
-                for name in ("front_post_left", "front_post_right", "front_bottom")
-            ])
+            door = cq.Compound.makeCompound(
+                [
+                    by_name[name].solid
+                    for name in (
+                        "door_panel",
+                        "door_left",
+                        "door_right",
+                        "door_bottom",
+                        "door_top",
+                        "door_brace",
+                    )
+                ]
+            )
+            structure = cq.Compound.makeCompound(
+                [
+                    by_name[name].solid
+                    for name in ("front_post_left", "front_post_right", "front_bottom")
+                ]
+            )
             self.assertAlmostEqual(door.intersect(structure).Volume(), 0)
 
         closed = {part.name: part for part in build(design, door_angle=0)[1]}
@@ -200,13 +251,19 @@ class DassModelTest(unittest.TestCase):
             closed["hinge_door_1"].solid.BoundingBox().ymin,
             closed["door_panel"].solid.BoundingBox().ymax,
         )
-        self.assertEqual(closed["hinge_fixed_1"].solid.BoundingBox().ymax, structure_face)
+        self.assertEqual(
+            closed["hinge_fixed_1"].solid.BoundingBox().ymax, structure_face
+        )
         self.assertGreater(
-            closed["door_hinge_1"].solid.intersect(closed["hinge_door_1"].solid).Volume(),
+            closed["door_hinge_1"]
+            .solid.intersect(closed["hinge_door_1"].solid)
+            .Volume(),
             0,
         )
         self.assertGreater(
-            closed["door_hinge_1"].solid.intersect(closed["hinge_fixed_1"].solid).Volume(),
+            closed["door_hinge_1"]
+            .solid.intersect(closed["hinge_fixed_1"].solid)
+            .Volume(),
             0,
         )
 
@@ -215,10 +272,12 @@ class DassModelTest(unittest.TestCase):
         _, parts = build(design)
         by_name = {part.name: part for part in parts}
 
-        door_frame = cq.Compound.makeCompound([
-            by_name[name].solid
-            for name in ("door_left", "door_right", "door_bottom", "door_top")
-        ]).BoundingBox()
+        door_frame = cq.Compound.makeCompound(
+            [
+                by_name[name].solid
+                for name in ("door_left", "door_right", "door_bottom", "door_top")
+            ]
+        ).BoundingBox()
         self.assertEqual((door_frame.xlen, door_frame.zlen), (design.width, 1050))
         self.assertEqual(door_frame.zmin, design.leg_extension)
         self.assertEqual(
@@ -243,22 +302,30 @@ class DassModelTest(unittest.TestCase):
         roof_back = by_name["roof_back"].solid.BoundingBox()
         self.assertEqual(back_top.zmax, back_post.zmax)
         self.assertEqual(fixed_hinge.ymin, back_top.ymax)
-        self.assertEqual(fixed_hinge.zmax, back_post.zmax + design.roof_hinge_pin_radius)
+        self.assertEqual(
+            fixed_hinge.zmax, back_post.zmax + design.roof_hinge_pin_radius
+        )
         self.assertGreater(
-            by_name["roof_hinge_pin"].solid.intersect(by_name["roof_hinge_fixed"].solid).Volume(),
+            by_name["roof_hinge_pin"]
+            .solid.intersect(by_name["roof_hinge_fixed"].solid)
+            .Volume(),
             0,
         )
         self.assertGreater(
-            by_name["roof_hinge_pin"].solid.intersect(by_name["roof_hinge_moving"].solid).Volume(),
+            by_name["roof_hinge_pin"]
+            .solid.intersect(by_name["roof_hinge_moving"].solid)
+            .Volume(),
             0,
         )
         self.assertAlmostEqual(roof_back.ymax, back_top.ymax, delta=3)
         self.assertGreaterEqual(roof_back.zmin, back_top.zmax)
 
-        roof_frame = cq.Compound.makeCompound([
-            by_name[name].solid
-            for name in ("roof_front", "roof_back", "roof_left", "roof_right")
-        ]).BoundingBox()
+        roof_frame = cq.Compound.makeCompound(
+            [
+                by_name[name].solid
+                for name in ("roof_front", "roof_back", "roof_left", "roof_right")
+            ]
+        ).BoundingBox()
         self.assertAlmostEqual(roof_frame.xlen, design.width)
         roof = by_name["roof"].solid.BoundingBox()
         self.assertAlmostEqual(roof.xlen, 1050, places=6)
@@ -287,7 +354,13 @@ class DassModelTest(unittest.TestCase):
             (face.normalAt() for face in by_name["roof"].solid.Faces()),
             key=lambda normal: normal.z,
         )
-        for name in ("roof_front", "roof_back", "roof_left", "roof_right", "roof_middle"):
+        for name in (
+            "roof_front",
+            "roof_back",
+            "roof_left",
+            "roof_right",
+            "roof_middle",
+        ):
             beam_normal = max(
                 (face.normalAt() for face in by_name[name].solid.Faces()),
                 key=lambda normal: normal.z,
@@ -304,7 +377,14 @@ class DassModelTest(unittest.TestCase):
         closed = {part.name: part for part in build(design, roof_lift_angle=0)[1]}
         lifted = {part.name: part for part in build(design, roof_lift_angle=25)[1]}
 
-        moving = ("roof", "roof_front", "roof_back", "roof_left", "roof_right", "roof_middle")
+        moving = (
+            "roof",
+            "roof_front",
+            "roof_back",
+            "roof_left",
+            "roof_right",
+            "roof_middle",
+        )
         for name in moving:
             self.assertGreater(
                 lifted[name].solid.Center().z,
@@ -313,10 +393,22 @@ class DassModelTest(unittest.TestCase):
         lifted_pin = lifted["roof_hinge_pin"].solid.BoundingBox()
         closed_pin = closed["roof_hinge_pin"].solid.BoundingBox()
         self.assertEqual(
-            (lifted_pin.xmin, lifted_pin.ymin, lifted_pin.zmin,
-             lifted_pin.xmax, lifted_pin.ymax, lifted_pin.zmax),
-            (closed_pin.xmin, closed_pin.ymin, closed_pin.zmin,
-             closed_pin.xmax, closed_pin.ymax, closed_pin.zmax),
+            (
+                lifted_pin.xmin,
+                lifted_pin.ymin,
+                lifted_pin.zmin,
+                lifted_pin.xmax,
+                lifted_pin.ymax,
+                lifted_pin.zmax,
+            ),
+            (
+                closed_pin.xmin,
+                closed_pin.ymin,
+                closed_pin.zmin,
+                closed_pin.xmax,
+                closed_pin.ymax,
+                closed_pin.zmax,
+            ),
         )
         self.assertAlmostEqual(
             lifted["roof"].solid.intersect(lifted["back_top"].solid).Volume(),
@@ -338,7 +430,8 @@ class DassModelTest(unittest.TestCase):
         top, bottom = door_brace_endpoints(design)
         self.assertAlmostEqual(
             sum((a - b) ** 2 for a, b in zip(top, bottom)) ** 0.5,
-            (design.inner_width**2 + (960 - 2 * design.diagonal_end_setback) ** 2) ** 0.5,
+            (design.inner_width**2 + (960 - 2 * design.diagonal_end_setback) ** 2)
+            ** 0.5,
         )
 
     def test_diagonal_braces_fit_corner_to_corner_without_extending_into_members(self):
@@ -346,9 +439,27 @@ class DassModelTest(unittest.TestCase):
         by_name = {part.name: part for part in build(design)[1]}
 
         brace_pairs = (
-            ("left_brace", "front_post_left", "back_post_left", "left_bottom", "left_top"),
-            ("right_brace", "front_post_right", "back_post_right", "right_bottom", "right_top"),
-            ("back_brace", "back_post_left", "back_post_right", "back_bottom", "back_top"),
+            (
+                "left_brace",
+                "front_post_left",
+                "back_post_left",
+                "left_bottom",
+                "left_top",
+            ),
+            (
+                "right_brace",
+                "front_post_right",
+                "back_post_right",
+                "right_bottom",
+                "right_top",
+            ),
+            (
+                "back_brace",
+                "back_post_left",
+                "back_post_right",
+                "back_bottom",
+                "back_top",
+            ),
             ("door_brace", "door_left", "door_right", "door_bottom", "door_top"),
         )
         for brace_name, first_post, second_post, bottom_rail, top_rail in brace_pairs:
@@ -372,14 +483,15 @@ class DassModelTest(unittest.TestCase):
 
                 solid = by_name[brace_name].solid
                 end_faces = [
-                    face for face in solid.Faces()
+                    face
+                    for face in solid.Faces()
                     if getattr(face.BoundingBox(), f"{end_axis}len") < 1e-6
                     and face.Area() > design.frame**2
                 ]
                 rail_faces = [
-                    face for face in solid.Faces()
-                    if face.BoundingBox().zlen < 1e-6
-                    and face.Area() > design.frame**2
+                    face
+                    for face in solid.Faces()
+                    if face.BoundingBox().zlen < 1e-6 and face.Area() > design.frame**2
                 ]
                 self.assertEqual(len(end_faces), 2)
                 self.assertEqual(rail_faces, [])
@@ -390,35 +502,57 @@ class DassModelTest(unittest.TestCase):
         for name in ("left_brace", "right_brace"):
             brace = by_name[name].solid.BoundingBox()
             side = "left" if name == "left_brace" else "right"
-            self.assertAlmostEqual(brace.ymin, by_name[f"front_post_{side}"].solid.BoundingBox().ymax)
-            self.assertAlmostEqual(brace.ymax, by_name[f"back_post_{side}"].solid.BoundingBox().ymin)
-            self.assertAlmostEqual(brace.zmin, by_name[f"{side}_bottom"].solid.BoundingBox().zmax)
-            self.assertAlmostEqual(brace.zmax, by_name[f"{side}_top"].solid.BoundingBox().zmin)
+            self.assertAlmostEqual(
+                brace.ymin, by_name[f"front_post_{side}"].solid.BoundingBox().ymax
+            )
+            self.assertAlmostEqual(
+                brace.ymax, by_name[f"back_post_{side}"].solid.BoundingBox().ymin
+            )
+            self.assertAlmostEqual(
+                brace.zmin, by_name[f"{side}_bottom"].solid.BoundingBox().zmax
+            )
+            self.assertAlmostEqual(
+                brace.zmax, by_name[f"{side}_top"].solid.BoundingBox().zmin
+            )
 
     def test_braces_take_one_angled_cut_at_each_end(self):
         """Each diagonal remains one valid square-stock solid with clean ends."""
         for design in (
             Design(),
-            Design(frame=45, cladding=23,
-                   roof_connector_width=45, roof_connector_thickness=45),
+            Design(
+                frame=45,
+                cladding=23,
+                roof_connector_width=45,
+                roof_connector_thickness=45,
+            ),
         ):
             by_name = {part.name: part for part in build(design)[1]}
             openings = {
-                "left_brace": (design.inner_depth, design.front_post_height
-                               - design.leg_extension - 2 * design.frame),
-                "right_brace": (design.inner_depth, design.front_post_height
-                                - design.leg_extension - 2 * design.frame),
-                "back_brace": (design.inner_width, design.back_height
-                               - design.leg_extension - 2 * design.frame),
-                "door_brace": (design.inner_width,
-                               design.door_frame_height - 2 * design.frame),
+                "left_brace": (
+                    design.inner_depth,
+                    design.front_post_height - design.leg_extension - 2 * design.frame,
+                ),
+                "right_brace": (
+                    design.inner_depth,
+                    design.front_post_height - design.leg_extension - 2 * design.frame,
+                ),
+                "back_brace": (
+                    design.inner_width,
+                    design.back_height - design.leg_extension - 2 * design.frame,
+                ),
+                "door_brace": (
+                    design.inner_width,
+                    design.door_frame_height - 2 * design.frame,
+                ),
             }
             for name, (span, rise) in openings.items():
                 with self.subTest(frame=design.frame, brace=name):
                     solid = by_name[name].solid
                     self.assertEqual(len(solid.Faces()), 6)
                     self.assertEqual(len(solid.Solids()), 1)
-                    diagonal = (span**2 + (rise - 2 * design.diagonal_end_setback) ** 2) ** 0.5
+                    diagonal = (
+                        span**2 + (rise - 2 * design.diagonal_end_setback) ** 2
+                    ) ** 0.5
                     self.assertAlmostEqual(
                         by_name[name].length,
                         diagonal,
@@ -455,12 +589,8 @@ class DassModelTest(unittest.TestCase):
         # The lifted back rises past the closed roof frame, so it is notched
         # there; the notch is the only thing keeping the two apart.
         raw = side_panel(design, design.frame, False)
-        self.assertGreater(
-            raw.intersect(by_name["roof_back"].solid).Volume(), 0
-        )
-        self.assertAlmostEqual(
-            panel.intersect(by_name["roof_back"].solid).Volume(), 0
-        )
+        self.assertGreater(raw.intersect(by_name["roof_back"].solid).Volume(), 0)
+        self.assertAlmostEqual(panel.intersect(by_name["roof_back"].solid).Volume(), 0)
 
     def test_door_cladding_has_roof_beam_notches_in_both_top_corners(self):
         design = Design()
@@ -558,12 +688,16 @@ class DassModelTest(unittest.TestCase):
         self.assertAlmostEqual(box.xmax, design.width - design.frame)
         self.assertAlmostEqual(box.ymin, design.depth - design.frame)
         self.assertAlmostEqual(box.ymax, design.depth)
-        self.assertAlmostEqual(box.zmin, by_name["back_bottom"].solid.BoundingBox().zmax)
+        self.assertAlmostEqual(
+            box.zmin, by_name["back_bottom"].solid.BoundingBox().zmax
+        )
         self.assertAlmostEqual(box.zmax, by_name["back_top"].solid.BoundingBox().zmin)
         # Its low end shares the rear-left post with the left side brace.
         left_brace = by_name["left_brace"].solid.BoundingBox()
         self.assertAlmostEqual(left_brace.ymax, box.ymin, places=6)
-        self.assertAlmostEqual(box.zmin, by_name["back_bottom"].solid.BoundingBox().zmax)
+        self.assertAlmostEqual(
+            box.zmin, by_name["back_bottom"].solid.BoundingBox().zmax
+        )
         # It sits in the frame plane, outside the back cladding.
         self.assertGreaterEqual(box.ymin, by_name["back_wall"].solid.BoundingBox().ymax)
 
@@ -573,7 +707,11 @@ class DassModelTest(unittest.TestCase):
         seat_top = by_name["seat_top"].solid
 
         solid_volume = design.interior_width * design.seat_depth * design.cladding
-        hole_area = 3.141592653589793 * (design.seat_hole_width / 2) * (design.seat_hole_depth / 2)
+        hole_area = (
+            3.141592653589793
+            * (design.seat_hole_width / 2)
+            * (design.seat_hole_depth / 2)
+        )
         self.assertAlmostEqual(
             seat_top.Volume(),
             solid_volume - hole_area * design.cladding,
@@ -611,8 +749,12 @@ class DassModelTest(unittest.TestCase):
             panel = by_name[name].solid
             self.assertAlmostEqual(panel.intersect(rail).Volume(), 0)
             notch = box_at(
-                design.frame, 0, design.leg_extension,
-                design.width - 2 * design.frame, design.frame, design.frame,
+                design.frame,
+                0,
+                design.leg_extension,
+                design.width - 2 * design.frame,
+                design.frame,
+                design.frame,
             )
             self.assertAlmostEqual(panel.intersect(notch).Volume(), 0)
 
@@ -621,8 +763,10 @@ class DassModelTest(unittest.TestCase):
             "default": Design(),
             "wide": Design(width=1050, seat_depth=550),
             "45x45": Design(
-                frame=45, cladding=23,
-                roof_connector_width=45, roof_connector_thickness=45,
+                frame=45,
+                cladding=23,
+                roof_connector_width=45,
+                roof_connector_thickness=45,
             ),
         }
         for label, design in variants.items():

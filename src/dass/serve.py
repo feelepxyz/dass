@@ -83,6 +83,7 @@ def call(main: Callable[[], None], *arguments: str) -> None:
 # The stage bodies import their own modules. Only the child process that builds
 # ever calls them, and the server is not worth a CadQuery import it never uses.
 
+
 def build_schedules() -> None:
     from . import cutlists, fastening
 
@@ -129,28 +130,31 @@ class Stage:
     sources: tuple[Path, ...]
 
     def reads(self, path: Path) -> bool:
-        return any(
-            path == source or source in path.parents for source in self.sources
-        )
+        return any(path == source or source in path.parents for source in self.sources)
 
 
 STAGES = (
     Stage(
-        "schedules", build_schedules,
+        "schedules",
+        build_schedules,
         (SRC / "cutlists.py", SRC / "fastening.py", SRC / "model.py"),
     ),
     Stage("pages", build_pages, (SRC,)),
     Stage("models", build_models, (SRC / "model.py",)),
     # The stager reads the gallery tables out of the guide, so a change there
     # can rename or reorder the images it is staging.
-    Stage("assets", stage_assets, (
-        ROOT / "web/media",
-        ROOT / "docs/original-drawing",
-        ROOT / "docs/verification/evolution",
-        ROOT / "web/render/materials.mjs",
-        ROOT / "scripts/build_web_assets.py",
-        SRC / "build_guide.py",
-    )),
+    Stage(
+        "assets",
+        stage_assets,
+        (
+            ROOT / "web/media",
+            ROOT / "docs/original-drawing",
+            ROOT / "docs/verification/evolution",
+            ROOT / "web/render/materials.mjs",
+            ROOT / "scripts/build_web_assets.py",
+            SRC / "build_guide.py",
+        ),
+    ),
 )
 
 
@@ -336,15 +340,26 @@ def main() -> None:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--port", type=int, default=8000,
-                        help="preferred port; the next free one is used if it is taken")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="preferred port; the next free one is used if it is taken",
+    )
     parser.add_argument("--page", default=PAGE, help="page to open")
     parser.add_argument("--no-open", action="store_true", help="do not open a browser")
-    parser.add_argument("--renders", action="store_true",
-                        help="re-photograph the model first (minutes; needs node)")
-    parser.add_argument("--build", nargs="*", metavar="STAGE",
-                        choices=[stage.name for stage in STAGES],
-                        help="run these stages and exit; how the server builds")
+    parser.add_argument(
+        "--renders",
+        action="store_true",
+        help="re-photograph the model first (minutes; needs node)",
+    )
+    parser.add_argument(
+        "--build",
+        nargs="*",
+        metavar="STAGE",
+        choices=[stage.name for stage in STAGES],
+        help="run these stages and exit; how the server builds",
+    )
     args = parser.parse_args()
     # Piped into a log or a tee, stdout would otherwise hold each build's report
     # back until the buffer filled.

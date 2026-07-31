@@ -136,22 +136,35 @@ def _brace_cut_angle(run_mm: float, rise_mm: float, frame_mm: float) -> float:
 
 def _angle_checks(design: Design) -> tuple[AngleCheck, ...]:
     side_rise = (
-        design.front_post_height - design.leg_extension
-        - 2 * design.frame - 2 * design.diagonal_end_setback
+        design.front_post_height
+        - design.leg_extension
+        - 2 * design.frame
+        - 2 * design.diagonal_end_setback
     )
-    d2_rise = design.door_frame_height - 2 * design.frame - 2 * design.diagonal_end_setback
+    d2_rise = (
+        design.door_frame_height - 2 * design.frame - 2 * design.diagonal_end_setback
+    )
     return (
         AngleCheck(
-            "SIDE-PITCH", "finished side-frame pitch", design.plan_grid_depth,
-            design.side_fall, 7.4,
+            "SIDE-PITCH",
+            "finished side-frame pitch",
+            design.plan_grid_depth,
+            design.side_fall,
+            7.4,
             math.degrees(math.atan2(design.side_fall, design.plan_grid_depth)),
         ),
         AngleCheck(
-            "ROOF-PITCH", "finished roof-beam pitch", design.roof_run,
-            design.roof_rise, 8.8, design.roof_angle,
+            "ROOF-PITCH",
+            "finished roof-beam pitch",
+            design.roof_run,
+            design.roof_rise,
+            8.8,
+            design.roof_angle,
         ),
         AngleCheck(
-            "D1", "side diagonal saw cut", design.inner_depth,
+            "D1",
+            "side diagonal saw cut",
+            design.inner_depth,
             side_rise,
             36.0,
             _brace_cut_angle(
@@ -161,7 +174,9 @@ def _angle_checks(design: Design) -> tuple[AngleCheck, ...]:
             ),
         ),
         AngleCheck(
-            "D2", "back and door diagonal saw cut", design.inner_width,
+            "D2",
+            "back and door diagonal saw cut",
+            design.inner_width,
             d2_rise,
             40.0,
             _brace_cut_angle(
@@ -188,8 +203,10 @@ def _diagonal_station(design: Design, connection: Connection) -> float:
         )
     if connection.into_beam == "door_brace":
         return (
-            design.door_bottom + design.door_frame_height
-            - design.frame - design.diagonal_end_setback
+            design.door_bottom
+            + design.door_frame_height
+            - design.frame
+            - design.diagonal_end_setback
             if connection.from_beam == "door_left"
             else design.door_bottom + design.frame + design.diagonal_end_setback
         )
@@ -201,28 +218,33 @@ def _screw_marks(design: Design) -> tuple[ScrewMark, ...]:
     for index, connection in enumerate(CONNECTIONS, 1):
         target_station = (
             _diagonal_station(design, connection)
-            if connection.diagonal else connection.target_station_mm
+            if connection.diagonal
+            else connection.target_station_mm
         )
         for lane_index, lane in enumerate(SCREW_LANES_MM, 1):
-            marks.append(ScrewMark(
-                f"F{index:02d}-{lane_index}",
-                connection.from_beam,
-                connection.into_beam,
-                connection.face,
-                target_station,
-                design.frame,
-                lane,
-                connection.diagonal,
-            ))
+            marks.append(
+                ScrewMark(
+                    f"F{index:02d}-{lane_index}",
+                    connection.from_beam,
+                    connection.into_beam,
+                    connection.face,
+                    target_station,
+                    design.frame,
+                    lane,
+                    connection.diagonal,
+                )
+            )
     return tuple(marks)
 
 
 def _find_overlaps(marks: tuple[ScrewMark, ...]) -> tuple[tuple[str, str, float], ...]:
     overlaps: list[tuple[str, str, float]] = []
     for index, first in enumerate(marks):
-        for second in marks[index + 1:]:
+        for second in marks[index + 1 :]:
             if (first.from_beam, first.into_beam, first.target_face) != (
-                second.from_beam, second.into_beam, second.target_face
+                second.from_beam,
+                second.into_beam,
+                second.target_face,
             ):
                 continue
             distance = math.hypot(
@@ -234,11 +256,15 @@ def _find_overlaps(marks: tuple[ScrewMark, ...]) -> tuple[tuple[str, str, float]
     return tuple(overlaps)
 
 
-def _sub(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+def _sub(
+    a: tuple[float, float, float], b: tuple[float, float, float]
+) -> tuple[float, float, float]:
     return tuple(x - y for x, y in zip(a, b))
 
 
-def _add(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+def _add(
+    a: tuple[float, float, float], b: tuple[float, float, float]
+) -> tuple[float, float, float]:
     return tuple(x + y for x, y in zip(a, b))
 
 
@@ -257,7 +283,9 @@ def _point_segment_distance(
 ) -> float:
     direction = _sub(end, start)
     length_squared = _dot(direction, direction)
-    parameter = _dot(_sub(point, start), direction) / length_squared if length_squared else 0.0
+    parameter = (
+        _dot(_sub(point, start), direction) / length_squared if length_squared else 0.0
+    )
     nearest = _add(start, _scale(direction, max(0.0, min(1.0, parameter))))
     delta = _sub(point, nearest)
     return math.sqrt(_dot(delta, delta))
@@ -310,8 +338,12 @@ def _screw_paths(
     """Model paths driven from posts/stiles into their adjoining frame parts."""
     boxes = {part.name: part.solid.BoundingBox() for part in parts}
     vertical_sources = {
-        "front_post_left", "front_post_right", "back_post_left", "back_post_right",
-        "door_left", "door_right",
+        "front_post_left",
+        "front_post_right",
+        "back_post_left",
+        "back_post_right",
+        "door_left",
+        "door_right",
     }
     paths: list[ScrewPath] = []
     for mark in marks:
@@ -325,8 +357,10 @@ def _screw_paths(
             start_axis = source.xmin if positive else source.xmax
             start = (start_axis, source.ymin + mark.lane_mm, mark.target_station_mm)
             end = (
-                start_axis + (design.screw_length if positive else -design.screw_length),
-                start[1], start[2],
+                start_axis
+                + (design.screw_length if positive else -design.screw_length),
+                start[1],
+                start[2],
             )
         else:
             positive = target.ymin >= source.ymax - 1e-6
@@ -338,7 +372,8 @@ def _screw_paths(
             )
             end = (
                 start[0],
-                start_axis + (design.screw_length if positive else -design.screw_length),
+                start_axis
+                + (design.screw_length if positive else -design.screw_length),
                 start[2],
             )
         if mark.diagonal:
@@ -347,7 +382,9 @@ def _screw_paths(
             # rail screw instead of driving two centerlines through one path.
             angle = math.radians(design.diagonal_screw_angle)
             axial_length = design.screw_length * math.cos(angle)
-            z_direction = -1 if mark.target_station_mm > source.zmin + source.zlen / 2 else 1
+            z_direction = (
+                -1 if mark.target_station_mm > source.zmin + source.zlen / 2 else 1
+            )
             if axis == "x":
                 end = (
                     start_axis + (axial_length if positive else -axial_length),
@@ -360,16 +397,28 @@ def _screw_paths(
                     start_axis + (axial_length if positive else -axial_length),
                     start[2] + z_direction * design.screw_length * math.sin(angle),
                 )
-        paths.append(ScrewPath(
-            mark.code, mark.from_beam, mark.into_beam, start, end, axis, design.frame,
-        ))
+        paths.append(
+            ScrewPath(
+                mark.code,
+                mark.from_beam,
+                mark.into_beam,
+                start,
+                end,
+                axis,
+                design.frame,
+            )
+        )
     return tuple(paths)
 
 
-def find_screw_path_collisions(paths: tuple[ScrewPath, ...]) -> tuple[tuple[str, str, float], ...]:
+def find_screw_path_collisions(
+    paths: tuple[ScrewPath, ...],
+) -> tuple[tuple[str, str, float], ...]:
     collisions: list[tuple[str, str, float]] = []
 
-    def after_source(path: ScrewPath) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+    def after_source(
+        path: ScrewPath,
+    ) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
         direction = _sub(path.end, path.start)
         length = math.sqrt(_dot(direction, direction))
         if not length or path.source_exit_mm <= 0:
@@ -378,10 +427,12 @@ def find_screw_path_collisions(paths: tuple[ScrewPath, ...]) -> tuple[tuple[str,
         return _add(path.start, _scale(unit, path.source_exit_mm)), path.end
 
     for index, first in enumerate(paths):
-        for second in paths[index + 1:]:
+        for second in paths[index + 1 :]:
             first_start, first_end = after_source(first)
             second_start, second_end = after_source(second)
-            distance = _segment_distance(first_start, first_end, second_start, second_end)
+            distance = _segment_distance(
+                first_start, first_end, second_start, second_end
+            )
             if distance < SCREW_PATH_CLEARANCE_MM:
                 collisions.append((first.code, second.code, distance))
     return tuple(collisions)
@@ -391,17 +442,25 @@ def analyze_frame_fastening(design: Design) -> FasteningAnalysis:
     """Check the nominal beam screw marks against the current model names."""
     _, parts = build(design)
     beam_names = {
-        part.name for part in parts
+        part.name
+        for part in parts
         if part.material == "wood"
         and part.width == design.frame
         and part.thickness == design.frame
     }
-    referenced = {name for connection in CONNECTIONS for name in (
-        connection.from_beam, connection.into_beam,
-    )}
+    referenced = {
+        name
+        for connection in CONNECTIONS
+        for name in (
+            connection.from_beam,
+            connection.into_beam,
+        )
+    }
     missing = referenced - beam_names
     if missing:
-        raise ValueError(f"fastening schedule names missing frame beams: {sorted(missing)}")
+        raise ValueError(
+            f"fastening schedule names missing frame beams: {sorted(missing)}"
+        )
 
     marks = _screw_marks(design)
     screw_paths = _screw_paths(design, marks, parts)
@@ -435,7 +494,9 @@ def fastening_report(design: Design) -> str:
         f"- Nominal screw marks: {len(analysis.screws)}",
         f"- Screw-mark overlaps: {len(analysis.overlaps)}",
         f"- Screw-path collisions: {len(analysis.path_collisions)}",
-        "- Result: PASS" if not analysis.overlaps and not analysis.path_collisions else "- Result: ADJUST",
+        "- Result: PASS"
+        if not analysis.overlaps and not analysis.path_collisions
+        else "- Result: ADJUST",
         "",
         "## Angle checks",
         "",
@@ -447,7 +508,15 @@ def fastening_report(design: Design) -> str:
             f"| {check.code} | {check.description} | {check.drawing_degrees:.1f}° | "
             f"{check.model_degrees:.1f}° | {check.run_mm:.0f} × {check.rise_mm:.0f} mm |"
         )
-    lines.extend(("", "## Screw marks", "", "| Mark | From beam | Into beam | Face | Source station | Target station | Lane |", "|---|---|---|---|---:|---:|---:|"))
+    lines.extend(
+        (
+            "",
+            "## Screw marks",
+            "",
+            "| Mark | From beam | Into beam | Face | Source station | Target station | Lane |",
+            "|---|---|---|---|---:|---:|---:|",
+        )
+    )
     for screw in analysis.screws:
         from_code = BEAM_CODES.get(screw.from_beam, screw.from_beam)
         into_code = BEAM_CODES.get(screw.into_beam, screw.into_beam)
@@ -467,7 +536,9 @@ def fastening_report(design: Design) -> str:
 def fastening_summary(design: Design) -> str:
     """Return a short guide-ready summary of the audit."""
     analysis = analyze_frame_fastening(design)
-    result = "PASS" if not analysis.overlaps and not analysis.path_collisions else "ADJUST"
+    result = (
+        "PASS" if not analysis.overlaps and not analysis.path_collisions else "ADJUST"
+    )
     return (
         f"{len(analysis.screws)} nominal beam screw marks across {len(CONNECTIONS)} "
         f"beam-to-beam connections · {len(analysis.overlaps)} screw-mark overlaps · "

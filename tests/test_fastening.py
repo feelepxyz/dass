@@ -17,14 +17,17 @@ class FrameFasteningTest(unittest.TestCase):
         beam_names = {
             part.name
             for part in parts
-            if part.material == "wood" and part.category not in {"side cladding", "back cladding"}
+            if part.material == "wood"
+            and part.category not in {"side cladding", "back cladding"}
         }
 
         self.assertGreater(len(analysis.screws), 0)
-        self.assertTrue(all(
-            screw.from_beam in beam_names and screw.into_beam in beam_names
-            for screw in analysis.screws
-        ))
+        self.assertTrue(
+            all(
+                screw.from_beam in beam_names and screw.into_beam in beam_names
+                for screw in analysis.screws
+            )
+        )
         self.assertEqual(analysis.overlaps, ())
 
     def test_diagonal_screws_are_angled_from_the_vertical_members(self):
@@ -40,11 +43,13 @@ class FrameFasteningTest(unittest.TestCase):
             "Drive the 120 mm diagonal screws from the vertical members at a slight angle",
             analysis.recommendations,
         )
-        self.assertTrue(all(
-            path.source_exit_mm == Design().frame
-            for path in analysis.screw_paths
-            if path.into_beam.endswith("brace")
-        ))
+        self.assertTrue(
+            all(
+                path.source_exit_mm == Design().frame
+                for path in analysis.screw_paths
+                if path.into_beam.endswith("brace")
+            )
+        )
 
     def test_diagonal_connections_run_from_vertical_members_and_clear_paths(self):
         analysis = analyze_frame_fastening(Design())
@@ -78,10 +83,12 @@ class FrameFasteningTest(unittest.TestCase):
 
         self.assertEqual(find_screw_path_collisions(paths), (("A", "B", 0.0),))
         self.assertEqual(
-            find_screw_path_collisions((
-                paths[0],
-                ScrewPath("C", "rail", "brace", (60, 0, 0), (180, 0, 0), "x"),
-            )),
+            find_screw_path_collisions(
+                (
+                    paths[0],
+                    ScrewPath("C", "rail", "brace", (60, 0, 0), (180, 0, 0), "x"),
+                )
+            ),
             (("A", "C", 0.0),),
         )
 

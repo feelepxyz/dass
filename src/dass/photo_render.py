@@ -45,7 +45,9 @@ PLANK_JOINT_MM = 4.0
 PLANK_JOINT_SHADE = 0.5
 
 
-def _cloud(rng: np.random.Generator, shape: tuple[int, int], beta: float, stretch: float = 1.0) -> np.ndarray:
+def _cloud(
+    rng: np.random.Generator, shape: tuple[int, int], beta: float, stretch: float = 1.0
+) -> np.ndarray:
     """Tiling cloud noise: white noise shaped by a 1/f**beta spectrum.
 
     Built in the frequency domain, so the result wraps exactly at both edges;
@@ -57,12 +59,14 @@ def _cloud(rng: np.random.Generator, shape: tuple[int, int], beta: float, stretc
     fx = np.fft.fftfreq(width)[None, :] / stretch
     radius = np.hypot(fx, fy)
     radius[0, 0] = 1.0
-    field = np.real(np.fft.ifft2(spectrum / radius ** beta))
+    field = np.real(np.fft.ifft2(spectrum / radius**beta))
     field -= field.min()
     return (field / field.max()).astype(np.float32)
 
 
-def synthesize_birch(path: Path, size: tuple[int, int] = (2048, 1152), seed: int = 11) -> None:
+def synthesize_birch(
+    path: Path, size: tuple[int, int] = (2048, 1152), seed: int = 11
+) -> None:
     """Draw a pale birch panel: cathedral figure over fine straight grain.
 
     Used when no wood photo is supplied.  Every layer is periodic, so the sheet
@@ -70,8 +74,10 @@ def synthesize_birch(path: Path, size: tuple[int, int] = (2048, 1152), seed: int
     """
     width, height = size
     rng = np.random.default_rng(seed)
-    _, yy = np.meshgrid(np.linspace(0, 1, width, endpoint=False),
-                        np.linspace(0, 1, height, endpoint=False))
+    _, yy = np.meshgrid(
+        np.linspace(0, 1, width, endpoint=False),
+        np.linspace(0, 1, height, endpoint=False),
+    )
     drift = _cloud(rng, (height, width), beta=3.0, stretch=20.0)
     sway = _cloud(rng, (height, width), beta=2.0, stretch=10.0)
     chatter = _cloud(rng, (height, width), beta=1.4, stretch=9.0)
@@ -92,7 +98,9 @@ def synthesize_birch(path: Path, size: tuple[int, int] = (2048, 1152), seed: int
     Image.fromarray(np.clip(image, 0, 255).astype(np.uint8)).save(path)
 
 
-def write_corrugation_map(path: Path, pitch: int = 256, depth_ratio: float = 0.24) -> None:
+def write_corrugation_map(
+    path: Path, pitch: int = 256, depth_ratio: float = 0.24
+) -> None:
     """Tangent-space normal map for one period of corrugated sheet.
 
     The profile is a sine across v; `depth_ratio` is corrugation depth over
@@ -142,7 +150,9 @@ def write_plank_atlas(source: Path, path: Path, seed: int = 7) -> None:
             strip = strip.transpose(Image.FLIP_TOP_BOTTOM)
         # No two boards off the same pack are quite the same colour.
         warm = 1.0 + (rng.random() - 0.5) * 0.07
-        gain = (1.0 + (rng.random() - 0.5) * 0.18) * np.array([warm, 1.0, 2.0 - warm], np.float32)
+        gain = (1.0 + (rng.random() - 0.5) * 0.18) * np.array(
+            [warm, 1.0, 2.0 - warm], np.float32
+        )
         toned = np.clip(np.asarray(strip, dtype=np.float32) * gain * joint, 0, 255)
         atlas.paste(Image.fromarray(toned.astype(np.uint8)), (0, index * cell_height))
     atlas.save(path)
@@ -150,9 +160,12 @@ def write_plank_atlas(source: Path, path: Path, seed: int = 7) -> None:
 
 def write_relief_maps(source: Path, normal_path: Path, roughness_path: Path) -> None:
     """Derive a normal and roughness map from a wood image (cached by mtime)."""
-    if (normal_path.exists() and roughness_path.exists()
-            and min(normal_path.stat().st_mtime, roughness_path.stat().st_mtime)
-            > source.stat().st_mtime):
+    if (
+        normal_path.exists()
+        and roughness_path.exists()
+        and min(normal_path.stat().st_mtime, roughness_path.stat().st_mtime)
+        > source.stat().st_mtime
+    ):
         return
     grey = np.asarray(Image.open(source).convert("L"), dtype=np.float32) / 255.0
     # Sobel gradients of the grain give a believable surface relief.
@@ -182,7 +195,9 @@ def write_texture_maps(source: Path, output: Path) -> dict:
     atlas_path = output / "plank-atlas.png"
     if not atlas_path.exists() or atlas_path.stat().st_mtime < source.stat().st_mtime:
         write_plank_atlas(source, atlas_path)
-    write_relief_maps(atlas_path, output / "plank-normal.png", output / "plank-roughness.png")
+    write_relief_maps(
+        atlas_path, output / "plank-normal.png", output / "plank-roughness.png"
+    )
 
     def relative(name: str) -> str:
         return str((output / name).relative_to(ROOT))
@@ -204,11 +219,18 @@ def write_texture_maps(source: Path, output: Path) -> dict:
     }
 
 
-def build_variants(design: dass.Design, output: Path, door_angle: float, roof_lift_angle: float) -> dict:
+def build_variants(
+    design: dass.Design, output: Path, door_angle: float, roof_lift_angle: float
+) -> dict:
     variants: dict[str, str] = {}
     parts: dict[str, dict[str, str]] = {}
-    for name, angle, lift in (("closed", 0.0, 0.0), ("open", door_angle, roof_lift_angle)):
-        assembly, built = dass.build(design, door_angle=angle, roof_visible=True, roof_lift_angle=lift)
+    for name, angle, lift in (
+        ("closed", 0.0, 0.0),
+        ("open", door_angle, roof_lift_angle),
+    ):
+        assembly, built = dass.build(
+            design, door_angle=angle, roof_visible=True, roof_lift_angle=lift
+        )
         path = output / f"dass-{name}.glb"
         assembly.export(str(path))
         variants[name] = str(path.relative_to(ROOT))
@@ -218,25 +240,48 @@ def build_variants(design: dass.Design, output: Path, door_angle: float, roof_li
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--output", type=Path, default=ROOT / "build/renders")
-    parser.add_argument("--texture", type=Path, default=ROOT / "web/media/textures/plywood_diff_4k.jpg")
-    parser.add_argument("--photo", type=Path, default=ROOT / "web/media/background.jpg",
-                        help="backdrop photograph for the in-situ views")
+    parser.add_argument(
+        "--texture", type=Path, default=ROOT / "web/media/textures/plywood_diff_4k.jpg"
+    )
+    parser.add_argument(
+        "--photo",
+        type=Path,
+        default=ROOT / "web/media/background.jpg",
+        help="backdrop photograph for the in-situ views",
+    )
     parser.add_argument("--views", help="comma-separated view names (default: all)")
-    parser.add_argument("--list-views", action="store_true", help="print the view names and exit")
+    parser.add_argument(
+        "--list-views", action="store_true", help="print the view names and exit"
+    )
     parser.add_argument("--width", type=int, default=1600)
     parser.add_argument("--height", type=int, default=1200)
-    parser.add_argument("--supersample", type=int, default=2, help="render scale before downsampling")
+    parser.add_argument(
+        "--supersample", type=int, default=2, help="render scale before downsampling"
+    )
     parser.add_argument("--door-angle", type=float, default=DOOR_ANGLE)
     parser.add_argument("--roof-lift-angle", type=float, default=ROOF_LIFT_ANGLE)
-    parser.add_argument("--skip-build", action="store_true", help="reuse the GLBs already in --output")
-    parser.add_argument("--set", action="append", default=[], metavar="NAME=MM",
-                        help="override any numeric Design parameter; may be repeated")
+    parser.add_argument(
+        "--skip-build", action="store_true", help="reuse the GLBs already in --output"
+    )
+    parser.add_argument(
+        "--set",
+        action="append",
+        default=[],
+        metavar="NAME=MM",
+        help="override any numeric Design parameter; may be repeated",
+    )
     args = parser.parse_args()
 
     if args.list_views:
-        subprocess.run(["node", "web/render/render.mjs", "--list-views", "1"], cwd=ROOT, check=False)
+        subprocess.run(
+            ["node", "web/render/render.mjs", "--list-views", "1"],
+            cwd=ROOT,
+            check=False,
+        )
         return
 
     parameter_names = {field.name for field in fields(dass.Design)}
@@ -244,7 +289,9 @@ def main() -> None:
     for item in args.set:
         name, separator, value = item.partition("=")
         if not separator or name not in parameter_names:
-            parser.error(f"--set must be NAME=MM where NAME is one of: {', '.join(sorted(parameter_names))}")
+            parser.error(
+                f"--set must be NAME=MM where NAME is one of: {', '.join(sorted(parameter_names))}"
+            )
         overrides[name] = float(value)
     design = replace(dass.Design(), **overrides)
 
@@ -263,12 +310,18 @@ def main() -> None:
     manifest_path.write_text(json.dumps(manifest, indent=1))
 
     command = [
-        "node", "web/render/render.mjs",
-        "--manifest", str(manifest_path),
-        "--out", str(output),
-        "--width", str(args.width),
-        "--height", str(args.height),
-        "--supersample", str(args.supersample),
+        "node",
+        "web/render/render.mjs",
+        "--manifest",
+        str(manifest_path),
+        "--out",
+        str(output),
+        "--width",
+        str(args.width),
+        "--height",
+        str(args.height),
+        "--supersample",
+        str(args.supersample),
     ]
     if args.views:
         command += ["--views", args.views]

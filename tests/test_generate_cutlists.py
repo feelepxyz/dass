@@ -54,10 +54,14 @@ class CutListTest(unittest.TestCase):
         cladding = cladding_pieces(design)
 
         connector = next(piece for piece in beams if piece.name == "roof_middle")
-        self.assertEqual((connector.length, connector.width, connector.thickness), (900, 45, 45))
+        self.assertEqual(
+            (connector.length, connector.width, connector.thickness), (900, 45, 45)
+        )
         self.assertEqual(sum(piece.name.startswith("door_") for piece in cladding), 9)
         self.assertEqual(sum(piece.name.startswith("roof_") for piece in cladding), 0)
-        self.assertEqual(sum(piece.name.startswith("left_wall_") for piece in cladding), 7)
+        self.assertEqual(
+            sum(piece.name.startswith("left_wall_") for piece in cladding), 7
+        )
         self.assertTrue(all(piece.length <= 4500 for piece in beams + cladding))
 
     def test_written_plan_never_exceeds_stock(self):
@@ -130,7 +134,9 @@ class CutListTest(unittest.TestCase):
         for length in set(lengths):
             first = lengths.index(length)
             last = len(lengths) - 1 - lengths[::-1].index(length)
-            self.assertEqual(lengths[first:last + 1], [length] * lengths.count(length))
+            self.assertEqual(
+                lengths[first : last + 1], [length] * lengths.count(length)
+            )
 
     def test_panel_plan_reuses_only_shortest_batch_to_fit_twelve_stock_lengths(self):
         stocks = panel_stock_plan(
@@ -141,7 +147,10 @@ class CutListTest(unittest.TestCase):
 
         self.assertEqual(len(stocks), 12)
         self.assertEqual(
-            [[piece.code for piece in stock if piece.length == 397] for stock in stocks],
+            [
+                [piece.code for piece in stock if piece.length == 397]
+                for stock in stocks
+            ],
             [["SFB1", "SFB2"], ["SFB3", "SFB4"], ["SFB5", "SFB6"]]
             + [[]] * 8
             + [["SFB7", "SFB8"]],
@@ -173,9 +182,9 @@ class CutListTest(unittest.TestCase):
             panel = [piece for piece in pieces if piece.gang_cut == side]
             self.assertEqual(len(panel), 7)
             self.assertEqual({piece.length for piece in panel}, {design.door_height})
-            self.assertTrue(all(
-                piece.finished_long > piece.finished_short for piece in panel
-            ))
+            self.assertTrue(
+                all(piece.finished_long > piece.finished_short for piece in panel)
+            )
 
 
 if __name__ == "__main__":

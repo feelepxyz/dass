@@ -172,7 +172,12 @@ class Design:
     def validate(self) -> None:
         assert self.frame > 0 and self.cladding > 0
         assert self.width > 2 * self.frame and self.depth > 2 * self.frame
-        assert self.front_height > self.back_height >= self.front_post_height > self.seat_height
+        assert (
+            self.front_height
+            > self.back_height
+            >= self.front_post_height
+            > self.seat_height
+        )
         assert 0 < self.seat_depth < self.inner_depth
         assert 0 < self.seat_hole_width < self.interior_width
         assert 0 < self.seat_hole_depth < self.seat_depth
@@ -185,6 +190,7 @@ class Design:
             self.door_frame_height - 2 * self.frame,
         )
         assert self.door_top == self.front_height
+
     def validate_reference(self) -> None:
         """Prove that defaults reproduce the dimensions repeated in the sources."""
         self.validate()
@@ -210,10 +216,17 @@ class Part:
 
 
 def box_at(x: float, y: float, z: float, dx: float, dy: float, dz: float) -> cq.Shape:
-    return cq.Workplane("XY").box(dx, dy, dz, centered=(False, False, False)).translate((x, y, z)).val()
+    return (
+        cq.Workplane("XY")
+        .box(dx, dy, dz, centered=(False, False, False))
+        .translate((x, y, z))
+        .val()
+    )
 
 
-def beam_between(a: tuple[float, float, float], b: tuple[float, float, float], size: float) -> cq.Shape:
+def beam_between(
+    a: tuple[float, float, float], b: tuple[float, float, float], size: float
+) -> cq.Shape:
     """Square beam whose long axis follows a→b."""
     va, vb = cq.Vector(*a), cq.Vector(*b)
     delta = vb - va
@@ -280,7 +293,9 @@ def cut_length(solid: cq.Shape) -> float:
     return math.hypot(spans[0], spans[1])
 
 
-def door_brace_endpoints(d: Design) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+def door_brace_endpoints(
+    d: Design,
+) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
     """D2 centreline joins the opposite vertical stile corners."""
     frame_bottom = d.door_bottom
     frame_top = frame_bottom + d.door_frame_height
@@ -355,33 +370,60 @@ def build(
     d.validate()
     parts: list[Part] = []
 
-    def add(name: str, category: str, solid: cq.Shape, dims: tuple[float, float, float], material: str = "wood") -> None:
+    def add(
+        name: str,
+        category: str,
+        solid: cq.Shape,
+        dims: tuple[float, float, float],
+        material: str = "wood",
+    ) -> None:
         parts.append(Part(name, category, solid, *dims, material))
 
     # Bottom rails start 100 mm above the post bottoms. No wall, floor, or
     # framing member extends below that datum; only the four posts form legs.
     for side, x in (("left", 0), ("right", d.width - d.frame)):
-        add(f"front_post_{side}", "V1",
+        add(
+            f"front_post_{side}",
+            "V1",
             box_at(x, 0, 0, d.frame, d.frame, d.front_post_height),
-            (d.front_post_height, d.frame, d.frame))
-        add(f"back_post_{side}", "V1",
+            (d.front_post_height, d.frame, d.frame),
+        )
+        add(
+            f"back_post_{side}",
+            "V1",
             box_at(x, d.depth - d.frame, 0, d.frame, d.frame, d.back_height),
-            (d.back_height, d.frame, d.frame))
+            (d.back_height, d.frame, d.frame),
+        )
 
     # Horizontal frame around the wall bottoms and tops.
     for y, label in ((0, "front"), (d.depth - d.frame, "back")):
         z = d.leg_extension
-        add(f"{label}_bottom", "front opening rail" if label == "front" else "HL1",
+        add(
+            f"{label}_bottom",
+            "front opening rail" if label == "front" else "HL1",
             box_at(d.frame, y, z, d.inner_width, d.frame, d.frame),
-            (d.inner_width, d.frame, d.frame))
+            (d.inner_width, d.frame, d.frame),
+        )
     for x, label in ((0, "left"), (d.width - d.frame, "right")):
-        add(f"{label}_bottom", "HK1",
+        add(
+            f"{label}_bottom",
+            "HK1",
             box_at(x, d.frame, d.leg_extension, d.frame, d.inner_depth, d.frame),
-            (d.inner_depth, d.frame, d.frame))
-        add(f"{label}_top", "HK1",
-            box_at(x, d.frame, d.front_post_height - d.frame,
-                   d.frame, d.inner_depth, d.frame),
-            (d.inner_depth, d.frame, d.frame))
+            (d.inner_depth, d.frame, d.frame),
+        )
+        add(
+            f"{label}_top",
+            "HK1",
+            box_at(
+                x,
+                d.frame,
+                d.front_post_height - d.frame,
+                d.frame,
+                d.inner_depth,
+                d.frame,
+            ),
+            (d.inner_depth, d.frame, d.frame),
+        )
     # The fixed rear support is distinct from the hinged roof frame.
     roof_slope_length = math.hypot(d.roof_run, d.roof_rise)
     roof_contact_y = -d.cladding - d.hinge_gap + d.frame
@@ -389,10 +431,19 @@ def build(
     roof_hinge_y = d.depth
     roof_hinge_top = d.back_height + d.frame
     roof_hinge_z = d.back_height + d.roof_hinge_pin_radius
-    add("back_top", "HL1",
-        box_at(d.frame, d.depth - d.frame, d.back_height - d.frame,
-               d.inner_width, d.frame, d.frame),
-        (d.inner_width, d.frame, d.frame))
+    add(
+        "back_top",
+        "HL1",
+        box_at(
+            d.frame,
+            d.depth - d.frame,
+            d.back_height - d.frame,
+            d.inner_width,
+            d.frame,
+            d.frame,
+        ),
+        (d.inner_width, d.frame, d.frame),
+    )
 
     def pitch_roof_part(solid: cq.Shape) -> cq.Shape:
         return solid.rotate(
@@ -420,44 +471,89 @@ def build(
     roof_flat_rear = roof_pitch_rear_y
     roof_flat_front = roof_flat_rear - d.frame - roof_slope_length
     roof_parts: list[tuple[str, str, cq.Shape, tuple[float, float, float], str]] = [
-        ("roof_front", "HL2",
-         box_at(0, roof_flat_front - d.frame, roof_hinge_top - d.frame,
-                d.width, d.frame, d.frame),
-         (d.width, d.frame, d.frame), "wood"),
-        ("roof_back", "HL2",
-         box_at(0, roof_flat_rear - d.frame, roof_hinge_top - d.frame,
-                d.width, d.frame, d.frame),
-         (d.width, d.frame, d.frame), "wood"),
-        ("roof_left", "HK2",
-         box_at(0, roof_flat_front, roof_hinge_top - d.frame,
-                d.frame, roof_slope_length, d.frame),
-         (roof_slope_length, d.frame, d.frame), "wood"),
-        ("roof_right", "HK2",
-         box_at(d.width - d.frame, roof_flat_front, roof_hinge_top - d.frame,
-                d.frame, roof_slope_length, d.frame),
-         (roof_slope_length, d.frame, d.frame), "wood"),
-        ("roof_middle", "roof connector",
-         box_at(
-             d.frame,
-             (roof_flat_front + roof_flat_rear) / 2 - d.roof_connector_width / 2,
-             roof_hinge_top - d.roof_connector_thickness,
-             d.inner_width,
-             d.roof_connector_width,
-             d.roof_connector_thickness,
-         ),
-         (
-             d.inner_width,
-             d.roof_connector_width,
-             d.roof_connector_thickness,
-         ), "wood"),
+        (
+            "roof_front",
+            "HL2",
+            box_at(
+                0,
+                roof_flat_front - d.frame,
+                roof_hinge_top - d.frame,
+                d.width,
+                d.frame,
+                d.frame,
+            ),
+            (d.width, d.frame, d.frame),
+            "wood",
+        ),
+        (
+            "roof_back",
+            "HL2",
+            box_at(
+                0,
+                roof_flat_rear - d.frame,
+                roof_hinge_top - d.frame,
+                d.width,
+                d.frame,
+                d.frame,
+            ),
+            (d.width, d.frame, d.frame),
+            "wood",
+        ),
+        (
+            "roof_left",
+            "HK2",
+            box_at(
+                0,
+                roof_flat_front,
+                roof_hinge_top - d.frame,
+                d.frame,
+                roof_slope_length,
+                d.frame,
+            ),
+            (roof_slope_length, d.frame, d.frame),
+            "wood",
+        ),
+        (
+            "roof_right",
+            "HK2",
+            box_at(
+                d.width - d.frame,
+                roof_flat_front,
+                roof_hinge_top - d.frame,
+                d.frame,
+                roof_slope_length,
+                d.frame,
+            ),
+            (roof_slope_length, d.frame, d.frame),
+            "wood",
+        ),
+        (
+            "roof_middle",
+            "roof connector",
+            box_at(
+                d.frame,
+                (roof_flat_front + roof_flat_rear) / 2 - d.roof_connector_width / 2,
+                roof_hinge_top - d.roof_connector_thickness,
+                d.inner_width,
+                d.roof_connector_width,
+                d.roof_connector_thickness,
+            ),
+            (
+                d.inner_width,
+                d.roof_connector_width,
+                d.roof_connector_thickness,
+            ),
+            "wood",
+        ),
     ]
     pitched_roof_parts = [pitch_roof_part(solid) for _, _, solid, _, _ in roof_parts]
     closed_roof_parts = [seat_roof_part(solid) for solid in pitched_roof_parts]
     closed_roof_by_name = {
-        name: solid
-        for (name, _, _, _, _), solid in zip(roof_parts, closed_roof_parts)
+        name: solid for (name, _, _, _, _), solid in zip(roof_parts, closed_roof_parts)
     }
-    for (name, category, _, dims, material), solid in zip(roof_parts, closed_roof_parts):
+    for (name, category, _, dims, material), solid in zip(
+        roof_parts, closed_roof_parts
+    ):
         add(name, category, lift_roof_part(solid), dims, material)
 
     # The metal sheet is centred over the roof frame before the complete unit
@@ -501,16 +597,32 @@ def build(
     ):
         left_wall = left_wall.cut(relief)
         right_wall = right_wall.cut(relief)
-    add("left_wall", "side cladding", left_wall,
-        (d.plan_grid_depth, d.door_height, d.cladding))
-    add("right_wall", "side cladding", right_wall,
-        (d.plan_grid_depth, d.door_height, d.cladding))
+    add(
+        "left_wall",
+        "side cladding",
+        left_wall,
+        (d.plan_grid_depth, d.door_height, d.cladding),
+    )
+    add(
+        "right_wall",
+        "side cladding",
+        right_wall,
+        (d.plan_grid_depth, d.door_height, d.cladding),
+    )
     # The back field is fitted between the two side skins, not behind them.
-    add("back_wall", "back cladding",
-        box_at(d.interior_x, d.back_wall_front,
-               d.leg_extension, d.interior_width, d.cladding,
-               d.back_height - d.leg_extension),
-        (d.interior_width, d.back_height - d.leg_extension, d.cladding))
+    add(
+        "back_wall",
+        "back cladding",
+        box_at(
+            d.interior_x,
+            d.back_wall_front,
+            d.leg_extension,
+            d.interior_width,
+            d.cladding,
+            d.back_height - d.leg_extension,
+        ),
+        (d.interior_width, d.back_height - d.leg_extension, d.cladding),
+    )
 
     # Floor and toilet box fit between the 25 mm side-wall skins.
     interior_x = d.interior_x
@@ -521,12 +633,26 @@ def build(
     floor_x = interior_x
     floor_bottom = d.leg_extension + d.frame
     floor_top = floor_bottom + d.cladding
-    add("floor", "floor", box_at(floor_x, 0, floor_bottom, floor_width, floor_depth, d.cladding),
-        (floor_depth, floor_width, d.cladding), "dark wood")
-    add("floor_back_support", "floor support",
-        box_at(interior_x, back_wall_front - d.frame, d.leg_extension,
-               interior_width, d.frame, d.frame),
-        (interior_width, d.frame, d.frame))
+    add(
+        "floor",
+        "floor",
+        box_at(floor_x, 0, floor_bottom, floor_width, floor_depth, d.cladding),
+        (floor_depth, floor_width, d.cladding),
+        "dark wood",
+    )
+    add(
+        "floor_back_support",
+        "floor support",
+        box_at(
+            interior_x,
+            back_wall_front - d.frame,
+            d.leg_extension,
+            interior_width,
+            d.frame,
+            d.frame,
+        ),
+        (interior_width, d.frame, d.frame),
+    )
     # The floor boards run front to back, so the side bearers carry their long
     # edges between the front opening rail and the back support.
     floor_side_length = back_wall_front - 2 * d.frame
@@ -534,20 +660,31 @@ def build(
         ("left", interior_x),
         ("right", interior_x + interior_width - d.frame),
     ):
-        add(f"floor_{label}_support", "floor support",
-            box_at(x, d.frame, d.leg_extension,
-                   d.frame, floor_side_length, d.frame),
-            (floor_side_length, d.frame, d.frame))
+        add(
+            f"floor_{label}_support",
+            "floor support",
+            box_at(x, d.frame, d.leg_extension, d.frame, floor_side_length, d.frame),
+            (floor_side_length, d.frame, d.frame),
+        )
 
     seat_width = interior_width
     seat_x = interior_x
     seat_back = back_wall_front
     seat_front_y = seat_back - d.seat_depth
     seat_top_bottom = floor_top + d.seat_height - d.cladding
-    add("seat_front", "seat side",
-        box_at(seat_x, seat_front_y, floor_top,
-               seat_width, d.cladding, d.seat_height - d.cladding),
-        (d.seat_height - d.cladding, seat_width, d.cladding))
+    add(
+        "seat_front",
+        "seat side",
+        box_at(
+            seat_x,
+            seat_front_y,
+            floor_top,
+            seat_width,
+            d.cladding,
+            d.seat_height - d.cladding,
+        ),
+        (d.seat_height - d.cladding, seat_width, d.cladding),
+    )
     # Oval seat opening, centred in the seat box so the rails stay clear of it.
     seat_hole = (
         cq.Workplane("XY")
@@ -557,22 +694,35 @@ def build(
         .translate((0, 0, seat_top_bottom))
         .val()
     )
-    add("seat_top", "seat top",
-        box_at(seat_x, seat_front_y, seat_top_bottom,
-               seat_width, d.seat_depth, d.cladding).cut(seat_hole),
-        (d.seat_depth, seat_width, d.cladding))
+    add(
+        "seat_top",
+        "seat top",
+        box_at(
+            seat_x, seat_front_y, seat_top_bottom, seat_width, d.seat_depth, d.cladding
+        ).cut(seat_hole),
+        (d.seat_depth, seat_width, d.cladding),
+    )
     # Both rails are concealed inside the seat box, immediately below its boards.
-    for index, y in enumerate((
-        seat_front_y + d.cladding,
-        seat_back - d.frame,
-    )):
-        add(f"seat_rail_{index + 1}", "HL1",
+    for index, y in enumerate(
+        (
+            seat_front_y + d.cladding,
+            seat_back - d.frame,
+        )
+    ):
+        add(
+            f"seat_rail_{index + 1}",
+            "HL1",
             box_at(seat_x, y, seat_top_bottom - d.frame, seat_width, d.frame, d.frame),
-            (seat_width, d.frame, d.frame))
-    add("seat_lower_rail", "HL1",
-        box_at(seat_x, seat_front_y + d.cladding,
-               floor_top, seat_width, d.frame, d.frame),
-        (seat_width, d.frame, d.frame))
+            (seat_width, d.frame, d.frame),
+        )
+    add(
+        "seat_lower_rail",
+        "HL1",
+        box_at(
+            seat_x, seat_front_y + d.cladding, floor_top, seat_width, d.frame, d.frame
+        ),
+        (seat_width, d.frame, d.frame),
+    )
     # The opening cuts the middle seat boards, so a bearer runs down each side
     # of it, fitted between the two seat rails and flush under the boards.
     seat_support_front = seat_front_y + d.cladding + d.frame
@@ -581,19 +731,30 @@ def build(
         ("left", (d.width - d.seat_hole_width) / 2 - d.seat_support),
         ("right", (d.width + d.seat_hole_width) / 2),
     ):
-        add(f"seat_support_{label}", "seat support",
-            box_at(x, seat_support_front, seat_top_bottom - d.seat_support,
-                   d.seat_support, seat_support_length, d.seat_support),
-            (seat_support_length, d.seat_support, d.seat_support))
+        add(
+            f"seat_support_{label}",
+            "seat support",
+            box_at(
+                x,
+                seat_support_front,
+                seat_top_bottom - d.seat_support,
+                d.seat_support,
+                seat_support_length,
+                d.seat_support,
+            ),
+            (seat_support_length, d.seat_support, d.seat_support),
+        )
     # Side braces run corner to corner. Their mitred end faces are made by the
     # inner faces of the vertical members, so no stock extends into a post.
     for x, label in ((d.frame / 2, "left"), (d.width - d.frame / 2, "right")):
         bottom = (
-            x, d.depth - d.frame,
+            x,
+            d.depth - d.frame,
             d.leg_extension + d.frame + d.diagonal_end_setback,
         )
         top = (
-            x, d.frame,
+            x,
+            d.frame,
             d.front_post_height - d.frame - d.diagonal_end_setback,
         )
         side_opening = box_at(
@@ -605,18 +766,19 @@ def build(
             d.front_post_height - d.leg_extension - 2 * d.frame,
         )
         brace = single_cut_brace(bottom, top, d.frame, (1, 0, 0), side_opening)
-        add(f"{label}_brace", "D1", brace,
-            (cut_length(brace), d.frame, d.frame))
+        add(f"{label}_brace", "D1", brace, (cut_length(brace), d.frame, d.frame))
 
     # Back-wall brace. Its low end shares the rear-left corner with the left
     # side brace, so the bracing runs continuously around that corner. The
     # 850 x 950 opening matches the door frame, so this is a second D2 cut.
     back_brace_bottom = (
-        d.frame, d.depth - d.frame / 2,
+        d.frame,
+        d.depth - d.frame / 2,
         d.leg_extension + d.frame + d.diagonal_end_setback,
     )
     back_brace_top = (
-        d.width - d.frame, d.depth - d.frame / 2,
+        d.width - d.frame,
+        d.depth - d.frame / 2,
         d.back_height - d.frame - d.diagonal_end_setback,
     )
     back_opening = box_at(
@@ -633,18 +795,34 @@ def build(
     add("back_brace", "D2", back_brace, (cut_length(back_brace), d.frame, d.frame))
 
     if roof_visible:
-        add("roof", "metal roof", roof, (roof_depth, roof_width, d.roof_thickness), "metal roof")
+        add(
+            "roof",
+            "metal roof",
+            roof,
+            (roof_depth, roof_width, d.roof_thickness),
+            "metal roof",
+        )
 
     roof_fixed_leaf = box_at(
-        d.frame, d.depth, d.back_height - d.frame,
-        d.inner_width, d.hinge_leaf_thickness,
+        d.frame,
+        d.depth,
+        d.back_height - d.frame,
+        d.inner_width,
+        d.hinge_leaf_thickness,
         d.frame + d.roof_hinge_pin_radius,
     )
-    roof_moving_leaf = seat_roof_part(pitch_roof_part(box_at(
-        d.frame, roof_pitch_rear_y,
-        roof_hinge_top - d.frame,
-        d.inner_width, d.hinge_leaf_thickness, d.frame,
-    )))
+    roof_moving_leaf = seat_roof_part(
+        pitch_roof_part(
+            box_at(
+                d.frame,
+                roof_pitch_rear_y,
+                roof_hinge_top - d.frame,
+                d.inner_width,
+                d.hinge_leaf_thickness,
+                d.frame,
+            )
+        )
+    )
     # Pitching swings the leaf's outer bottom corner below the fixed rear rail.
     # Relieve it there so the closed roof seats without fouling the rail.
     roof_moving_leaf = roof_moving_leaf.cut(
@@ -659,12 +837,27 @@ def build(
         .translate((d.frame, 0, 0))
         .val()
     )
-    add("roof_hinge_fixed", "roof hinge leaf", roof_fixed_leaf,
-        (d.inner_width, d.frame + d.roof_hinge_pin_radius, d.hinge_leaf_thickness), "metal")
-    add("roof_hinge_moving", "roof hinge leaf", roof_moving_leaf,
-        (d.inner_width, d.frame, d.hinge_leaf_thickness), "metal")
-    add("roof_hinge_pin", "roof hinge pin", roof_hinge_pin,
-        (d.inner_width, 2 * d.roof_hinge_pin_radius, 2 * d.roof_hinge_pin_radius), "metal")
+    add(
+        "roof_hinge_fixed",
+        "roof hinge leaf",
+        roof_fixed_leaf,
+        (d.inner_width, d.frame + d.roof_hinge_pin_radius, d.hinge_leaf_thickness),
+        "metal",
+    )
+    add(
+        "roof_hinge_moving",
+        "roof hinge leaf",
+        roof_moving_leaf,
+        (d.inner_width, d.frame, d.hinge_leaf_thickness),
+        "metal",
+    )
+    add(
+        "roof_hinge_pin",
+        "roof hinge pin",
+        roof_hinge_pin,
+        (d.inner_width, 2 * d.roof_hinge_pin_radius, 2 * d.roof_hinge_pin_radius),
+        "metal",
+    )
 
     # Door panel and frame rotate about a pin offset from the front-right post.
     # The gap keeps this separately manufactured moving assembly from merging
@@ -677,39 +870,103 @@ def build(
     door_frame_top = door_frame_bottom + d.door_frame_height
     door_brace_top, door_brace_bottom = door_brace_endpoints(d)
     door_brace_solid = single_cut_brace(
-        door_brace_bottom, door_brace_top, d.frame, (0, 1, 0),
-        box_at(d.frame, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom + d.frame,
-               d.inner_width, d.frame, d.door_frame_height - 2 * d.frame),
+        door_brace_bottom,
+        door_brace_top,
+        d.frame,
+        (0, 1, 0),
+        box_at(
+            d.frame,
+            -d.frame - d.cladding - d.hinge_gap,
+            door_frame_bottom + d.frame,
+            d.inner_width,
+            d.frame,
+            d.door_frame_height - 2 * d.frame,
+        ),
     )
     door_parts: list[tuple[str, cq.Shape, tuple[float, float, float], str]] = [
-        ("door_panel", door_cladding_panel(d),
-         (door_height, door_width, d.cladding), "cladding"),
-        ("door_left", box_at(0, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom,
-                             d.frame, d.frame, d.door_frame_height),
-         (d.door_frame_height, d.frame, d.frame), "V2"),
-        ("door_right", box_at(d.width - d.frame, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom,
-                              d.frame, d.frame, d.door_frame_height),
-         (d.door_frame_height, d.frame, d.frame), "V2"),
+        (
+            "door_panel",
+            door_cladding_panel(d),
+            (door_height, door_width, d.cladding),
+            "cladding",
+        ),
+        (
+            "door_left",
+            box_at(
+                0,
+                -d.frame - d.cladding - d.hinge_gap,
+                door_frame_bottom,
+                d.frame,
+                d.frame,
+                d.door_frame_height,
+            ),
+            (d.door_frame_height, d.frame, d.frame),
+            "V2",
+        ),
+        (
+            "door_right",
+            box_at(
+                d.width - d.frame,
+                -d.frame - d.cladding - d.hinge_gap,
+                door_frame_bottom,
+                d.frame,
+                d.frame,
+                d.door_frame_height,
+            ),
+            (d.door_frame_height, d.frame, d.frame),
+            "V2",
+        ),
         # The stiles run the full frame height, so the rails fit between them.
-        ("door_bottom", box_at(d.frame, -d.frame - d.cladding - d.hinge_gap, door_frame_bottom,
-                               d.inner_width, d.frame, d.frame),
-         (d.inner_width, d.frame, d.frame), "HL2"),
-        ("door_top", box_at(d.frame, -d.frame - d.cladding - d.hinge_gap, door_frame_top - d.frame,
-                            d.inner_width, d.frame, d.frame),
-         (d.inner_width, d.frame, d.frame), "HL2"),
-        ("door_brace", door_brace_solid,
-         (cut_length(door_brace_solid), d.frame, d.frame), "D2"),
+        (
+            "door_bottom",
+            box_at(
+                d.frame,
+                -d.frame - d.cladding - d.hinge_gap,
+                door_frame_bottom,
+                d.inner_width,
+                d.frame,
+                d.frame,
+            ),
+            (d.inner_width, d.frame, d.frame),
+            "HL2",
+        ),
+        (
+            "door_top",
+            box_at(
+                d.frame,
+                -d.frame - d.cladding - d.hinge_gap,
+                door_frame_top - d.frame,
+                d.inner_width,
+                d.frame,
+                d.frame,
+            ),
+            (d.inner_width, d.frame, d.frame),
+            "HL2",
+        ),
+        (
+            "door_brace",
+            door_brace_solid,
+            (cut_length(door_brace_solid), d.frame, d.frame),
+            "D2",
+        ),
     ]
     for name, solid, dims, category in door_parts:
         if door_angle:
-            solid = solid.rotate((hinge_x, hinge_y, d.door_bottom),
-                                 (hinge_x, hinge_y, d.door_bottom + 1), door_angle)
+            solid = solid.rotate(
+                (hinge_x, hinge_y, d.door_bottom),
+                (hinge_x, hinge_y, d.door_bottom + 1),
+                door_angle,
+            )
         add(name, category, solid, dims)
     for index, z in enumerate((225, 825), start=1):
         hinge_z = z + d.door_bottom
         fixed_leaf = box_at(
-            d.width - d.frame, hinge_y, hinge_z,
-            d.frame, d.hinge_leaf_thickness, 150,
+            d.width - d.frame,
+            hinge_y,
+            hinge_z,
+            d.frame,
+            d.hinge_leaf_thickness,
+            150,
         )
         moving_leaf = box_at(
             d.width - d.hinge_leaf_thickness,
@@ -733,12 +990,27 @@ def build(
             .translate((0, 0, hinge_z))
             .val()
         )
-        add(f"hinge_fixed_{index}", "hinge leaf", fixed_leaf,
-            (150, d.frame, d.hinge_leaf_thickness), "metal")
-        add(f"hinge_door_{index}", "hinge leaf", moving_leaf,
-            (150, d.frame + d.hinge_gap / 2, d.hinge_leaf_thickness), "metal")
-        add(f"door_hinge_{index}", "hinge pin", pin,
-            (150, 2 * d.hinge_pin_radius, 2 * d.hinge_pin_radius), "metal")
+        add(
+            f"hinge_fixed_{index}",
+            "hinge leaf",
+            fixed_leaf,
+            (150, d.frame, d.hinge_leaf_thickness),
+            "metal",
+        )
+        add(
+            f"hinge_door_{index}",
+            "hinge leaf",
+            moving_leaf,
+            (150, d.frame + d.hinge_gap / 2, d.hinge_leaf_thickness),
+            "metal",
+        )
+        add(
+            f"door_hinge_{index}",
+            "hinge pin",
+            pin,
+            (150, 2 * d.hinge_pin_radius, 2 * d.hinge_pin_radius),
+            "metal",
+        )
 
     assembly = cq.Assembly(name="dass")
     colors = {
@@ -757,11 +1029,19 @@ def build(
 def write_cutlist(parts: list[Part], path: Path) -> None:
     grouped: dict[tuple[str, float, float, float, str], int] = {}
     for p in parts:
-        key = (p.category, round(p.length, 1), round(p.width, 1), round(p.thickness, 1), p.material)
+        key = (
+            p.category,
+            round(p.length, 1),
+            round(p.width, 1),
+            round(p.thickness, 1),
+            p.material,
+        )
         grouped[key] = grouped.get(key, 0) + 1
     with path.open("w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(("part", "quantity", "length_mm", "width_mm", "thickness_mm", "material"))
+        writer.writerow(
+            ("part", "quantity", "length_mm", "width_mm", "thickness_mm", "material")
+        )
         for key, quantity in sorted(grouped.items()):
             category, length, width, thickness, material = key
             writer.writerow((category, quantity, length, width, thickness, material))
@@ -787,10 +1067,14 @@ def render(
     right /= np.linalg.norm(right)
     up = np.cross(right, forward)
     triangles: list[tuple[np.ndarray, str, float]] = []
-    palette = {"wood": (184, 138, 82), "cladding": (209, 173, 115),
-               "dark wood": (57, 39, 25), "roof": (72, 81, 86),
-               "metal roof": (110, 122, 128),
-               "metal": (42, 44, 46)}
+    palette = {
+        "wood": (184, 138, 82),
+        "cladding": (209, 173, 115),
+        "dark wood": (57, 39, 25),
+        "roof": (72, 81, 86),
+        "metal roof": (110, 122, 128),
+        "metal": (42, 44, 46),
+    }
     light = np.array((-0.35, -0.5, 0.79))
     for part in parts:
         vertices, faces = part.solid.tessellate(0.2, 0.1)
@@ -802,11 +1086,17 @@ def render(
             shade = 0.68 + 0.32 * abs(float(np.dot(normal, light)))
             triangles.append((tri, part.material, shade))
 
-    projected = [np.column_stack((tri @ right, tri @ up, tri @ forward)) for tri, _, _ in triangles]
+    projected = [
+        np.column_stack((tri @ right, tri @ up, tri @ forward))
+        for tri, _, _ in triangles
+    ]
     cloud = np.concatenate(projected)
     lo, hi = cloud[:, :2].min(axis=0), cloud[:, :2].max(axis=0)
     margin = 50
-    scale = min((size[0] - 2 * margin) / (hi[0] - lo[0]), (size[1] - 2 * margin) / (hi[1] - lo[1]))
+    scale = min(
+        (size[0] - 2 * margin) / (hi[0] - lo[0]),
+        (size[1] - 2 * margin) / (hi[1] - lo[1]),
+    )
     color = np.full((size[1], size[0], 3), 247, dtype=np.uint8)
     depth = np.full((size[1], size[0]), np.inf)
 
@@ -818,20 +1108,30 @@ def render(
         ymin, ymax = max(0, int(py.min())), min(size[1] - 1, int(py.max()) + 1)
         if xmin > xmax or ymin > ymax:
             continue
-        xx, yy = np.meshgrid(np.arange(xmin, xmax + 1) + 0.5, np.arange(ymin, ymax + 1) + 0.5)
-        denominator = (py[1] - py[2]) * (px[0] - px[2]) + (px[2] - px[1]) * (py[0] - py[2])
+        xx, yy = np.meshgrid(
+            np.arange(xmin, xmax + 1) + 0.5, np.arange(ymin, ymax + 1) + 0.5
+        )
+        denominator = (py[1] - py[2]) * (px[0] - px[2]) + (px[2] - px[1]) * (
+            py[0] - py[2]
+        )
         if abs(denominator) < 1e-9:
             continue
-        a = ((py[1] - py[2]) * (xx - px[2]) + (px[2] - px[1]) * (yy - py[2])) / denominator
-        b = ((py[2] - py[0]) * (xx - px[2]) + (px[0] - px[2]) * (yy - py[2])) / denominator
+        a = (
+            (py[1] - py[2]) * (xx - px[2]) + (px[2] - px[1]) * (yy - py[2])
+        ) / denominator
+        b = (
+            (py[2] - py[0]) * (xx - px[2]) + (px[0] - px[2]) * (yy - py[2])
+        ) / denominator
         c = 1 - a - b
         inside = (a >= -1e-8) & (b >= -1e-8) & (c >= -1e-8)
         z = a * pz[0] + b * pz[1] + c * pz[2]
-        local_depth = depth[ymin:ymax + 1, xmin:xmax + 1]
+        local_depth = depth[ymin : ymax + 1, xmin : xmax + 1]
         visible = inside & (z < local_depth)
         local_depth[visible] = z[visible]
-        rgb = np.array([round(channel * shade) for channel in palette[material]], dtype=np.uint8)
-        color[ymin:ymax + 1, xmin:xmax + 1][visible] = rgb
+        rgb = np.array(
+            [round(channel * shade) for channel in palette[material]], dtype=np.uint8
+        )
+        color[ymin : ymax + 1, xmin : xmax + 1][visible] = rgb
     Image.fromarray(color).save(path)
 
 
@@ -850,12 +1150,18 @@ def main() -> None:
         help="override any numeric Design parameter; may be repeated",
     )
     args = parser.parse_args()
-    overrides = {key: value for key, value in vars(args).items() if key in {"width", "depth"} and value is not None}
+    overrides = {
+        key: value
+        for key, value in vars(args).items()
+        if key in {"width", "depth"} and value is not None
+    }
     parameter_names = {field.name for field in fields(Design)}
     for item in args.set:
         name, separator, value = item.partition("=")
         if not separator or name not in parameter_names:
-            parser.error(f"--set must be NAME=MM where NAME is one of: {', '.join(sorted(parameter_names))}")
+            parser.error(
+                f"--set must be NAME=MM where NAME is one of: {', '.join(sorted(parameter_names))}"
+            )
         try:
             overrides[name] = float(value)
         except ValueError:

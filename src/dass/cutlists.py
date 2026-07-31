@@ -85,7 +85,8 @@ def beam_pieces(design: Design) -> list[CutPiece]:
         )
         for part in parts
         if part.material == "wood"
-        and (part.width, part.thickness) in {
+        and (part.width, part.thickness)
+        in {
             (design.frame, design.frame),
             (design.roof_connector_width, design.roof_connector_thickness),
             (design.seat_support, design.seat_support),
@@ -121,23 +122,28 @@ def cladding_pieces(
         for copy in range(1, quantity + 1):
             for index in range(count):
                 suffix = f"{copy}." if quantity > 1 else ""
-                pieces.append(CutPiece(
-                    f"{name}_{suffix}{index + 1}",
-                    length,
-                    board_width,
-                    design.cladding,
-                    length,
-                    length,
-                    "",
-                    end_trim,
-                    code({
-                        "door": "DCB",
-                        "back_wall": "BWC",
-                        "floor": "FCB",
-                        "seat_top": "STB",
-                        "seat_front": "SFB",
-                    }[name], index + 1),
-                ))
+                pieces.append(
+                    CutPiece(
+                        f"{name}_{suffix}{index + 1}",
+                        length,
+                        board_width,
+                        design.cladding,
+                        length,
+                        length,
+                        "",
+                        end_trim,
+                        code(
+                            {
+                                "door": "DCB",
+                                "back_wall": "BWC",
+                                "floor": "FCB",
+                                "seat_top": "STB",
+                                "seat_front": "SFB",
+                            }[name],
+                            index + 1,
+                        ),
+                    )
+                )
 
     panel("door", design.width, design.door_height)
     panel("back_wall", design.interior_width, design.back_height - design.leg_extension)
@@ -151,17 +157,19 @@ def cladding_pieces(
             end = min((index + 1) * cover_width, side_span)
             long_point = design.door_height - design.side_fall * start / side_span
             short_point = design.door_height - design.side_fall * end / side_span
-            pieces.append(CutPiece(
-                f"{side}_{index + 1}",
-                design.door_height,
-                board_width,
-                design.cladding,
-                long_point,
-                short_point,
-                side,
-                side_end_trim,
-                code("LSC" if side == "left_wall" else "RSC", index + 1),
-            ))
+            pieces.append(
+                CutPiece(
+                    f"{side}_{index + 1}",
+                    design.door_height,
+                    board_width,
+                    design.cladding,
+                    long_point,
+                    short_point,
+                    side,
+                    side_end_trim,
+                    code("LSC" if side == "left_wall" else "RSC", index + 1),
+                )
+            )
 
     panel("floor", design.interior_width, design.back_wall_front)
     panel("seat_top", design.interior_width, design.seat_depth)
@@ -218,7 +226,11 @@ def panel_stock_plan(
         [piece for piece in pieces if piece.gang_cut == gang_cut]
         for gang_cut in sorted({piece.gang_cut for piece in pieces if piece.gang_cut})
     ]
-    if len(side_sets) != 2 or not side_sets[0] or len(side_sets[0]) != len(side_sets[1]):
+    if (
+        len(side_sets) != 2
+        or not side_sets[0]
+        or len(side_sets[0]) != len(side_sets[1])
+    ):
         raise ValueError("the gang-cut workflow requires two equal side-panel sets")
     sides = side_sets[0] + side_sets[1]
     blank_lengths = {piece.length for piece in sides}
@@ -231,9 +243,7 @@ def panel_stock_plan(
             piece_usage = piece.length + kerf
             candidates = []
             for index, stock in enumerate(compacted):
-                remaining = stock_length - sum(
-                    item.length + kerf for item in stock
-                )
+                remaining = stock_length - sum(item.length + kerf for item in stock)
                 if piece_usage <= remaining + 1e-9:
                     candidates.append((remaining - piece_usage, index))
             if not candidates:
@@ -263,22 +273,39 @@ def panel_stock_plan(
 def write_schedule(pieces: list[CutPiece], path: Path) -> None:
     with path.open("w", newline="") as stream:
         writer = csv.writer(stream, lineterminator="\n")
-        writer.writerow((
-            "code", "piece", "blank_length_mm", "finished_long_mm", "finished_short_mm",
-            "width_mm", "thickness_mm", "gang_cut", "panel_end_trim_mm",
-        ))
+        writer.writerow(
+            (
+                "code",
+                "piece",
+                "blank_length_mm",
+                "finished_long_mm",
+                "finished_short_mm",
+                "width_mm",
+                "thickness_mm",
+                "gang_cut",
+                "panel_end_trim_mm",
+            )
+        )
         for piece in pieces:
-            writer.writerow((
-                piece.code,
-                piece.name,
-                round(piece.length, 1),
-                round(piece.finished_long, 1) if piece.finished_long is not None else "",
-                round(piece.finished_short, 1) if piece.finished_short is not None else "",
-                round(piece.width, 1),
-                round(piece.thickness, 1),
-                piece.gang_cut,
-                round(piece.panel_end_trim, 1) if piece.panel_end_trim is not None else "",
-            ))
+            writer.writerow(
+                (
+                    piece.code,
+                    piece.name,
+                    round(piece.length, 1),
+                    round(piece.finished_long, 1)
+                    if piece.finished_long is not None
+                    else "",
+                    round(piece.finished_short, 1)
+                    if piece.finished_short is not None
+                    else "",
+                    round(piece.width, 1),
+                    round(piece.thickness, 1),
+                    piece.gang_cut,
+                    round(piece.panel_end_trim, 1)
+                    if piece.panel_end_trim is not None
+                    else "",
+                )
+            )
 
 
 def write_stock_plan(
@@ -288,10 +315,19 @@ def write_stock_plan(
 ) -> None:
     with path.open("w", newline="") as stream:
         writer = csv.writer(stream, lineterminator="\n")
-        writer.writerow((
-            "material", "stock", "stock_length_mm", "cuts", "piece_codes", "piece_lengths_mm",
-            "kerf_mm", "used_mm", "waste_mm",
-        ))
+        writer.writerow(
+            (
+                "material",
+                "stock",
+                "stock_length_mm",
+                "cuts",
+                "piece_codes",
+                "piece_lengths_mm",
+                "kerf_mm",
+                "used_mm",
+                "waste_mm",
+            )
+        )
         for material, pieces, stock_length in groups:
             stocks = (
                 panel_stock_plan(pieces, stock_length, kerf)
@@ -301,17 +337,19 @@ def write_stock_plan(
             for index, stock in enumerate(stocks, 1):
                 kerf_total = kerf * len(stock)
                 used = sum(piece.length for piece in stock) + kerf_total
-                writer.writerow((
-                    material,
-                    index,
-                    stock_length,
-                    len(stock),
-                    " + ".join(piece.code or piece.name for piece in stock),
-                    " + ".join(f"{piece.length:.1f}" for piece in stock),
-                    round(kerf_total, 1),
-                    round(used, 1),
-                    round(stock_length - used, 1),
-                ))
+                writer.writerow(
+                    (
+                        material,
+                        index,
+                        stock_length,
+                        len(stock),
+                        " + ".join(piece.code or piece.name for piece in stock),
+                        " + ".join(f"{piece.length:.1f}" for piece in stock),
+                        round(kerf_total, 1),
+                        round(used, 1),
+                        round(stock_length - used, 1),
+                    )
+                )
 
 
 def write_stock_summary(
@@ -321,7 +359,9 @@ def write_stock_summary(
 ) -> None:
     with path.open("w", newline="") as stream:
         writer = csv.writer(stream, lineterminator="\n")
-        writer.writerow(("material", "stock_quantity", "stock_length_mm", "total_waste_mm"))
+        writer.writerow(
+            ("material", "stock_quantity", "stock_length_mm", "total_waste_mm")
+        )
         for material, pieces, stock_length in groups:
             stocks = (
                 panel_stock_plan(pieces, stock_length, kerf)
@@ -332,12 +372,14 @@ def write_stock_summary(
                 sum(piece.length for piece in stock) + kerf * len(stock)
                 for stock in stocks
             )
-            writer.writerow((
-                material,
-                len(stocks),
-                stock_length,
-                round(len(stocks) * stock_length - used, 1),
-            ))
+            writer.writerow(
+                (
+                    material,
+                    len(stocks),
+                    stock_length,
+                    round(len(stocks) * stock_length - used, 1),
+                )
+            )
 
 
 def main() -> None:
@@ -391,11 +433,13 @@ def main() -> None:
         )
         for profile in sorted({piece.profile for piece in beams})
     ]
-    stock_groups = beam_groups + [(
-        f"cladding_120x{design.cladding:g}",
-        cladding,
-        args.cladding_stock_length,
-    )]
+    stock_groups = beam_groups + [
+        (
+            f"cladding_120x{design.cladding:g}",
+            cladding,
+            args.cladding_stock_length,
+        )
+    ]
     write_stock_plan(
         stock_groups,
         args.output / "stock-cut-plan.csv",

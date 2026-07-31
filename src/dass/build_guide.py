@@ -120,7 +120,6 @@ def fmt(value: float) -> str:
     return sign + " ".join(groups) + dot + fraction
 
 
-
 def brace_angle(design: Design, piece: CutPiece) -> float | None:
     if piece.name in {"left_brace", "right_brace"}:
         run = design.inner_depth
@@ -152,7 +151,7 @@ def stock_bar(
         segments.append(
             f'<div class="stock-piece{gang_class}" style="left:{left:.5f}%;width:{width:.5f}%" '
             f'title="{html.escape(piece.code)} · {fmt(piece.length)} mm">'
-            f'<b>{html.escape(piece.code)}</b><span>{fmt(piece.length)}</span></div>'
+            f"<b>{html.escape(piece.code)}</b><span>{fmt(piece.length)}</span></div>"
         )
         cut_at = position + piece.length
         segments.append(
@@ -175,8 +174,8 @@ def stock_bar(
       </header>
       <div class="stock-scroll">
         <div class="stock-track" style="--stock-aspect:{stock_length / stock_width:.6f}"
-          role="img" aria-label="{stock_id}: {'; '.join(f'{p.code}, {fmt(p.length)} millimetres' for p in pieces)}; {fmt(waste)} millimetre offcut">
-          {''.join(segments)}
+          role="img" aria-label="{stock_id}: {"; ".join(f"{p.code}, {fmt(p.length)} millimetres" for p in pieces)}; {fmt(waste)} millimetre offcut">
+          {"".join(segments)}
         </div>
       </div>
     </article>"""
@@ -200,7 +199,6 @@ def _batch_groups(
     return groups
 
 
-
 def cut_batches(
     pieces: list[CutPiece],
     stock_lookup: dict[str, str],
@@ -214,14 +212,15 @@ def cut_batches(
         batch.sort(key=lambda piece: (stock_lookup[piece.code], piece.code))
         cut = (
             f"{angle:.1f}° mitre, both ends; cuts parallel"
-            if angle is not None else "90° square"
+            if angle is not None
+            else "90° square"
         )
         # Which stock each code comes off is drawn on the stock bars below, so
         # the batch table carries the saw sequence and nothing else.
         rows.append(
-            f"<tr><td class=\"pass\">{step}</td>"
-            f"<td class=\"measure\">{fmt(length)}</td><td>{cut}</td>"
-            f"<td class=\"marks\">{len(batch)} × "
+            f'<tr><td class="pass">{step}</td>'
+            f'<td class="measure">{fmt(length)}</td><td>{cut}</td>'
+            f'<td class="marks">{len(batch)} × '
             f"{' '.join(f'<b>{p.code}</b>' for p in batch)}</td></tr>"
         )
     return "".join(rows)
@@ -293,7 +292,8 @@ def outline(solid, view: View) -> list[Point]:
     as a roof member seen in plan, falls back to its projected hull.
     """
     square_faces = [
-        face for face in solid.Faces()
+        face
+        for face in solid.Faces()
         if abs(face.normalAt().toTuple()[view.depth_axis]) > 0.999
     ]
     if square_faces:
@@ -328,7 +328,9 @@ class Plate:
 
     WIDTH = 1000.0
 
-    def __init__(self, shapes: list[list[Point]], margin: float = 62.0, pad: float = 0.0):
+    def __init__(
+        self, shapes: list[list[Point]], margin: float = 62.0, pad: float = 0.0
+    ):
         points = [point for shape in shapes for point in shape]
         self.umin = min(u for u, _ in points)
         self.vmin = min(v for _, v in points)
@@ -378,17 +380,19 @@ class Plate:
         turn = f' transform="rotate(-90 {x:.1f} {y:.1f})"' if turned else ""
         self.add(
             f'<text class="{css}" x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}"'
-            f'{turn}>{html.escape(text)}</text>'
+            f"{turn}>{html.escape(text)}</text>"
         )
 
     def corner(self, text: str) -> None:
         """Note in the top margin, where nothing else is ever drawn."""
         self.add(
             f'<text class="note-text" x="14" y="28" text-anchor="start">'
-            f'{html.escape(text)}</text>'
+            f"{html.escape(text)}</text>"
         )
 
-    def leader(self, target: Point, seat: Point, text: str, anchor: str = "start") -> None:
+    def leader(
+        self, target: Point, seat: Point, text: str, anchor: str = "start"
+    ) -> None:
         """Call out a face or a thickness without crowding the geometry."""
         tx, ty = self.at(target)
         sx, sy = self.at(seat)
@@ -448,7 +452,7 @@ class Plate:
                 self.add(
                     f'<text class="dim-text" x="{x - 8:.1f}" y="{mid:.1f}" '
                     f'text-anchor="middle" transform="rotate(-90 {x - 8:.1f} {mid:.1f})">'
-                    f'{html.escape(measure)}</text>'
+                    f"{html.escape(measure)}</text>"
                 )
         else:
             y = max(y1, y2) + offset if offset > 0 else min(y1, y2) + offset
@@ -481,14 +485,14 @@ class Plate:
             f'<figure class="drawing">'
             f'<svg class="{css}" viewBox="0 0 {self.WIDTH:.0f} {self.height:.0f}" '
             f'role="img" aria-label="{html.escape(title)}: {html.escape(caption)}">'
-            f'{"".join(self.body)}'
-            f'</svg>'
-            f'<figcaption>'
+            f"{''.join(self.body)}"
+            f"</svg>"
+            f"<figcaption>"
             f'<span class="drawing-name">{html.escape(title.upper())}</span>'
             f'<span class="drawing-ref">{html.escape(number)} · '
-            f'{html.escape(caption.upper())}</span>{aside}'
-            f'</figcaption>'
-            f'</figure>'
+            f"{html.escape(caption.upper())}</span>{aside}"
+            f"</figcaption>"
+            f"</figure>"
         )
 
 
@@ -530,13 +534,37 @@ class Panel:
 
 
 PANEL_SPECS = (
-    ("door_panel", "DCB", "Door field", 0, "fixed to the inside face of the door frame"),
-    ("left_wall", "LSC", "Left side field", 1, "gang-cut to the roof pitch after joining"),
-    ("right_wall", "RSC", "Right side field", 1, "gang-cut to the roof pitch after joining"),
+    (
+        "door_panel",
+        "DCB",
+        "Door field",
+        0,
+        "fixed to the inside face of the door frame",
+    ),
+    (
+        "left_wall",
+        "LSC",
+        "Left side field",
+        1,
+        "gang-cut to the roof pitch after joining",
+    ),
+    (
+        "right_wall",
+        "RSC",
+        "Right side field",
+        1,
+        "gang-cut to the roof pitch after joining",
+    ),
     ("back_wall", "BWC", "Back wall field", 0, "centred between the rear posts"),
     ("floor", "FCB", "Floor deck", 0, "lands on three bearers and the front rail"),
     ("seat_top", "STB", "Seat top", 0, "oval opening cut after joining"),
-    ("seat_front", "SFB", "Seat front field", 0, "closes the seat box down to the floor"),
+    (
+        "seat_front",
+        "SFB",
+        "Seat front field",
+        0,
+        "closes the seat box down to the floor",
+    ),
 )
 
 
@@ -560,26 +588,59 @@ def board_joints(panel: Panel) -> list[float]:
 # ---------------------------------------------------------------------------
 
 GALLERY = (
-    ("In situ", (
-        ("in-situ-open", "Open", ""),
-        ("in-situ-closed", "Closed", "The same plate with everything shut."),
-    )),
-    ("Render", (
-        ("open-hero", "Open", "Three-quarter view, door swung clear of the opening."),
-        ("open-doorway", "Doorway", "Straight into the opening at standing height."),
-        ("open-interior", "Interior", "Down onto the seat box, floor deck, and back wall."),
-        ("closed-hero", "Closed", "Three-quarter view of the finished shell."),
-        ("closed-rear-quarter", "Rear", "Back wall, rear posts, and the roof overhang."),
-        ("closed-above", "Above", "The mono-pitch roof and its sheet overhangs."),
-    )),
-    ("Elevation", (
-        ("flat-front", "Front", "Square-on front elevation, door closed."),
-        ("flat-front-open", "Front open", "Square-on with the door swung, showing the opening."),
-        ("flat-back", "Back", "Square-on rear elevation."),
-        ("flat-left", "Left", "Square-on left side; the cladding falls to the rear."),
-        ("flat-right", "Right", "Square-on right side, mirror of the left."),
-        ("flat-top", "Top", "Orthographic plan of the roof sheet."),
-    )),
+    (
+        "In situ",
+        (
+            ("in-situ-open", "Open", ""),
+            ("in-situ-closed", "Closed", "The same plate with everything shut."),
+        ),
+    ),
+    (
+        "Render",
+        (
+            (
+                "open-hero",
+                "Open",
+                "Three-quarter view, door swung clear of the opening.",
+            ),
+            (
+                "open-doorway",
+                "Doorway",
+                "Straight into the opening at standing height.",
+            ),
+            (
+                "open-interior",
+                "Interior",
+                "Down onto the seat box, floor deck, and back wall.",
+            ),
+            ("closed-hero", "Closed", "Three-quarter view of the finished shell."),
+            (
+                "closed-rear-quarter",
+                "Rear",
+                "Back wall, rear posts, and the roof overhang.",
+            ),
+            ("closed-above", "Above", "The mono-pitch roof and its sheet overhangs."),
+        ),
+    ),
+    (
+        "Elevation",
+        (
+            ("flat-front", "Front", "Square-on front elevation, door closed."),
+            (
+                "flat-front-open",
+                "Front open",
+                "Square-on with the door swung, showing the opening.",
+            ),
+            ("flat-back", "Back", "Square-on rear elevation."),
+            (
+                "flat-left",
+                "Left",
+                "Square-on left side; the cladding falls to the rear.",
+            ),
+            ("flat-right", "Right", "Square-on right side, mirror of the left."),
+            ("flat-top", "Top", "Orthographic plan of the roof sheet."),
+        ),
+    ),
 )
 
 FIRST_VIEW = GALLERY[0][1][0][0]
@@ -649,7 +710,9 @@ def story_nav(active: str) -> str:
     started_current = ' aria-current="page"' if active == "started" else ""
     drawing_current = ' aria-current="page"' if active == "drawing" else ""
     going_current = ' aria-current="page"' if active == "going" else ""
-    started_href = "#story-nav" if active == "started" else "how-it-started.html#story-nav"
+    started_href = (
+        "#story-nav" if active == "started" else "how-it-started.html#story-nav"
+    )
     drawing_href = "#story-nav" if active == "drawing" else "cut-guide.html#story-nav"
     going_href = "#story-nav" if active == "going" else "how-its-going.html#story-nav"
     started_direction = "down" if active == "started" else "left"
@@ -679,7 +742,7 @@ def gallery_html() -> str:
             "".join(
                 f'<button class="pill{" is-on" if name == FIRST_VIEW else ""}" type="button" '
                 f'data-view="{name}" aria-pressed="{"true" if name == FIRST_VIEW else "false"}">'
-                f'{html.escape(label)}</button>'
+                f"{html.escape(label)}</button>"
                 for name, label, _ in views
             ),
         )
@@ -692,7 +755,8 @@ def gallery_html() -> str:
         f'{" is-crop" if group == "In situ" else ""}" data-view="{name}" '
         f'{"src" if name == FIRST_VIEW else "data-src"}="web-renders/{name}.jpg" '
         f'alt="{html.escape(caption)}" data-caption="{html.escape(caption)}" decoding="async">'
-        for group, views in GALLERY for name, _, caption in views
+        for group, views in GALLERY
+        for name, _, caption in views
     )
     first_caption = GALLERY[0][1][0][2]
     return f"""
@@ -1373,17 +1437,17 @@ def plank_atlas(renders: Path = Path("build/renders")) -> dict:
 
 
 def viewer_script(parts: dict[str, dict[str, str]]) -> str:
-    return (
-        VIEWER_SCRIPT
-        .replace("__PARTS__", json.dumps(parts, separators=(",", ":")))
-        .replace("__ATLAS__", json.dumps(plank_atlas(), separators=(",", ":")))
-    )
+    return VIEWER_SCRIPT.replace(
+        "__PARTS__", json.dumps(parts, separators=(",", ":"))
+    ).replace("__ATLAS__", json.dumps(plank_atlas(), separators=(",", ":")))
 
 
 def bounds(shape: list[Point]) -> tuple[float, float, float, float]:
     return (
-        min(u for u, _ in shape), min(v for _, v in shape),
-        max(u for u, _ in shape), max(v for _, v in shape),
+        min(u for u, _ in shape),
+        min(v for _, v in shape),
+        max(u for u, _ in shape),
+        max(v for _, v in shape),
     )
 
 
@@ -1407,9 +1471,7 @@ def draw_field(
 
     terminal = view.u_sign * (lows[panel.axis] + panel.span)
     rough_terminal = view.u_sign * (lows[panel.axis] + panel.joined)
-    terminal_points = [
-        v for u, v in profile if math.isclose(u, terminal, abs_tol=1e-3)
-    ]
+    terminal_points = [v for u, v in profile if math.isclose(u, terminal, abs_tol=1e-3)]
     if len(terminal_points) < 2:
         terminal_points = [v for _, v in profile]
     trim_low, trim_high = min(terminal_points), max(terminal_points)
@@ -1468,7 +1530,9 @@ def draw_field(
             point = [0.0, 0.0, 0.0]
             point[panel.axis] = lows[panel.axis] + joint
             point[run] = highs[run] + 20 if far else lows[run] - 20
-            point[view.depth_axis] = (lows[view.depth_axis] + highs[view.depth_axis]) / 2
+            point[view.depth_axis] = (
+                lows[view.depth_axis] + highs[view.depth_axis]
+            ) / 2
             ends.append(view(point))
         plate.line(*ends, "joint")
     joints = "".join(plate.body[start:])
@@ -1498,7 +1562,9 @@ def plate_for(
     return plate
 
 
-def draw_members(plate: Plate, shapes: dict[str, list[Point]], members: tuple[str, ...]) -> None:
+def draw_members(
+    plate: Plate, shapes: dict[str, list[Point]], members: tuple[str, ...]
+) -> None:
     for name in members:
         plate.shape(shapes[name], "member")
     for name in members:
@@ -1530,9 +1596,13 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     plate.dim((sheet[0], sheet[3]), (sheet[2], sheet[3]), 40)
     plate.dim((frame_box[0], frame_box[1]), (frame_box[2], frame_box[1]), -40)
     plate.dim((sheet[2], sheet[1]), (sheet[2], sheet[3]), 40)
-    plate.corner("sheet ghosted · slope beams foreshortened, cut them to the batch length")
+    plate.corner(
+        "sheet ghosted · slope beams foreshortened, cut them to the batch length"
+    )
     plates["A"] = plate.svg(
-        "A-401", "Roof unit", PLAN.short,
+        "A-401",
+        "Roof unit",
+        PLAN.short,
         note=f"{PLAN.caption} · built flat, then hung",
     )
 
@@ -1540,7 +1610,14 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     members = ("door_left", "door_right", "door_bottom", "door_top", "door_brace")
     shapes = shapes_for(FRONT, *members, "door_panel")
     plate = plate_for(shapes, members)
-    draw_field(plate, shapes["door_panel"], parts["door_panel"], fields["door_panel"], FRONT, "door-field")
+    draw_field(
+        plate,
+        shapes["door_panel"],
+        parts["door_panel"],
+        fields["door_panel"],
+        FRONT,
+        "door-field",
+    )
     draw_members(plate, shapes, members)
     frame_box = bounds([point for name in members for point in shapes[name]])
     field_box = bounds(shapes["door_panel"])
@@ -1548,17 +1625,23 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     plate.dim((frame_box[0], frame_box[1]), (frame_box[0], frame_box[3]), -40)
     plate.dim((field_box[2], field_box[1]), (field_box[2], field_box[3]), 40)
     plates["B"] = plate.svg(
-        "A-402", "Door unit", FRONT.short,
+        "A-402",
+        "Door unit",
+        FRONT.short,
         note=f"{FRONT.caption} · hatched edge is the estimated on-frame trim",
     )
 
     # C and D · Side units, each seen from outside its own wall.
     for letter, number, side, view in (
-        ("C", "A-403", "left", LEFT), ("D", "A-404", "right", RIGHT)
+        ("C", "A-403", "left", LEFT),
+        ("D", "A-404", "right", RIGHT),
     ):
         members = (
-            f"front_post_{side}", f"back_post_{side}",
-            f"{side}_bottom", f"{side}_top", f"{side}_brace",
+            f"front_post_{side}",
+            f"back_post_{side}",
+            f"{side}_bottom",
+            f"{side}_top",
+            f"{side}_brace",
         )
         wall = f"{side}_wall"
         field = fields[wall]
@@ -1574,28 +1657,33 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
             (post[0] if side == "right" else post[2], field_box[3]),
             -40 if side == "right" else 40,
         )
-        notch = view((
-            0,
-            design.frame / 2,
-            design.leg_extension + design.frame / 2,
-        ))
-        notch_note = view((
-            0,
-            design.frame + 130,
-            design.leg_extension + design.frame + 80,
-        ))
+        notch = view(
+            (
+                0,
+                design.frame / 2,
+                design.leg_extension + design.frame / 2,
+            )
+        )
+        notch_note = view(
+            (
+                0,
+                design.frame + 130,
+                design.leg_extension + design.frame + 80,
+            )
+        )
         plate.leader(
             notch,
             notch_note,
             f"{fmt(design.frame)} × {fmt(design.frame)} NOTCH",
             "start" if view.u_sign > 0 else "end",
         )
-        fall = (
-            (field.pieces[0].finished_long or field.blank)
-            - (field.pieces[-1].finished_short or field.blank)
+        fall = (field.pieces[0].finished_long or field.blank) - (
+            field.pieces[-1].finished_short or field.blank
         )
         plates[letter] = plate.svg(
-            number, f"{side.title()} side unit", view.short,
+            number,
+            f"{side.title()} side unit",
+            view.short,
             note=f"{view.caption} · {fmt(fall)} fall over {fmt(field.span)} · "
             f"{fmt(design.frame)} × {fmt(design.frame)} bottom-front notch",
         )
@@ -1605,7 +1693,14 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     ghosts = ("back_post_left", "back_post_right")
     shapes = shapes_for(REAR, *members, *ghosts, "back_wall")
     plate = plate_for(shapes, members, ghosts)
-    draw_field(plate, shapes["back_wall"], parts["back_wall"], fields["back_wall"], REAR, "back-field")
+    draw_field(
+        plate,
+        shapes["back_wall"],
+        parts["back_wall"],
+        fields["back_wall"],
+        REAR,
+        "back-field",
+    )
     draw_members(plate, shapes, members)
     posts = bounds([point for name in ghosts for point in shapes[name]])
     field_box = bounds(shapes["back_wall"])
@@ -1614,7 +1709,9 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     plate.dim((posts[0], field_box[3]), (field_box[0], field_box[3]), 84)
     plate.dim((posts[2], field_box[1]), (posts[2], field_box[3]), 36)
     plates["E"] = plate.svg(
-        "A-405", "Back unit", REAR.short,
+        "A-405",
+        "Back unit",
+        REAR.short,
         note=f"{REAR.caption} · posts ghosted · trim after the boards are fixed",
     )
 
@@ -1622,7 +1719,9 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     members = ("floor_back_support", "floor_left_support", "floor_right_support")
     shapes = shapes_for(PLAN, *members, "floor", "front_bottom")
     plate = plate_for(shapes, members, ("front_bottom",))
-    draw_field(plate, shapes["floor"], parts["floor"], fields["floor"], PLAN, "floor-field")
+    draw_field(
+        plate, shapes["floor"], parts["floor"], fields["floor"], PLAN, "floor-field"
+    )
     draw_members(plate, shapes, members)
     field_box = bounds(shapes["floor"])
     rail = bounds(shapes["front_bottom"])
@@ -1630,21 +1729,37 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     plate.dim((field_box[0], field_box[1]), (field_box[0], field_box[3]), -40)
     plate.label(
         ((rail[0] + rail[2]) / 2, rail[1] + (rail[3] - rail[1]) / 2),
-        "FBH1 · FRONT EDGE LANDS HERE LAST", "small",
+        "FBH1 · FRONT EDGE LANDS HERE LAST",
+        "small",
     )
     plates["F"] = plate.svg(
-        "A-406", "Floor deck", PLAN.short,
+        "A-406",
+        "Floor deck",
+        PLAN.short,
         note=f"{PLAN.caption} · trim on the bearers before fitting the deck",
     )
 
     # G · Shell joint, cut through the lower rails so every landing shows.
     cut = design.leg_extension + design.frame / 2
     names = (
-        "front_post_left", "front_post_right", "back_post_left", "back_post_right",
-        "front_bottom", "back_bottom", "left_bottom", "right_bottom",
-        "floor_back_support", "floor_left_support", "floor_right_support",
-        "left_wall", "right_wall", "back_wall", "door_left", "door_right",
-        "door_bottom", "door_panel",
+        "front_post_left",
+        "front_post_right",
+        "back_post_left",
+        "back_post_right",
+        "front_bottom",
+        "back_bottom",
+        "left_bottom",
+        "right_bottom",
+        "floor_back_support",
+        "floor_left_support",
+        "floor_right_support",
+        "left_wall",
+        "right_wall",
+        "back_wall",
+        "door_left",
+        "door_right",
+        "door_bottom",
+        "door_panel",
     )
     sections = {name: cross_section(parts[name], PLAN, cut) for name in names}
     sections = {name: shape for name, shape in sections.items() if shape}
@@ -1665,16 +1780,21 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     plate.dim((posts[0], posts[1]), (posts[2], posts[1]), -40)
     plate.dim((shell[0], front_post[3]), (shell[0], posts[1]), -34)
     plate.leader(
-        ((front_post[0] + front_post[2]) / 2, middle[1]), (middle[0] * 0.62, middle[1]),
-        f"{fmt(design.frame)} FRAME", "start",
+        ((front_post[0] + front_post[2]) / 2, middle[1]),
+        (middle[0] * 0.62, middle[1]),
+        f"{fmt(design.frame)} FRAME",
+        "start",
     )
     plate.leader(
         ((left_field[0] + left_field[2]) / 2, middle[1] + 90),
         (middle[0] * 0.62, middle[1] + 90),
-        f"{fmt(design.cladding)} FIELD INSIDE IT", "start",
+        f"{fmt(design.cladding)} FIELD INSIDE IT",
+        "start",
     )
     plates["G"] = plate.svg(
-        "A-407", "Shell joint", f"plan section at {fmt(cut)}",
+        "A-407",
+        "Shell joint",
+        f"plan section at {fmt(cut)}",
         note="every landing shown, measured off the ground",
     )
 
@@ -1682,7 +1802,15 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     members = ("seat_rail_1", "seat_rail_2", "seat_support_left", "seat_support_right")
     shapes = shapes_for(PLAN, *members, "seat_top")
     plate = plate_for(shapes, members)
-    draw_field(plate, shapes["seat_top"], parts["seat_top"], fields["seat_top"], PLAN, "seat-field", label=False)
+    draw_field(
+        plate,
+        shapes["seat_top"],
+        parts["seat_top"],
+        fields["seat_top"],
+        PLAN,
+        "seat-field",
+        label=False,
+    )
     for name in members:
         plate.shape(shapes[name], "under")
         plate.code_in(shapes[name], BEAM_CODES.get(name, ""))
@@ -1704,7 +1832,9 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     )
     plate.corner(f"{fields['seat_top'].codes} · joined, then the opening is cut")
     plates["H"] = plate.svg(
-        "A-408", "Seat box", PLAN.short,
+        "A-408",
+        "Seat box",
+        PLAN.short,
         note=f"{PLAN.caption} · trim the fixed top before cutting its opening",
     )
     return plates
@@ -2250,14 +2380,12 @@ def guide_html(
     first_panel_length = round(design.door_height, 1)
     last_panel_length = min(round(piece.length, 1) for piece in boards)
     remaining_boards = [
-        piece for piece in boards
-        if round(piece.length, 1) != first_panel_length
+        piece for piece in boards if round(piece.length, 1) != first_panel_length
     ]
     roof_slope = math.hypot(design.roof_run, design.roof_rise)
     roof_plan_depth = (
-        (roof_slope + 2 * design.frame) * design.roof_run / roof_slope
-        + design.frame * design.roof_rise / roof_slope
-    )
+        roof_slope + 2 * design.frame
+    ) * design.roof_run / roof_slope + design.frame * design.roof_rise / roof_slope
     roof_side_overhang = (1050 - design.width) / 2
     roof_end_overhang = (1085 - roof_plan_depth) / 2
 
@@ -2327,7 +2455,8 @@ def guide_html(
     module_cards = []
     for letter, title, prefixes in MODULES:
         codes = [
-            code for code in code_map
+            code
+            for code in code_map
             if any(code.startswith(prefix) for prefix in prefixes)
         ]
         codes.sort()
@@ -2339,31 +2468,29 @@ def guide_html(
             'aria-pressed="true">Frame</button>'
             '<button type="button" data-face="cladding" '
             'aria-pressed="false">Cladding</button></div>'
-            if letter in "BCDEFH" else ""
+            if letter in "BCDEFH"
+            else ""
         )
         module_cards.append(f"""
           <article class="unit" id="unit-{letter.lower()}" data-face="frame">
             <header><span class="unit-letter">Stack {letter}</span><div><h3>{title}</h3></div>{face_controls}</header>
             {plates[letter]}
             <div class="unit-steps"><h4>Assembly</h4><ol>{steps}</ol></div>
-            <div class="code-strip">{''.join(f'<b class="code">{code}</b>' for code in codes)}</div>
+            <div class="code-strip">{"".join(f'<b class="code">{code}</b>' for code in codes)}</div>
             <label class="stack-check"><input type="checkbox" data-check="unit-{letter.lower()}"> Unit complete</label>
           </article>""")
 
     beam_stock_html = "".join(
-        stock_bar(
-            f"B{index:02d}", stock, beam_stock_length, kerf, design.frame * 2
-        )
+        stock_bar(f"B{index:02d}", stock, beam_stock_length, kerf, design.frame * 2)
         for index, stock in enumerate(beam_stocks, 1)
     )
     panel_stock_html = "".join(
-        stock_bar(
-            f"P{index:02d}", stock, cladding_stock_length, kerf, BOARD_WIDTH * 2
-        )
+        stock_bar(f"P{index:02d}", stock, cladding_stock_length, kerf, BOARD_WIDTH * 2)
         for index, stock in enumerate(panel_stocks, 1)
     )
     first_panel_stocks = [
-        stock for stock in panel_stocks
+        stock
+        for stock in panel_stocks
         if any(round(piece.length, 1) == first_panel_length for piece in stock)
     ]
     reused_tail_stocks = [
@@ -2375,24 +2502,17 @@ def guide_html(
     panel_blank_rows = []
     for index, stock in enumerate(first_panel_stocks, 1):
         blanks = [
-            piece for piece in stock
-            if round(piece.length, 1) == first_panel_length
+            piece for piece in stock if round(piece.length, 1) == first_panel_length
         ]
         later = [
-            piece for piece in stock
-            if round(piece.length, 1) != first_panel_length
+            piece for piece in stock if round(piece.length, 1) != first_panel_length
         ]
-        available = cladding_stock_length - sum(
-            piece.length + kerf for piece in blanks
-        )
-        disposition = (
-            f"keep for {fmt(later[0].length)}"
-            if later else "terminal offcut"
-        )
+        available = cladding_stock_length - sum(piece.length + kerf for piece in blanks)
+        disposition = f"keep for {fmt(later[0].length)}" if later else "terminal offcut"
         panel_blank_rows.append(
             f"<tr><td>P{index:02d}</td>"
-            f"<td class=\"marks\">{' '.join(f'<b>{piece.code}</b>' for piece in blanks)}</td>"
-            f"<td><span class=\"measure\">{fmt(available)}</span> · {disposition}</td></tr>"
+            f'<td class="marks">{" ".join(f"<b>{piece.code}</b>" for piece in blanks)}</td>'
+            f'<td><span class="measure">{fmt(available)}</span> · {disposition}</td></tr>'
         )
     panel_blank_rows = "".join(panel_blank_rows)
 
@@ -2409,10 +2529,12 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DASS · Working drawing</title>
-{social_head(
-    "DASS · Can AI build a toilet yet?",
-    "An open parametric CAD model, cut list, and interactive workshop guide for a small outdoor toilet.",
-)}
+{
+        social_head(
+            "DASS · Can AI build a toilet yet?",
+            "An open parametric CAD model, cut list, and interactive workshop guide for a small outdoor toilet.",
+        )
+    }
   <script type="importmap">
   {{"imports":{{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/addons/"}}}}
   </script>
@@ -2487,8 +2609,10 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
     </table></div>
     <div class="note">
       <h3>Brace rule</h3>
-      <p>LSD1 and RSD1 are cut at {brace_angle(design, code_map["LSD1"]):.1f}° at both ends.
-      BWD1 and DBD1 are cut at {brace_angle(design, code_map["BWD1"]):.1f}° at both ends.</p>
+      <p>LSD1 and RSD1 are cut at {
+        brace_angle(design, code_map["LSD1"]):.1f}° at both ends.
+      BWD1 and DBD1 are cut at {
+        brace_angle(design, code_map["BWD1"]):.1f}° at both ends.</p>
       <p>These are long-point lengths. Keep each pair of end cuts parallel. Turn the
       workpiece, not the saw setting, to make the parallelogram.</p>
     </div>
@@ -2505,7 +2629,9 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
       this material size. One {fmt(kerf)} mm kerf is used for every piece.</p>
     </div>
     <p class="sheet-note">The first {len(first_panel_stocks)} stock lengths release all
-    twenty-three {fmt(first_panel_length)} blanks. Fourteen side boards come first, then nine
+    twenty-three {
+        fmt(first_panel_length)
+    } blanks. Fourteen side boards come first, then nine
     door boards, at one stop setting.</p>
     <div class="note workshop-prep">
       <h3>Workshop preparation · clean stock ends</h3>
@@ -2522,7 +2648,9 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
       <ol>
         <li>Set the stop once. Cut all twenty-three blanks from P01 onward. Mark each code
         immediately. When a stock length ends, continue at the same setting on the next one.</li>
-        <li>Label the P01 to P03 remainders. Keep them for the final {fmt(last_panel_length)} pass.</li>
+        <li>Label the P01 to P03 remainders. Keep them for the final {
+        fmt(last_panel_length)
+    } pass.</li>
         <li>Move every marked blank to its unit stack. Do not join or trim loose cladding.</li>
       </ol>
     </div>
@@ -2530,7 +2658,7 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
       <h3>Operation B · cut the remaining pieces</h3>
       <p>Change the stop only once per row. Cut every piece in that row, then move to the
       next stop. The final {fmt(last_panel_length)} row uses the labeled
-      {' / '.join(reused_tail_stocks)} remainders.</p>
+      {" / ".join(reused_tail_stocks)} remainders.</p>
       <div class="table-scroll"><table>
         <caption>Batch order · A-300 operation B</caption>
         <thead><tr><th>Pass</th><th>Stop</th><th>Saw setup</th><th>Mark these pieces</th></tr></thead>
@@ -2564,12 +2692,15 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
       its screw starts in that vertical member at a slight angle.</p>
       <p>Before final fastening, measure the finished frame with a bevel gauge and record
       the actual angle. Use the drawing and model values as the starting guide: side pitch
-      {angle_map["SIDE-PITCH"].model_degrees:.1f}°, roof pitch {angle_map["ROOF-PITCH"].model_degrees:.1f}°,
-      D1 cut {angle_map["D1"].model_degrees:.1f}° against the drawing {angle_map["D1"].drawing_degrees:.1f}°,
-      and D2 cut {angle_map["D2"].model_degrees:.1f}° against the drawing {angle_map["D2"].drawing_degrees:.1f}°.
+      {angle_map["SIDE-PITCH"].model_degrees:.1f}°, roof pitch {
+        angle_map["ROOF-PITCH"].model_degrees:.1f}°,
+      D1 cut {angle_map["D1"].model_degrees:.1f}° against the drawing {
+        angle_map["D1"].drawing_degrees:.1f}°,
+      and D2 cut {angle_map["D2"].model_degrees:.1f}° against the drawing {
+        angle_map["D2"].drawing_degrees:.1f}°.
       Scribe to the measured frame if it has moved. Do not use the cladding nail pattern for beam screws.</p>
     </div>
-    <div class="drawing-grid">{''.join(module_cards)}</div>
+    <div class="drawing-grid">{"".join(module_cards)}</div>
   </section>
 
   <footer class="set-foot">
@@ -2643,11 +2774,13 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DASS · How it started</title>
-{social_head(
-    "DASS · How it started",
-    "From Hannes Söderquist's outdoor-toilet drawing to a reconciled parametric model with Claude, Codex, and CadQuery.",
-    "how-it-started.html",
-)}
+{
+        social_head(
+            "DASS · How it started",
+            "From Hannes Söderquist's outdoor-toilet drawing to a reconciled parametric model with Claude, Codex, and CadQuery.",
+            "how-it-started.html",
+        )
+    }
   <style>{STYLE}</style>
 </head>
 <body>
@@ -2751,11 +2884,13 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DASS · How it's going</title>
-{social_head(
-    "DASS · How it's going",
-    "Real-world build notes as the parametric outdoor-toilet drawing becomes labelled timber and workshop units.",
-    "how-its-going.html",
-)}
+{
+        social_head(
+            "DASS · How it's going",
+            "Real-world build notes as the parametric outdoor-toilet drawing becomes labelled timber and workshop units.",
+            "how-its-going.html",
+        )
+    }
   <style>{STYLE}</style>
 </head>
 <body>
@@ -2781,7 +2916,7 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
       The audit models the angled screw paths and regression-tests the resulting clearance
       before the timber reaches the bench.</p>
     </div>
-    <div class="progress-grid">{''.join(photos)}</div>
+    <div class="progress-grid">{"".join(photos)}</div>
   </section>
 
   <footer class="set-foot">

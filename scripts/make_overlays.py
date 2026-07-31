@@ -66,8 +66,15 @@ def main() -> None:
     )
 
     section_names = {
-        "front_post_left", "back_post_left", "left_bottom", "left_top",
-        "floor", "seat_front", "seat_top", "seat_rail_1", "seat_rail_2",
+        "front_post_left",
+        "back_post_left",
+        "left_bottom",
+        "left_top",
+        "floor",
+        "seat_front",
+        "seat_top",
+        "seat_rail_1",
+        "seat_rail_2",
         "seat_lower_rail",
     }
     section_parts = [part for part in closed_parts if part.name in section_names]
