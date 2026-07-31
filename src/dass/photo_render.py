@@ -142,12 +142,12 @@ def write_plank_atlas(source: Path, path: Path, seed: int = 7) -> None:
     for index in range(PLANK_CELLS):
         top = index * band + (band - crop) // 2
         strip = photo.crop((0, top, width, top + crop))
-        strip = strip.resize((cell_width, cell_height), Image.LANCZOS)
+        strip = strip.resize((cell_width, cell_height), Image.Resampling.LANCZOS)
         # Mirroring either way covers all four rotations of the same crop.
         if rng.random() < 0.5:
-            strip = strip.transpose(Image.FLIP_LEFT_RIGHT)
+            strip = strip.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
         if rng.random() < 0.5:
-            strip = strip.transpose(Image.FLIP_TOP_BOTTOM)
+            strip = strip.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         # No two boards off the same pack are quite the same colour.
         warm = 1.0 + (rng.random() - 0.5) * 0.07
         gain = (1.0 + (rng.random() - 0.5) * 0.18) * np.array(

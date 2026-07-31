@@ -216,12 +216,15 @@ class Part:
 
 
 def box_at(x: float, y: float, z: float, dx: float, dy: float, dz: float) -> cq.Shape:
-    return (
+    # CadQuery types Workplane.val() as Vector | Location | Shape | Sketch. A
+    # solid modelling stack only ever yields a Shape here, so every .val() in
+    # this module narrows the same way.
+    solid = (
         cq.Workplane("XY")
         .box(dx, dy, dz, centered=(False, False, False))
         .translate((x, y, z))
-        .val()
     )
+    return solid.val()  # ty: ignore[invalid-return-type]
 
 
 def beam_between(
@@ -234,7 +237,7 @@ def beam_between(
     direction = delta.normalized()
     # Make a centred profile normal to the member axis, then extrude along it.
     plane = cq.Plane(origin=va, normal=direction)
-    return cq.Workplane(plane).rect(size, size).extrude(length).val()
+    return cq.Workplane(plane).rect(size, size).extrude(length).val()  # ty: ignore[invalid-return-type]
 
 
 def rotate_about(vector: cq.Vector, axis: cq.Vector, degrees: float) -> cq.Vector:
@@ -331,7 +334,7 @@ def side_panel(d: Design, x: float, right: bool) -> cq.Shape:
         .close()
         .extrude(d.cladding if not right else -d.cladding)
     )
-    return profile.val()
+    return profile.val()  # ty: ignore[invalid-return-type]
 
 
 def door_cladding_panel(d: Design) -> cq.Shape:
@@ -686,7 +689,7 @@ def build(
         (d.seat_height - d.cladding, seat_width, d.cladding),
     )
     # Oval seat opening, centred in the seat box so the rails stay clear of it.
-    seat_hole = (
+    seat_hole: cq.Shape = (  # ty: ignore[invalid-assignment]
         cq.Workplane("XY")
         .center(d.width / 2, seat_front_y + d.seat_depth / 2)
         .ellipse(d.seat_hole_width / 2, d.seat_hole_depth / 2)
@@ -829,7 +832,7 @@ def build(
         box_at(0, 0, 0, d.width, d.depth, d.back_height)
     )
     roof_moving_leaf = lift_roof_part(roof_moving_leaf)
-    roof_hinge_pin = (
+    roof_hinge_pin: cq.Shape = (  # ty: ignore[invalid-assignment]
         cq.Workplane("YZ")
         .center(roof_hinge_y, roof_hinge_z)
         .circle(d.roof_hinge_pin_radius)
@@ -982,7 +985,7 @@ def build(
                 (hinge_x, hinge_y, d.door_bottom + 1),
                 door_angle,
             )
-        pin = (
+        pin: cq.Shape = (  # ty: ignore[invalid-assignment]
             cq.Workplane("XY")
             .center(hinge_x, hinge_y)
             .circle(d.hinge_pin_radius)

@@ -18,7 +18,9 @@ from PIL import Image, ImageFile, ImageOps
 
 # A large progressive/optimized JPEG can outgrow Pillow's default encode buffer,
 # which surfaces as "broken data stream" rather than as a size error.
-ImageFile.MAXBLOCK = 16 * 1024 * 1024
+# Pillow types MAXBLOCK as the literal of its own default, so any override
+# reads as an invalid assignment.
+ImageFile.MAXBLOCK = 16 * 1024 * 1024  # ty: ignore[invalid-assignment]
 
 from dass.build_guide import GALLERY, PROGRESS_GALLERY, STARTED_GALLERY
 
@@ -74,7 +76,7 @@ def stage_renders(source: Path, target: Path) -> list[Path]:
             if scale < 1:
                 image = image.resize(
                     (round(image.width * scale), round(image.height * scale)),
-                    Image.LANCZOS,
+                    Image.Resampling.LANCZOS,
                 )
             out = target / f"{name}.jpg"
             image.save(out, "JPEG", quality=QUALITY, optimize=True, progressive=True)
@@ -94,7 +96,7 @@ def stage_progress(target: Path) -> list[Path]:
         if scale < 1:
             image = image.resize(
                 (round(image.width * scale), round(image.height * scale)),
-                Image.LANCZOS,
+                Image.Resampling.LANCZOS,
             )
         out = target / output_name
         image.save(out, "JPEG", quality=QUALITY, optimize=True, progressive=True)
@@ -114,7 +116,7 @@ def stage_started(target: Path) -> list[Path]:
         if scale < 1:
             image = image.resize(
                 (round(image.width * scale), round(image.height * scale)),
-                Image.LANCZOS,
+                Image.Resampling.LANCZOS,
             )
         out = target / output_name
         image.save(out, "JPEG", quality=QUALITY, optimize=True, progressive=True)
@@ -150,7 +152,7 @@ def stage_textures(target: Path) -> list[Path]:
         if scale < 1:
             image = image.resize(
                 (round(image.width * scale), round(image.height * scale)),
-                Image.LANCZOS,
+                Image.Resampling.LANCZOS,
             )
         out = target / name
         image.save(

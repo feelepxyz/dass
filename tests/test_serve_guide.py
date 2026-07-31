@@ -1,9 +1,27 @@
 import http.server
 import threading
 import unittest
+from unittest import mock
 from urllib.request import urlopen
 
 from dass import serve
+
+
+class StagingTest(unittest.TestCase):
+    def test_a_stager_that_cannot_be_loaded_names_the_path_it_tried(self):
+        """`scripts/` is loaded by path, and spec_from_file_location answers
+        None for a source it has no loader for. Reading `.loader` off that None
+        raised an AttributeError that said nothing about the missing file."""
+        serve.staging.cache_clear()
+        self.addCleanup(serve.staging.cache_clear)
+        with (
+            mock.patch.object(
+                serve.importlib.util, "spec_from_file_location", return_value=None
+            ),
+            self.assertRaises(ImportError) as caught,
+        ):
+            serve.staging()
+        self.assertIn("build_web_assets.py", str(caught.exception))
 
 
 class StageRoutingTest(unittest.TestCase):

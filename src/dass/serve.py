@@ -61,6 +61,8 @@ def staging():
     """The asset stager, loaded by path: `scripts/` is not an importable package."""
     source = ROOT / "scripts/build_web_assets.py"
     spec = importlib.util.spec_from_file_location("build_web_assets", source)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load the asset stager from {source}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -365,7 +367,8 @@ def main() -> None:
     args = parser.parse_args()
     # Piped into a log or a tee, stdout would otherwise hold each build's report
     # back until the buffer filled.
-    sys.stdout.reconfigure(line_buffering=True)
+    # typeshed declares sys.stdout as TextIO; the real object is a TextIOWrapper.
+    sys.stdout.reconfigure(line_buffering=True)  # ty: ignore[unresolved-attribute]
 
     if args.build is not None:
         raise SystemExit(0 if run_stages(args.build) else 1)

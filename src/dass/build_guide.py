@@ -7,6 +7,7 @@ import html
 import json
 import math
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -252,7 +253,9 @@ class View:
     def depth_axis(self) -> int:
         return ({0, 1, 2} - {self.u_axis, self.v_axis}).pop()
 
-    def __call__(self, point: tuple[float, float, float]) -> Point:
+    # The caller builds its three axis values in a list, so take any sequence.
+    # Only the two projected axes are ever read.
+    def __call__(self, point: Sequence[float]) -> Point:
         return (self.u_sign * point[self.u_axis], self.v_sign * point[self.v_axis])
 
 
@@ -1533,7 +1536,7 @@ def draw_field(
                 lows[view.depth_axis] + highs[view.depth_axis]
             ) / 2
             ends.append(view(point))
-        plate.line(*ends, "joint")
+        plate.line(ends[0], ends[1], "joint")
     joints = "".join(plate.body[start:])
     del plate.body[start:]
     path = " ".join(

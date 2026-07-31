@@ -183,7 +183,12 @@ class CutListTest(unittest.TestCase):
             self.assertEqual(len(panel), 7)
             self.assertEqual({piece.length for piece in panel}, {design.door_height})
             self.assertTrue(
-                all(piece.finished_long > piece.finished_short for piece in panel)
+                all(
+                    piece.finished_long is not None
+                    and piece.finished_short is not None
+                    and piece.finished_long > piece.finished_short
+                    for piece in panel
+                )
             )
 
 

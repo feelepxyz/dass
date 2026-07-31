@@ -258,13 +258,13 @@ def _find_overlaps(marks: tuple[ScrewMark, ...]) -> tuple[tuple[str, str, float]
 def _sub(
     a: tuple[float, float, float], b: tuple[float, float, float]
 ) -> tuple[float, float, float]:
-    return tuple(x - y for x, y in zip(a, b))
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
 
 def _add(
     a: tuple[float, float, float], b: tuple[float, float, float]
 ) -> tuple[float, float, float]:
-    return tuple(x + y for x, y in zip(a, b))
+    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
 
 
 def _dot(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
@@ -272,7 +272,7 @@ def _dot(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
 
 
 def _scale(a: tuple[float, float, float], factor: float) -> tuple[float, float, float]:
-    return tuple(value * factor for value in a)
+    return (a[0] * factor, a[1] * factor, a[2] * factor)
 
 
 def _point_segment_distance(
