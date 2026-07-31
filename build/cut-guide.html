@@ -421,6 +421,9 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
       .masthead-top { grid-template-columns:1fr; gap:28px; }
       .story-nav, .progress-grid, .started-figure-pair { grid-template-columns:1fr; }
       .story-link + .story-link { border-left:0; border-top:1px solid var(--grey-pale); }
+      .story-link { justify-content:space-between; text-align:left; }
+      .story-link .story-link-copy { align-items:flex-start; order:1; }
+      .story-link .story-arrow { order:2; }
       /* One row per group, pills wrapping inside it, so nothing sits off-screen. */
       .view-controls { flex-direction:column; }
       .pill-group { flex-wrap:wrap; width:100%; }
@@ -751,8 +754,8 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
   </section>
 
   <section class="sheet" id="panels">
-    <div class="sheet-head"><span class="sheet-no">Sheet A-300</span><h2>Råspont</h2></div>
-    <p class="sheet-note"><b>Material:</b> Råspont, 120 × 23 ×
+    <div class="sheet-head"><span class="sheet-no">Sheet A-300</span><h2>Råspont (matchboard/V-groove cladding)</h2></div>
+    <p class="sheet-note"><b>Material:</b> Råspont (matchboard/V-groove cladding), 120 × 23 ×
     4 500 mm. Quantity: 12 lengths.</p>
     <div class="note">
       <h3>Caution · verify the stock first</h3>
@@ -955,9 +958,17 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
     change drawing emphasis. The printed drawing keeps every cut line, trim label, and
     notch note visible.</span><span class="on-paper">Each unit is drawn on its own sheet,
     with its assembly steps and its codes beside it.</span></p>
+    <div class="note" id="hardware">
+      <h3>Assembly hardware</h3>
+      <p>Use these fasteners for the timber assembly.</p>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Use</th><th>Fastener</th></tr></thead>
+        <tbody><tr><td>Frame beams and braces</td><td>6 × 120 mm sunk wood screws</td></tr><tr><td>Beam-to-beam support joints, for example floor supports</td><td>6 × 90 mm sunk wood screws</td></tr><tr><td>Råspont (matchboard/V-groove cladding) to beams</td><td>2.8 × 60 mm nails or 6 × 60 mm sunk wood screws</td></tr></tbody>
+      </table></div>
+    </div>
     <div class="note" id="fastening">
       <h3>Frame fastening and finished-angle check</h3>
-      <p>84 nominal beam screw marks across 42 beam-to-beam connections · 0 screw-mark overlaps · 0 screw-path collisions · PASS. Diagonals run corner to corner; their 120 mm screws start in the vertical members at 10° and are checked as paths; measure the finished frame angle before the final screws. Cladding is nailed, not included in this check.</p>
+      <p>84 nominal beam screw marks across 42 beam-to-beam connections · 0 screw-mark overlaps · 0 screw-path collisions · PASS. Diagonals run corner to corner; their 6 × 120 mm screws start in the vertical members at 10° and are checked as paths; measure the finished frame angle before the final screws. Cladding uses separate fasteners and is not included in this check.</p>
       <p>Fasten beam to beam from the marked face. Do not place a new screw in an existing
       screw path. Every diagonal runs corner to corner and is trimmed flush with the vertical member faces;
       its screw starts in that vertical member at a slight angle.</p>
@@ -966,7 +977,7 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
       7.4°, roof pitch 8.8°,
       D1 cut 34.9° against the drawing 36.0°,
       and D2 cut 41.2° against the drawing 40.0°.
-      Scribe to the measured frame if it has moved. Do not use the cladding nail pattern for beam screws.</p>
+      Scribe to the measured frame if it has moved. Do not use the cladding fastener pattern for beam screws.</p>
     </div>
     <div class="drawing-grid">
           <article class="unit" id="unit-a" data-face="frame">

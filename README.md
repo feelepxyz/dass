@@ -9,7 +9,7 @@
 | Design source | Hannes Söderquist's outdoor toilet design |
 | CAD | CadQuery and Python |
 | Text-to-CAD reference | [earthtojake/text-to-cad](https://github.com/earthtojake/text-to-cad) |
-| Current material | 45 × 45 mm beams and 120 × 23 mm råspont |
+| Current material | 45 × 45 mm beams and 120 × 23 mm Råspont (matchboard/V-groove cladding) |
 
 ![Open in-situ render](build/web-renders/in-situ-open.jpg)
 
@@ -106,7 +106,7 @@ several worktrees can serve their own guide at the same time.
 ## Model
 
 The current design has a 990 × 815 mm outside envelope. It uses 45 × 45 mm
-frame stock and 120 × 23 mm interleaved råspont. Each board has 110 mm of
+frame stock and 120 × 23 mm interleaved Råspont (matchboard/V-groove cladding). Each board has 110 mm of
 effective cover and a 10 mm trim allowance.
 
 The door is nine covers wide. Each side is seven covers deep. The rear wall,
@@ -176,7 +176,7 @@ structural analysis on the original drawing. It found that the floor boards did
 not have enough support, so we added support beams.
 
 The next step was to adapt the design to material available in the local shop:
-45 × 45 mm beams and 120 × 23 mm cladding. I also changed the shape slightly
+45 × 45 mm beams and 120 × 23 mm Råspont (matchboard/V-groove cladding). I also changed the shape slightly
 so that each interleaved cladding board has at least 10 mm of trim. The board
 ends therefore do not leave a lip outside the frame.
 
@@ -187,6 +187,18 @@ avoids repeated measuring and small length differences between equal pieces.
 
 The same model then generates assembly instructions that treat the door, roof,
 side walls, back wall, floor, and seat as individual pieces.
+
+## Assembly hardware
+
+Use these fasteners for the timber assembly:
+
+| Use | Fastener |
+| --- | --- |
+| Frame beams and braces | 6 × 120 mm sunk wood screws |
+| Beam-to-beam support joints, for example floor supports | 6 × 90 mm sunk wood screws |
+| Råspont (matchboard/V-groove cladding) to beams | 2.8 × 60 mm nails or 6 × 60 mm sunk wood screws |
+
+Do not use the cladding fasteners for beam joints.
 
 ## Geometry notes
 

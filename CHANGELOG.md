@@ -20,7 +20,8 @@ This records the current package version as the first public release.
 
 - Added a model-derived frame fastening audit covering 42 beam-to-beam
   connections and 84 nominal screw marks. The current layout has no overlapping
-  screw marks. Cladding remains outside the audit because it is nailed.
+  screw marks. Cladding remains outside the audit because its fasteners are
+  handled separately.
 - Moved diagonal screw marks 90 mm in from each end so they clear the existing
   rail and post screw rows. No frame geometry adjustment was needed.
 - Added finished-frame angle checks. Measure the side pitch, roof pitch, and

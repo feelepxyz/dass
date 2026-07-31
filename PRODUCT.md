@@ -9,7 +9,7 @@ web
 ## Users
 
 The primary user is the owner-builder fabricating a small outdoor toilet from
-standard timber and råspont stock. The guide is used in a workshop while
+standard timber and Råspont (matchboard/V-groove cladding) stock. The guide is used in a workshop while
 measuring, cutting, marking, stacking, and later assembling parts.
 
 ## Product Purpose
@@ -28,7 +28,7 @@ truth.
 
 - Metric workshop measurements in millimetres.
 - 45 × 45 × 4200 mm structural timber.
-- 120 × 23 × 4500 mm råspont with 110 mm effective cover.
+- 120 × 23 × 4500 mm Råspont (matchboard/V-groove cladding) with 110 mm effective cover.
 - 2.8 mm saw kerf.
 - All 1175 mm side and door blanks are cut at one stop setting before the
   smaller batches. Side boards are fixed to their frames before their slope
@@ -47,6 +47,14 @@ truth.
   the shell is assembled.
 - The 1050 × 1085 mm metal roof sheet and hardware are identified separately
   from the timber stock optimization.
+
+## Assembly hardware
+
+| Use | Fastener |
+| --- | --- |
+| Frame beams and braces | 6 × 120 mm sunk wood screws |
+| Beam-to-beam support joints, for example floor supports | 6 × 90 mm sunk wood screws |
+| Råspont (matchboard/V-groove cladding) to beams | 2.8 × 60 mm nails or 6 × 60 mm sunk wood screws |
 
 ## Evidence on Hand
 

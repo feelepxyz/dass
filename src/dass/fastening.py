@@ -1,7 +1,8 @@
 """Model-derived frame screw layout and angle checks.
 
 This is a collision and workshop-layout check, not a structural screw-sizing
-calculation. Cladding remains outside this schedule because it is nailed.
+calculation. Cladding remains outside this schedule because its fasteners are
+listed separately.
 """
 
 from __future__ import annotations
@@ -15,6 +16,17 @@ from .model import Design, Part, build
 MINIMUM_SCREW_SPACING_MM = 20.0
 SCREW_LANES_MM = (12.0, 33.0)
 SCREW_PATH_CLEARANCE_MM = 5.0
+HARDWARE_SCHEDULE: tuple[tuple[str, str], ...] = (
+    ("Frame beams and braces", "6 × 120 mm sunk wood screws"),
+    (
+        "Beam-to-beam support joints, for example floor supports",
+        "6 × 90 mm sunk wood screws",
+    ),
+    (
+        "Råspont (matchboard/V-groove cladding) to beams",
+        "2.8 × 60 mm nails or 6 × 60 mm sunk wood screws",
+    ),
+)
 
 
 @dataclass(frozen=True)
@@ -112,7 +124,8 @@ CONNECTIONS = (
     Connection("floor_left_support", "floor_back_support", "underside", 90),
     Connection("floor_right_support", "floor_back_support", "underside", 810),
     # Seat box frame. The lower front rail is not in this beam-to-beam schedule;
-    # the seat side that fixes it is cladding and remains nailed.
+    # the seat side that fixes it is cladding and uses the separate cladding
+    # fasteners.
     Connection("seat_support_left", "seat_rail_1", "underside", 270),
     Connection("seat_support_left", "seat_rail_2", "underside", 270),
     Connection("seat_support_right", "seat_rail_1", "underside", 585),
@@ -473,9 +486,9 @@ def analyze_frame_fastening(design: Design) -> FasteningAnalysis:
         _angle_checks(design),
         (
             "Fit every diagonal corner to corner and trim its ends flush with the receiving member faces",
-            f"Drive the {design.screw_length:g} mm diagonal screws from the vertical members at a slight angle",
+            f"Drive the 6 × {design.screw_length:g} mm diagonal screws from the vertical members at a slight angle",
             "Measure the finished frame before final fastening and use the measured angle for the scribe",
-            "Do not use the cladding nail pattern for beam screws",
+            "Do not use the cladding fastener pattern for beam screws",
         ),
     )
 
@@ -487,7 +500,13 @@ def fastening_report(design: Design) -> str:
         "# Frame fastening audit",
         "",
         "This is a beam screw-layout and collision check, not a structural screw-sizing calculation.",
-        "Cladding is excluded because it is nailed.",
+        "Cladding is excluded because its fasteners are listed separately.",
+        "",
+        "## Assembly hardware",
+        "",
+        "| Use | Fastener |",
+        "|---|---|",
+        *(f"| {use} | {fastener} |" for use, fastener in HARDWARE_SCHEDULE),
         "",
         f"- Beam-to-beam connections: {len(CONNECTIONS)}",
         f"- Nominal screw marks: {len(analysis.screws)}",
@@ -542,7 +561,7 @@ def fastening_summary(design: Design) -> str:
         f"{len(analysis.screws)} nominal beam screw marks across {len(CONNECTIONS)} "
         f"beam-to-beam connections · {len(analysis.overlaps)} screw-mark overlaps · "
         f"{len(analysis.path_collisions)} screw-path collisions · {result}. "
-        f"Diagonals run corner to corner; their {design.screw_length:g} mm screws start in the vertical members "
+        f"Diagonals run corner to corner; their 6 × {design.screw_length:g} mm screws start in the vertical members "
         f"at {design.diagonal_screw_angle:g}° and are checked as paths; measure the finished frame angle "
-        "before the final screws. Cladding is nailed, not included in this check."
+        "before the final screws. Cladding uses separate fasteners and is not included in this check."
     )

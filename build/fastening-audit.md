@@ -1,7 +1,15 @@
 # Frame fastening audit
 
 This is a beam screw-layout and collision check, not a structural screw-sizing calculation.
-Cladding is excluded because it is nailed.
+Cladding is excluded because its fasteners are listed separately.
+
+## Assembly hardware
+
+| Use | Fastener |
+|---|---|
+| Frame beams and braces | 6 × 120 mm sunk wood screws |
+| Beam-to-beam support joints, for example floor supports | 6 × 90 mm sunk wood screws |
+| Råspont (matchboard/V-groove cladding) to beams | 2.8 × 60 mm nails or 6 × 60 mm sunk wood screws |
 
 - Beam-to-beam connections: 42
 - Nominal screw marks: 84
@@ -110,7 +118,7 @@ Cladding is excluded because it is nailed.
 ## Workshop notes
 
 - Fit every diagonal corner to corner and trim its ends flush with the receiving member faces.
-- Drive the 120 mm diagonal screws from the vertical members at a slight angle.
+- Drive the 6 × 120 mm diagonal screws from the vertical members at a slight angle.
 - Measure the finished frame before final fastening and use the measured angle for the scribe.
-- Do not use the cladding nail pattern for beam screws.
+- Do not use the cladding fastener pattern for beam screws.
 - Measure the finished frame side and roof pitch with a bevel gauge; record the actual value before final screws.

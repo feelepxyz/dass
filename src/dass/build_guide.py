@@ -23,6 +23,7 @@ from .cutlists import (
     panel_stock_plan,
 )
 from .fastening import (
+    HARDWARE_SCHEDULE,
     analyze_frame_fastening,
     fastening_summary,
 )
@@ -2251,6 +2252,9 @@ STYLE = """
       .masthead-top { grid-template-columns:1fr; gap:28px; }
       .story-nav, .progress-grid, .started-figure-pair { grid-template-columns:1fr; }
       .story-link + .story-link { border-left:0; border-top:1px solid var(--grey-pale); }
+      .story-link { justify-content:space-between; text-align:left; }
+      .story-link .story-link-copy { align-items:flex-start; order:1; }
+      .story-link .story-arrow { order:2; }
       /* One row per group, pills wrapping inside it, so nothing sits off-screen. */
       .view-controls { flex-direction:column; }
       .pill-group { flex-wrap:wrap; width:100%; }
@@ -2550,6 +2554,10 @@ def guide_html(
             f'<td><span class="measure">{fmt(available)}</span> · {disposition}</td></tr>'
         )
     panel_blank_rows = "".join(panel_blank_rows)
+    hardware_rows = "".join(
+        f"<tr><td>{use}</td><td>{fastener}</td></tr>"
+        for use, fastener in HARDWARE_SCHEDULE
+    )
 
     return f"""<!doctype html>
 <!--
@@ -2655,8 +2663,8 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
   </section>
 
   <section class="sheet" id="panels">
-    <div class="sheet-head"><span class="sheet-no">Sheet A-300</span><h2>Råspont</h2></div>
-    <p class="sheet-note"><b>Material:</b> Råspont, 120 × 23 ×
+    <div class="sheet-head"><span class="sheet-no">Sheet A-300</span><h2>Råspont (matchboard/V-groove cladding)</h2></div>
+    <p class="sheet-note"><b>Material:</b> Råspont (matchboard/V-groove cladding), 120 × 23 ×
     {fmt(cladding_stock_length)} mm. Quantity: {len(panel_stocks)} lengths.</p>
     <div class="note">
       <h3>Caution · verify the stock first</h3>
@@ -2719,6 +2727,14 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
     change drawing emphasis. The printed drawing keeps every cut line, trim label, and
     notch note visible.</span><span class="on-paper">Each unit is drawn on its own sheet,
     with its assembly steps and its codes beside it.</span></p>
+    <div class="note" id="hardware">
+      <h3>Assembly hardware</h3>
+      <p>Use these fasteners for the timber assembly.</p>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Use</th><th>Fastener</th></tr></thead>
+        <tbody>{hardware_rows}</tbody>
+      </table></div>
+    </div>
     <div class="note" id="fastening">
       <h3>Frame fastening and finished-angle check</h3>
       <p>{fastening_summary(design)}</p>
@@ -2733,7 +2749,7 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
         angle_map["D1"].drawing_degrees:.1f}°,
       and D2 cut {angle_map["D2"].model_degrees:.1f}° against the drawing {
         angle_map["D2"].drawing_degrees:.1f}°.
-      Scribe to the measured frame if it has moved. Do not use the cladding nail pattern for beam screws.</p>
+      Scribe to the measured frame if it has moved. Do not use the cladding fastener pattern for beam screws.</p>
     </div>
     <div class="drawing-grid">{"".join(module_cards)}</div>
   </section>
@@ -2856,7 +2872,7 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
       not have enough support, so we added support beams.</p>
 
       <p>The next step was to adapt the design to material available in the local shop:
-      45 × 45 mm beams and 120 × 23 mm cladding. I also changed the shape slightly
+      45 × 45 mm beams and 120 × 23 mm Råspont (matchboard/V-groove cladding). I also changed the shape slightly
       so that each interleaved cladding board has at least 10 mm of trim. The board
       ends therefore do not leave a lip outside the frame.</p>
 

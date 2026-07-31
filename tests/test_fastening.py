@@ -40,7 +40,7 @@ class FrameFasteningTest(unittest.TestCase):
             Design().frame,
         )
         self.assertIn(
-            "Drive the 120 mm diagonal screws from the vertical members at a slight angle",
+            "Drive the 6 × 120 mm diagonal screws from the vertical members at a slight angle",
             analysis.recommendations,
         )
         self.assertTrue(
@@ -109,7 +109,10 @@ class FrameFasteningTest(unittest.TestCase):
         self.assertIn("Screw-path collisions: 0", report)
         self.assertIn("LSD1", report)
         self.assertIn("Measure the finished frame", report)
-        self.assertIn("Do not use the cladding nail pattern", report)
+        self.assertIn("6 × 120 mm sunk wood screws", report)
+        self.assertIn("6 × 90 mm sunk wood screws", report)
+        self.assertIn("2.8 × 60 mm nails or 6 × 60 mm sunk wood screws", report)
+        self.assertIn("Do not use the cladding fastener pattern", report)
 
 
 if __name__ == "__main__":

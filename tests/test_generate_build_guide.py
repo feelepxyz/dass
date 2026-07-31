@@ -90,7 +90,7 @@ class BuildGuideTest(unittest.TestCase):
         self.assertNotIn("Sheet A-100", document)
         self.assertNotIn("Sheet A-500", document)
         self.assertIn("Structural timber", document)
-        self.assertIn("Råspont", document)
+        self.assertIn("Råspont (matchboard/V-groove cladding)", document)
         self.assertIn("Unit drawings", document)
         self.assertIn("Assembly", document)
         self.assertIn("<dd>2.8 per cut</dd>", document)
@@ -102,7 +102,10 @@ class BuildGuideTest(unittest.TestCase):
         self.assertIn("run every plank in a serial pass", document)
         self.assertIn("Frame fastening and finished-angle check", document)
         self.assertIn("84 nominal beam screw marks", document)
-        self.assertIn("Do not use the cladding nail pattern", document)
+        self.assertIn("Do not use the cladding fastener pattern", document)
+        self.assertIn("6 × 120 mm sunk wood screws", document)
+        self.assertIn("6 × 90 mm sunk wood screws", document)
+        self.assertIn("2.8 × 60 mm nails or 6 × 60 mm sunk wood screws", document)
         self.assertIn("Every diagonal runs corner to corner", document)
 
     def test_masthead_names_the_project_and_credits_its_sources(self):
@@ -134,7 +137,7 @@ class BuildGuideTest(unittest.TestCase):
         self.assertNotIn("Material schedule", document)
         self.assertEqual(document.count("Caution · verify the stock first"), 2)
         self.assertIn("Frame timber, 45 × 45 ×", document)
-        self.assertIn("Råspont, 120 × 23 ×", document)
+        self.assertIn("Råspont (matchboard/V-groove cladding), 120 × 23 ×", document)
         self.assertIn(
             "Cut every piece at one stop setting before you change the stop.",
             document,
@@ -202,6 +205,14 @@ class BuildGuideTest(unittest.TestCase):
         )
         self.assertIn('<nav class="story-nav" id="story-nav"', document)
         self.assertIn("scroll-margin-top:16px;", document)
+        self.assertIn(
+            ".story-link { justify-content:space-between; text-align:left; }", document
+        )
+        self.assertIn(
+            ".story-link .story-link-copy { align-items:flex-start; order:1; }",
+            document,
+        )
+        self.assertIn(".story-link .story-arrow { order:2; }", document)
         self.assertIn('class="view-grid" id="render"', document)
         self.assertIn('class="set-foot-copy"', document)
         self.assertLess(
