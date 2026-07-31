@@ -1659,6 +1659,14 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
             (post[0] if side == "right" else post[2], field_box[3]),
             -40 if side == "right" else 40,
         )
+        bottom = bounds(shapes[f"{side}_bottom"])
+        bottom_edge = bottom[0] if side == "right" else bottom[2]
+        plate.dim(
+            (bottom_edge, post[3]),
+            (bottom_edge, bottom[3]),
+            -40 if side == "right" else 40,
+            fmt(design.leg_extension),
+        )
         notch = view(
             (
                 0,
@@ -1705,11 +1713,19 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     )
     draw_members(plate, shapes, members)
     posts = bounds([point for name in ghosts for point in shapes[name]])
+    rear_post = bounds(shapes["back_post_left"])
     field_box = bounds(shapes["back_wall"])
     plate.dim((posts[0], posts[1]), (posts[2], posts[1]), -40)
     plate.dim((field_box[0], field_box[3]), (field_box[2], field_box[3]), 40)
     plate.dim((posts[0], field_box[3]), (field_box[0], field_box[3]), 84)
     plate.dim((posts[2], field_box[1]), (posts[2], field_box[3]), 36)
+    bottom = bounds(shapes["back_bottom"])
+    plate.dim(
+        (bottom[2], rear_post[3]),
+        (bottom[2], bottom[3]),
+        -40,
+        fmt(design.leg_extension),
+    )
     plates["E"] = plate.svg(
         "A-405",
         "Back unit",
@@ -2453,7 +2469,10 @@ def guide_html(
             "Lower the deck into the square shell. Fasten its front edge to FBH1.",
         ),
         "G": (
-            "Brace the left and right units upright. Install the back frame between them.",
+            (
+                f"Brace the left and right units upright. Keep the bottom of LSH1, RSH1, and BWH1 "
+                f"{fmt(design.leg_extension)} mm above ground while you install the back frame between them."
+            ),
             f"Install FBH1 across the front at the {fmt(design.leg_extension)} leg datum.",
             "Measure the finished side and roof beam angles, then match the shell diagonals before the final fasteners. Install the floor deck after the measurement.",
         ),

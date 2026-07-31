@@ -319,6 +319,14 @@ class BuildGuideTest(unittest.TestCase):
         for letter in "ABCDEFGH":
             self.assertIn(f'data-check="unit-{letter.lower()}"', document)
 
+        for letter in "CDE":
+            self.assertIn(
+                'class="dim-text"',
+                plates[letter],
+            )
+            self.assertIn(">100</text>", plates[letter])
+        self.assertIn("LSH1, RSH1, and BWH1 100 mm above ground", document)
+
     def test_lengths_read_as_drawing_numbers(self):
         # The reference set spaces thousands; a bare 1315.1 is not what a
         # drawing letters, and the register depends on this shape too.
