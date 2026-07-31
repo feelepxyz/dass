@@ -7,7 +7,22 @@ dependencies = [
     "cadquery>=2.5,<3",
     "numpy>=2,<3",
     "pillow>=11,<13",
+    "watchfiles>=1,<2",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+dass = "dass.model:main"
+generate-cutlists = "dass.cutlists:main"
+generate-build-guide = "dass.build_guide:main"
+render-photo = "dass.photo_render:main"
+serve-guide = "dass.serve:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dass"]
+
 [tool.uv]
-package = false
+package = true

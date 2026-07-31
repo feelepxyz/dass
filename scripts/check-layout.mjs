@@ -8,7 +8,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
-import playwright from './../render/node_modules/playwright-core/index.js';
+import playwright from './../web/render/node_modules/playwright-core/index.js';
 
 const { chromium } = playwright;
 const ROOT = resolve(import.meta.dirname, '..');
@@ -39,36 +39,38 @@ const executablePath = [
 
 const browser = await chromium.launch({ executablePath });
 let failed = false;
-for (const width of [390, 768, 1024, 1440]) {
-  const page = await browser.newPage({ viewport: { width, height: 900 } });
-  await page.goto(`${origin}/cut-guide.html`, { waitUntil: 'load' });
-  await page.evaluate(() => document.fonts.ready);
-  const report = await page.evaluate((viewport) => {
-    const allowed = (node) => node.closest('.stock-scroll, .table-scroll') !== null;
-    const wide = [];
-    for (const node of document.querySelectorAll('body *')) {
-      const box = node.getBoundingClientRect();
-      if (allowed(node)) continue;
-      // Both a too-wide box and one pushed past the right edge scroll the page.
-      if (box.width > viewport + 1 || box.right > viewport + 1) {
-        wide.push(
-          `${node.tagName.toLowerCase()}.${node.className || '(none)'} ` +
-          `w=${Math.round(box.width)} right=${Math.round(box.right)}`,
-        );
+for (const pageName of ['cut-guide.html', 'how-it-started.html', 'how-its-going.html']) {
+  for (const width of [390, 768, 1024, 1440]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.goto(`${origin}/${pageName}`, { waitUntil: 'load' });
+    await page.evaluate(() => document.fonts.ready);
+    const report = await page.evaluate((viewport) => {
+      const allowed = (node) => node.closest('.stock-scroll, .table-scroll') !== null;
+      const wide = [];
+      for (const node of document.querySelectorAll('body *')) {
+        const box = node.getBoundingClientRect();
+        if (allowed(node)) continue;
+        // Both a too-wide box and one pushed past the right edge scroll the page.
+        if (box.width > viewport + 1 || box.right > viewport + 1) {
+          wide.push(
+            `${node.tagName.toLowerCase()}.${node.className || '(none)'} ` +
+            `w=${Math.round(box.width)} right=${Math.round(box.right)}`,
+          );
+        }
       }
-    }
-    return {
-      scrollWidth: document.documentElement.scrollWidth,
-      wide: [...new Set(wide)].slice(0, 8),
-    };
-  }, width);
-  const scrolls = report.scrollWidth > width + 1;
-  if (scrolls || report.wide.length) failed = true;
-  console.log(
-    `${width}px  document ${report.scrollWidth}px  ${scrolls ? 'SCROLLS SIDEWAYS' : 'ok'}` +
-    (report.wide.length ? `\n   overflowing: ${report.wide.join('\n                ')}` : ''),
-  );
-  await page.close();
+      return {
+        scrollWidth: document.documentElement.scrollWidth,
+        wide: [...new Set(wide)].slice(0, 8),
+      };
+    }, width);
+    const scrolls = report.scrollWidth > width + 1;
+    if (scrolls || report.wide.length) failed = true;
+    console.log(
+      `${pageName} ${width}px  document ${report.scrollWidth}px  ${scrolls ? 'SCROLLS SIDEWAYS' : 'ok'}` +
+      (report.wide.length ? `\n   overflowing: ${report.wide.join('\n                ')}` : ''),
+    );
+    await page.close();
+  }
 }
 await browser.close();
 server.close();

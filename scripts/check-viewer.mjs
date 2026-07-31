@@ -8,7 +8,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync, mkdirSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
-import playwright from './../render/node_modules/playwright-core/index.js';
+import playwright from './../web/render/node_modules/playwright-core/index.js';
 
 const { chromium } = playwright;
 const ROOT = resolve(import.meta.dirname, '..');
@@ -18,7 +18,7 @@ const TYPES = {
   '.png': 'image/png', '.jpg': 'image/jpeg', '.glb': 'model/gltf-binary',
   '.woff2': 'font/woff2',
 };
-const outDir = resolve(ROOT, 'build/shots');
+const outDir = resolve(ROOT, 'docs/verification/guide/shots');
 mkdirSync(outDir, { recursive: true });
 
 const server = createServer(async (req, res) => {

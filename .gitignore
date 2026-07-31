@@ -2,10 +2,14 @@
 .uv-cache/
 .venv/
 __pycache__/
-build-wide/
-
 # CAD Viewer writes a hidden GLB cache beside each .step it renders
 .*.step.glb
 
+.DS_Store
+
 # Renderer dependencies (three.js + headless Chromium driver)
-render/node_modules/
+web/render/node_modules/
+
+.wrangler
+.pytest_cache
+.impeccable

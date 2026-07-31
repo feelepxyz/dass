@@ -50,12 +50,11 @@ truth.
 
 ## Evidence on Hand
 
-- Parametric CAD source: `dass.py`.
-- Cut-list source and optimizer: `generate_cutlists.py`.
+- Parametric CAD source: `src/dass/model.py`.
+- Cut-list source and optimizer: `src/dass/cutlists.py`.
 - Existing generated STEP, GLB, PNG, and CSV artifacts under `build/`.
-- Reconciled source notes and fit rules: `dass.md`.
-- Reference drawings: `drawing-above.png`, `drawing-sides.png`, and
-  `cutlist.png`.
+- Reconciled source notes and fit rules: `README.md`.
+- Reference drawings: `docs/original-drawing/`.
 
 ## Product Principles
 

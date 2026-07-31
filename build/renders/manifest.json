@@ -202,7 +202,7 @@
   }
  },
  "textures": {
-  "color": "textures/plywood_diff_4k.jpg",
+  "color": "web/media/textures/plywood_diff_4k.jpg",
   "normal": "build/renders/wood-normal.png",
   "roughness": "build/renders/wood-roughness.png",
   "corrugation": "build/renders/corrugation-normal.png",
@@ -216,5 +216,5 @@
    "coverMm": 110.0
   }
  },
- "photo": "background.jpg"
+ "photo": "web/media/background.jpg"
 }

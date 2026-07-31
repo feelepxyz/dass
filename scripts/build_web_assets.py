@@ -12,18 +12,15 @@ from __future__ import annotations
 
 import argparse
 import shutil
-import sys
 from pathlib import Path
 
-from PIL import Image, ImageFile
+from PIL import Image, ImageFile, ImageOps
 
 # A large progressive/optimized JPEG can outgrow Pillow's default encode buffer,
 # which surfaces as "broken data stream" rather than as a size error.
 ImageFile.MAXBLOCK = 16 * 1024 * 1024
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from generate_build_guide import GALLERY  # noqa: E402
+from dass.build_guide import GALLERY, PROGRESS_GALLERY, STARTED_GALLERY
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -66,7 +63,7 @@ def stage_renders(source: Path, target: Path) -> list[Path]:
         for name, _, _ in views:
             original = source / f"{name}.png"
             if not original.exists():
-                raise SystemExit(f"missing render {original}; run render_photo.py first")
+                raise SystemExit(f"missing render {original}; run `uv run render-photo` first")
             image = Image.open(original).convert("RGB")
             # Only the in-situ plates fill their frame; the renders and the flat
             # elevations must stay whole, so they are never cropped.
@@ -84,11 +81,51 @@ def stage_renders(source: Path, target: Path) -> list[Path]:
     return written
 
 
+def stage_progress(target: Path) -> list[Path]:
+    target.mkdir(parents=True, exist_ok=True)
+    written = []
+    for output_name, source_name, _title, _caption in PROGRESS_GALLERY:
+        original = ROOT / "web/media/progress" / source_name
+        if not original.exists():
+            raise SystemExit(f"missing progress photo {original}")
+        image = ImageOps.exif_transpose(Image.open(original)).convert("RGB")
+        scale = LONG_EDGE / max(image.size)
+        if scale < 1:
+            image = image.resize(
+                (round(image.width * scale), round(image.height * scale)),
+                Image.LANCZOS,
+            )
+        out = target / output_name
+        image.save(out, "JPEG", quality=QUALITY, optimize=True, progressive=True)
+        written.append(out)
+    return written
+
+
+def stage_started(target: Path) -> list[Path]:
+    target.mkdir(parents=True, exist_ok=True)
+    written = []
+    for output_name, source_name, _title, _width, _height in STARTED_GALLERY:
+        original = ROOT / source_name
+        if not original.exists():
+            raise SystemExit(f"missing story image {original}")
+        image = ImageOps.exif_transpose(Image.open(original)).convert("RGB")
+        scale = LONG_EDGE / max(image.size)
+        if scale < 1:
+            image = image.resize(
+                (round(image.width * scale), round(image.height * scale)),
+                Image.LANCZOS,
+            )
+        out = target / output_name
+        image.save(out, "JPEG", quality=QUALITY, optimize=True, progressive=True)
+        written.append(out)
+    return written
+
+
 # What the model viewer needs to show real timber, and how far each map can be
 # reduced before the viewer canvas can tell. Normal maps keep full chroma, so
 # their encoding never invents a slope that is not in the surface.
 WEB_TEXTURES = (
-    ("wood-color.jpg", "textures/plywood_diff_4k.jpg", 1024, 82, True),
+    ("wood-color.jpg", "web/media/textures/plywood_diff_4k.jpg", 1024, 82, True),
     ("wood-normal.jpg", "build/renders/wood-normal.png", 1024, 84, False),
     ("wood-roughness.jpg", "build/renders/wood-roughness.png", 1024, 80, True),
     ("plank-atlas.jpg", "build/renders/plank-atlas.png", 1400, 82, True),
@@ -103,7 +140,7 @@ def stage_textures(target: Path) -> list[Path]:
     for name, relative, long_edge, quality, subsample in WEB_TEXTURES:
         original = ROOT / relative
         if not original.exists():
-            raise SystemExit(f"missing texture {original}; run render_photo.py first")
+            raise SystemExit(f"missing texture {original}; run `uv run render-photo` first")
         image = Image.open(original)
         image = image.convert("L" if image.mode == "L" else "RGB")
         scale = long_edge / max(image.size)
@@ -129,14 +166,14 @@ def stage_textures(target: Path) -> list[Path]:
 def stage_fonts(target: Path) -> list[Path]:
     target.mkdir(parents=True, exist_ok=True)
     out = target / "InputMono-Regular.woff2"
-    shutil.copyfile(ROOT / "fonts/InputMono-Regular.woff2", out)
+    shutil.copyfile(ROOT / "web/media/fonts/InputMono-Regular.woff2", out)
     return [out]
 
 
 def stage_vendor(target: Path) -> list[Path]:
-    three = ROOT / "render/node_modules/three"
+    three = ROOT / "web/render/node_modules/three"
     if not three.exists():
-        raise SystemExit("render/node_modules/three is missing; run npm install in render/")
+        raise SystemExit("web/render/node_modules/three is missing; run npm install in web/render/")
     written = []
     for name, relative in VENDOR.items():
         out = target / name
@@ -145,7 +182,7 @@ def stage_vendor(target: Path) -> list[Path]:
         written.append(out)
     # The viewer and the photoreal renderer share one timber pipeline.
     materials = target / "materials.mjs"
-    shutil.copyfile(ROOT / "render/materials.mjs", materials)
+    shutil.copyfile(ROOT / "web/render/materials.mjs", materials)
     written.append(materials)
     return written
 
@@ -156,12 +193,16 @@ def main() -> None:
     parser.add_argument("--renders", type=Path, default=ROOT / "build/renders")
     args = parser.parse_args()
     shots = stage_renders(args.renders, args.output / "web-renders")
+    started = stage_started(args.output / "started")
+    progress = stage_progress(args.output / "progress")
     vendor = stage_vendor(args.output / "vendor")
     textures = stage_textures(args.output / "textures")
     fonts = stage_fonts(args.output / "fonts")
     weigh = lambda paths: sum(path.stat().st_size for path in paths) / 1e6
     print(
         f"Wrote {len(shots)} web renders ({weigh(shots):.1f} MB), "
+        f"{len(started)} starting-point images ({weigh(started):.1f} MB), "
+        f"{len(progress)} progress photos ({weigh(progress):.1f} MB), "
         f"{len(textures)} textures ({weigh(textures):.1f} MB), "
         f"{len(vendor)} vendored modules, {len(fonts)} font"
     )

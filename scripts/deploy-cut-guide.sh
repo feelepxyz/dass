@@ -3,17 +3,21 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-uv run generate_cutlists.py
-uv run generate_build_guide.py
+uv run generate-cutlists
+uv run generate-build-guide
 uv run scripts/build_web_assets.py
 
 deploy_dir=$(mktemp -d)
 trap 'rm -rf -- "${deploy_dir:?}"' EXIT
 
 cp build/cut-guide.html "$deploy_dir/index.html"
+cp build/cut-guide.html "$deploy_dir/cut-guide.html"
+cp build/how-its-going.html "$deploy_dir/how-its-going.html"
 cp -R build/fonts "$deploy_dir/fonts"
 cp -R build/textures "$deploy_dir/textures"
 cp -R build/web-renders "$deploy_dir/web-renders"
+cp -R build/started "$deploy_dir/started"
+cp -R build/progress "$deploy_dir/progress"
 cp -R build/vendor "$deploy_dir/vendor"
 
 # The model viewer loads the same GLB variants the renderer photographs.

@@ -1,14 +1,14 @@
 // Screenshot the built guide for visual review.
 //
-//   node scripts/shoot.mjs [--width 1440] [--out build/shots] [--full]
+//   node scripts/shoot.mjs [--width 1440] [--out docs/verification/guide/shots] [--full]
 //
-// Uses the chromium that render/node_modules already carries, so nothing new is
+// Uses the chromium that web/render/node_modules already carries, so nothing new is
 // installed and the page is served over http (module imports need an origin).
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync, mkdirSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
-import playwright from './../render/node_modules/playwright-core/index.js';
+import playwright from './../web/render/node_modules/playwright-core/index.js';
 
 const { chromium } = playwright;
 
@@ -26,7 +26,8 @@ const flag = (name, fallback) => {
   return at < 0 ? fallback : args[at + 1];
 };
 const widths = (flag('width', '1440,390')).split(',').map(Number);
-const outDir = resolve(ROOT, flag('out', 'build/shots'));
+const outDir = resolve(ROOT, flag('out', 'docs/verification/guide/shots'));
+const pageName = flag('page', 'cut-guide.html');
 const full = args.includes('--full');
 const sections = (flag('sections', '')).split(',').filter(Boolean);
 
@@ -65,7 +66,7 @@ for (const width of widths) {
   page.on('response', (response) => {
     if (response.status() >= 400) problems.push(`${response.status()} ${response.url()}`);
   });
-  await page.goto(`${origin}/cut-guide.html`, { waitUntil: 'networkidle' });
+  await page.goto(`${origin}/${pageName}`, { waitUntil: 'networkidle' });
   await page.evaluate(() => document.fonts.ready);
 
   if (sections.length) {
