@@ -7,7 +7,6 @@ from pathlib import Path
 
 from dass import Design, build
 
-
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "build" / "cutlist-audit.md"
 CSV_OUTPUT = ROOT / "build" / "cutlist-side-by-side.csv"
@@ -62,8 +61,7 @@ def main() -> None:
         )
     ]
     errors: list[str] = []
-    for name in IMAGE_CUTLIST:
-        image_quantity, image_length, _ = IMAGE_CUTLIST[name]
+    for name, (image_quantity, image_length, _) in IMAGE_CUTLIST.items():
         drawing_quantity, drawing_length, _ = DRAWING_CUTLIST[name]
         cad_lengths = cad.get(name, [])
         cad_quantity = len(cad_lengths)

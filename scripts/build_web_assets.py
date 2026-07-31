@@ -22,7 +22,6 @@ ImageFile.MAXBLOCK = 16 * 1024 * 1024
 
 from dass.build_guide import GALLERY, PROGRESS_GALLERY, STARTED_GALLERY
 
-
 ROOT = Path(__file__).resolve().parent.parent
 LONG_EDGE = 1400
 QUALITY = 80

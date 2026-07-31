@@ -10,11 +10,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-from .fastening import (
-    analyze_frame_fastening,
-    fastening_summary,
-)
-from .model import Design, box_at, build, side_panel
 from .cutlists import (
     BEAM_CODES,
     BOARD_WIDTH,
@@ -26,7 +21,11 @@ from .cutlists import (
     pack_stock,
     panel_stock_plan,
 )
-
+from .fastening import (
+    analyze_frame_fastening,
+    fastening_summary,
+)
+from .model import Design, box_at, build, side_panel
 
 SITE_URL = "https://canaibuildatoiletyet.com"
 SOCIAL_IMAGE_URL = f"{SITE_URL}/web-renders/in-situ-open.jpg"
@@ -1821,8 +1820,6 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
         f'ry="{design.seat_hole_depth / 2 * plate.scale:.1f}"/>'
     )
     field_box = bounds(shapes["seat_top"])
-    hole_u = design.seat_hole_width / 2
-    hole_v = design.seat_hole_depth / 2
     plate.dim((field_box[0], field_box[3]), (field_box[2], field_box[3]), 44)
     plate.dim((field_box[2], field_box[1]), (field_box[2], field_box[3]), 40)
     plate.label(
@@ -2400,42 +2397,56 @@ def guide_html(
         side_steps[letter] = (
             f"Build the frame. Match its diagonals before you fix {edge}1 to {edge}7.",
             f"Fix the square {edge} boards from front to rear. Align their lower and front edges.",
-            f"Mark {fmt(field.pieces[0].finished_long or field.blank)} at the front "
-            f"and {fmt(field.pieces[-1].finished_short or field.blank)} at the rear. "
-            "Set the circular-saw guide and make one gang cut after the boards are fixed.",
-            f"Use the rear frame edge to set the circular-saw guide. Cut the estimated "
-            f"{fmt(field.trim)} overhang, then cut the {fmt(design.frame)} × "
-            f"{fmt(design.frame)} bottom-front notch.",
+            (
+                f"Mark {fmt(field.pieces[0].finished_long or field.blank)} at the front "
+                f"and {fmt(field.pieces[-1].finished_short or field.blank)} at the rear. "
+                "Set the circular-saw guide and make one gang cut after the boards are fixed."
+            ),
+            (
+                f"Use the rear frame edge to set the circular-saw guide. Cut the estimated "
+                f"{fmt(field.trim)} overhang, then cut the {fmt(design.frame)} × "
+                f"{fmt(design.frame)} bottom-front notch."
+            ),
             "Do not pre-cut the roof reliefs. Hang and close the roof, then cut only to the scribe.",
         )
     unit_steps = {
         "A": (
             "Lay RBH1 and RBH2 around RBS1 and RBS2. Center RBC1. Match the diagonals, then place the frame screw marks.",
-            f"Center the metal sheet with {fmt(roof_side_overhang)} at each side and "
-            f"{fmt(roof_end_overhang)} at the front and rear.",
+            (
+                f"Center the metal sheet with {fmt(roof_side_overhang)} at each side and "
+                f"{fmt(roof_end_overhang)} at the front and rear."
+            ),
             "Fit the moving hinge leaf. After the shell is square, fit the fixed leaf and hang the roof.",
         ),
         "B": (
             "Build the DBV and DBH frame. Fit DBD1 and match the diagonals.",
             "Fix DCB1 to DCB9 on the inside face. Align DCB1 with the left frame edge.",
-            f"Use the right frame edge to set the circular-saw guide. Cut the estimated "
-            f"{fmt(fields['door_panel'].trim)} overhang after the boards are fixed.",
-            f"Cut the two top reliefs shown. Fit the moving hinge leaves, then hang the door "
-            f"with a {fmt(design.hinge_gap)} gap after the shell is square.",
+            (
+                f"Use the right frame edge to set the circular-saw guide. Cut the estimated "
+                f"{fmt(fields['door_panel'].trim)} overhang after the boards are fixed."
+            ),
+            (
+                f"Cut the two top reliefs shown. Fit the moving hinge leaves, then hang the door "
+                f"with a {fmt(design.hinge_gap)} gap after the shell is square."
+            ),
         ),
         "C": side_steps["C"],
         "D": side_steps["D"],
         "E": (
             "Build BWH1 and BWH2 with BWD1. Install this bare frame between the two side units.",
             "Fix BWC1 to BWC8 inside the side cladding. Align BWC1 with the left landing mark.",
-            f"Use the right landing mark to set the circular-saw guide. Cut the estimated "
-            f"{fmt(fields['back_wall'].trim)} overhang after the boards are fixed.",
+            (
+                f"Use the right landing mark to set the circular-saw guide. Cut the estimated "
+                f"{fmt(fields['back_wall'].trim)} overhang after the boards are fixed."
+            ),
         ),
         "F": (
             "Build the three-sided bearer frame from FBS1, FBS2, and FBB1.",
             "Fix FCB1 to FCB8 to the bearers. Align FCB1 with the left bearer edge.",
-            f"Use the right bearer edge to set the circular-saw guide. Cut the estimated "
-            f"{fmt(fields['floor'].trim)} overhang after the boards are fixed.",
+            (
+                f"Use the right bearer edge to set the circular-saw guide. Cut the estimated "
+                f"{fmt(fields['floor'].trim)} overhang after the boards are fixed."
+            ),
             "Lower the deck into the square shell. Fasten its front edge to FBH1.",
         ),
         "G": (
@@ -2447,8 +2458,10 @@ def guide_html(
             "Install SBH3, SBH1, SBH2, SBS1, and SBS2 after the shell and floor are fixed.",
             "Fix SFB1 to SFB8 to the seat front. Trim the fixed field from the frame landing.",
             "Fix STB1 to STB8 to the top frame. Use its right edge to set the circular-saw guide.",
-            f"Cut the estimated {fmt(fields['seat_top'].trim)} overhang. Then cut the "
-            f"{fmt(design.seat_hole_width)} × {fmt(design.seat_hole_depth)} opening.",
+            (
+                f"Cut the estimated {fmt(fields['seat_top'].trim)} overhang. Then cut the "
+                f"{fmt(design.seat_hole_width)} × {fmt(design.seat_hole_depth)} opening."
+            ),
             "Make sure that the opening clears both bearers and rails. Seal every fresh cladding cut.",
         ),
     }

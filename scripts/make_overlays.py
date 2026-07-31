@@ -6,7 +6,6 @@ from PIL import Image
 
 from dass import Design, build, render
 
-
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "verification" / "evolution"
 

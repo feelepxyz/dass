@@ -177,7 +177,9 @@ def run_stages(names: Iterable[str]) -> bool:
             # How the stages report a missing input, such as an unrendered view.
             print(f"{stage.name}: {stop}")
             done = False
-        except Exception:
+        # Any other failure is reported and stepped over, so that one bad stage
+        # does not take the watch loop down with it.
+        except Exception:  # noqa: BLE001
             traceback.print_exc()
             done = False
     return done
@@ -187,7 +189,7 @@ def rebuild(stages: Iterable[Stage]) -> bool:
     """Run the stale stages in a child, against the sources as they are now."""
     names = [stage.name for stage in stages]
     child = subprocess.run(
-        [sys.executable, "-m", "dass.serve", "--build", *names], cwd=ROOT
+        [sys.executable, "-m", "dass.serve", "--build", *names], cwd=ROOT, check=False
     )
     return child.returncode == 0
 

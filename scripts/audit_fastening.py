@@ -5,7 +5,6 @@ from pathlib import Path
 from dass import Design
 from dass.fastening import fastening_report
 
-
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "build" / "fastening-audit.md"
 

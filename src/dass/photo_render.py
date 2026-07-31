@@ -325,7 +325,7 @@ def main() -> None:
     ]
     if args.views:
         command += ["--views", args.views]
-    sys.exit(subprocess.run(command, cwd=ROOT).returncode)
+    sys.exit(subprocess.run(command, cwd=ROOT, check=False).returncode)
 
 
 if __name__ == "__main__":

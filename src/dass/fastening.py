@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from .cutlists import BEAM_CODES
 from .model import Design, Part, build
 
-
 MINIMUM_SCREW_SPACING_MM = 20.0
 SCREW_LANES_MM = (12.0, 33.0)
 SCREW_PATH_CLEARANCE_MM = 5.0
