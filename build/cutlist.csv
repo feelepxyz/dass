@@ -1,6 +1,6 @@
 part,quantity,length_mm,width_mm,thickness_mm,material
-D1,2,1202.2,45,45,wood
-D2,2,1315.1,45,45,wood
+D1,2,1203.0,45,45,wood
+D2,2,1315.9,45,45,wood
 HK1,4,725,45,45,wood
 HK2,2,812.7,45,45,wood
 HL1,3,854,45,45,wood

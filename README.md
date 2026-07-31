@@ -17,6 +17,13 @@ This repository contains the parametric model, the browser cut guide, and the
 source material for a small outdoor toilet. The live guide shows the open and
 closed model, the unit drawings, and the workshop cut sequence.
 
+## Current release
+
+Public release 001 records the `0.1.0` baseline, including the frame fastening
+collision check, finished-frame angle measurement, and workshop stock-end
+clean-up instructions. The current fastening correction is recorded under
+`Unreleased`. Read the [full changelog](CHANGELOG.md).
+
 ## Run the guide
 
 ```sh
@@ -189,7 +196,9 @@ important ways:
 - The back field fits between the side skins. The side skins therefore close the
   rear corners instead of leaving a cladding overlap behind them.
 - The braces use one angled cut at each end. Their long-point lengths come from
-  the exact corner-to-corner geometry.
+  the exact corner-to-corner geometry. Their mitred ends stop at the inner
+  faces of the vertical members, and the fastening audit checks the modeled
+  screw paths.
 - The floor has two edge bearers. The seat opening has a support bearer on each
   side, between the seat rails.
 

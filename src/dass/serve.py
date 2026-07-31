@@ -84,9 +84,12 @@ def call(main: Callable[[], None], *arguments: str) -> None:
 # ever calls them, and the server is not worth a CadQuery import it never uses.
 
 def build_schedules() -> None:
-    from . import cutlists
+    from . import cutlists, fastening
 
     call(cutlists.main, "--output", str(BUILD))
+    (BUILD / "fastening-audit.md").write_text(
+        fastening.fastening_report(fastening.Design())
+    )
 
 
 def build_pages() -> None:
@@ -132,7 +135,10 @@ class Stage:
 
 
 STAGES = (
-    Stage("schedules", build_schedules, (SRC / "cutlists.py", SRC / "model.py")),
+    Stage(
+        "schedules", build_schedules,
+        (SRC / "cutlists.py", SRC / "fastening.py", SRC / "model.py"),
+    ),
     Stage("pages", build_pages, (SRC,)),
     Stage("models", build_models, (SRC / "model.py",)),
     # The stager reads the gallery tables out of the guide, so a change there

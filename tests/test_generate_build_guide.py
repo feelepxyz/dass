@@ -98,6 +98,12 @@ class BuildGuideTest(unittest.TestCase):
         self.assertIn("--stock-aspect:46.666667", document)
         self.assertIn("--stock-aspect:18.750000", document)
         self.assertIn('<h3>Operation B · cut the remaining pieces</h3>', document)
+        self.assertIn("run every beam in a serial pass", document)
+        self.assertIn("run every plank in a serial pass", document)
+        self.assertIn("Frame fastening and finished-angle check", document)
+        self.assertIn("84 nominal beam screw marks", document)
+        self.assertIn("Do not use the cladding nail pattern", document)
+        self.assertIn("Every diagonal runs corner to corner", document)
 
     def test_masthead_names_the_project_and_credits_its_sources(self):
         document = guide_html(self.design)
@@ -218,6 +224,8 @@ class BuildGuideTest(unittest.TestCase):
         self.assertIn("the floor boards did", document)
         self.assertIn("not have enough support", document)
         self.assertIn("The same model then generates assembly instructions", document)
+        self.assertIn("A fastening review then found a join", document)
+        self.assertIn("models both screw paths", document)
         self.assertIn('class="set-foot-link" href="cut-guide.html#story-nav"', document)
         self.assertIn("<span>Working drawing</span>", document)
         self.assertIn('class="story-link story-link-start" href="#story-nav"', document)
@@ -235,6 +243,9 @@ class BuildGuideTest(unittest.TestCase):
             "Real-world progress following the drawing to build an outdoor toilet.",
             document,
         )
+        self.assertIn("Latest model finding · diagonal fastening", document)
+        self.assertIn("angled screw paths", document)
+        self.assertIn("resulting clearance", document)
         self.assertNotIn(
             '<p class="masthead-sub">Real-world progress following the drawing to build an outdoor toilet.</p>',
             document,

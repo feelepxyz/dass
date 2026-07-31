@@ -54,7 +54,10 @@ class DassModelTest(unittest.TestCase):
         grouped = {(p.category, round(p.length)) for p in parts}
         self.assertIn(("HL1", 960), grouped)
         self.assertIn(("HL2", 1050), grouped)
-        self.assertIn(("D2", round((960**2 + 960**2 - 45**2) ** 0.5)), grouped)
+        self.assertIn(
+            ("D2", round(next(part.length for part in parts if part.name == "door_brace"))),
+            grouped,
+        )
 
     def test_45x45_120x23_variant_uses_requested_profiles_and_clearances(self):
         design = Design(
@@ -320,41 +323,80 @@ class DassModelTest(unittest.TestCase):
             0,
         )
 
-    def test_door_brace_reaches_inside_frame_corners(self):
+    def test_door_brace_ends_between_the_vertical_stiles(self):
         design = Design()
-        _, parts = build(design)
-        brace = next(part for part in parts if part.name == "door_brace").solid.BoundingBox()
-        self.assertLessEqual(brace.xmin, design.frame)
-        self.assertGreaterEqual(brace.xmax, design.width - design.frame)
-        self.assertLessEqual(brace.zmin, design.door_bottom + design.frame)
-        self.assertGreaterEqual(
-            brace.zmax,
-            design.door_bottom + design.door_frame_height - design.frame,
-        )
+        by_name = {part.name: part for part in build(design)[1]}
+        brace = by_name["door_brace"].solid.BoundingBox()
+        bottom = by_name["door_bottom"].solid.BoundingBox()
+        top = by_name["door_top"].solid.BoundingBox()
+        left = by_name["door_left"].solid.BoundingBox()
+        right = by_name["door_right"].solid.BoundingBox()
+        self.assertAlmostEqual(brace.xmin, left.xmax)
+        self.assertAlmostEqual(brace.xmax, right.xmin)
+        self.assertAlmostEqual(brace.zmin, bottom.zmax)
+        self.assertAlmostEqual(brace.zmax, top.zmin)
         top, bottom = door_brace_endpoints(design)
         self.assertAlmostEqual(
             sum((a - b) ** 2 for a, b in zip(top, bottom)) ** 0.5,
-            (design.inner_width**2 + 960**2) ** 0.5,
+            (design.inner_width**2 + (960 - 2 * design.diagonal_end_setback) ** 2) ** 0.5,
         )
 
-    def test_side_braces_join_frame_corners(self):
+    def test_diagonal_braces_fit_corner_to_corner_without_extending_into_members(self):
         design = Design()
-        _, parts = build(design)
+        by_name = {part.name: part for part in build(design)[1]}
+
+        brace_pairs = (
+            ("left_brace", "front_post_left", "back_post_left", "left_bottom", "left_top"),
+            ("right_brace", "front_post_right", "back_post_right", "right_bottom", "right_top"),
+            ("back_brace", "back_post_left", "back_post_right", "back_bottom", "back_top"),
+            ("door_brace", "door_left", "door_right", "door_bottom", "door_top"),
+        )
+        for brace_name, first_post, second_post, bottom_rail, top_rail in brace_pairs:
+            with self.subTest(brace=brace_name):
+                brace = by_name[brace_name].solid.BoundingBox()
+                first = by_name[first_post].solid.BoundingBox()
+                second = by_name[second_post].solid.BoundingBox()
+                low = by_name[bottom_rail].solid.BoundingBox()
+                high = by_name[top_rail].solid.BoundingBox()
+
+                self.assertAlmostEqual(brace.zmin, low.zmax)
+                self.assertAlmostEqual(brace.zmax, high.zmin)
+                if brace_name in {"left_brace", "right_brace"}:
+                    self.assertAlmostEqual(brace.ymin, first.ymax)
+                    self.assertAlmostEqual(brace.ymax, second.ymin)
+                    end_axis = "y"
+                else:
+                    self.assertAlmostEqual(brace.xmin, first.xmax)
+                    self.assertAlmostEqual(brace.xmax, second.xmin)
+                    end_axis = "x"
+
+                solid = by_name[brace_name].solid
+                end_faces = [
+                    face for face in solid.Faces()
+                    if getattr(face.BoundingBox(), f"{end_axis}len") < 1e-6
+                    and face.Area() > design.frame**2
+                ]
+                rail_faces = [
+                    face for face in solid.Faces()
+                    if face.BoundingBox().zlen < 1e-6
+                    and face.Area() > design.frame**2
+                ]
+                self.assertEqual(len(end_faces), 2)
+                self.assertEqual(rail_faces, [])
+
+    def test_side_braces_end_at_the_vertical_post_corners(self):
+        design = Design()
+        by_name = {part.name: part for part in build(design)[1]}
         for name in ("left_brace", "right_brace"):
-            part = next(part for part in parts if part.name == name)
-            self.assertAlmostEqual(
-                part.length,
-                (design.inner_depth**2 + 960**2 - design.frame**2) ** 0.5,
-            )
+            brace = by_name[name].solid.BoundingBox()
+            side = "left" if name == "left_brace" else "right"
+            self.assertAlmostEqual(brace.ymin, by_name[f"front_post_{side}"].solid.BoundingBox().ymax)
+            self.assertAlmostEqual(brace.ymax, by_name[f"back_post_{side}"].solid.BoundingBox().ymin)
+            self.assertAlmostEqual(brace.zmin, by_name[f"{side}_bottom"].solid.BoundingBox().zmax)
+            self.assertAlmostEqual(brace.zmax, by_name[f"{side}_top"].solid.BoundingBox().zmin)
 
     def test_braces_take_one_angled_cut_at_each_end(self):
-        """Tilting the bar off the diagonal turns each notched end into one cut.
-
-        A parallelogram prism has exactly six faces; a corner-to-corner bar
-        clipped by both boundary planes has eight. The long-point length is
-        sqrt(diagonal^2 - size^2), which stays within a millimetre of the
-        reference corner-to-corner figure.
-        """
+        """Each diagonal remains one valid square-stock solid with clean ends."""
         for design in (
             Design(),
             Design(frame=45, cladding=23,
@@ -376,13 +418,12 @@ class DassModelTest(unittest.TestCase):
                     solid = by_name[name].solid
                     self.assertEqual(len(solid.Faces()), 6)
                     self.assertEqual(len(solid.Solids()), 1)
-                    diagonal = (span**2 + rise**2) ** 0.5
+                    diagonal = (span**2 + (rise - 2 * design.diagonal_end_setback) ** 2) ** 0.5
                     self.assertAlmostEqual(
                         by_name[name].length,
-                        (diagonal**2 - design.frame**2) ** 0.5,
+                        diagonal,
                         places=6,
                     )
-                    self.assertLess(diagonal - by_name[name].length, 1.1)
 
     def test_side_cladding_lifts_at_the_back_and_clears_the_roof(self):
         design = Design()
@@ -501,11 +542,11 @@ class DassModelTest(unittest.TestCase):
         by_name = {part.name: part for part in parts}
         brace = by_name["back_brace"]
 
-        # Same opening as the door frame, so it is a second D2 cut.
+        # Same side-to-side opening as the door frame, so it is a second D2 cut.
         self.assertEqual(brace.category, "D2")
         self.assertAlmostEqual(
             brace.length,
-            (design.inner_width**2 + 960**2 - design.frame**2) ** 0.5,
+            by_name["door_brace"].length,
         )
         self.assertAlmostEqual(
             brace.length,
@@ -513,17 +554,16 @@ class DassModelTest(unittest.TestCase):
         )
 
         box = brace.solid.BoundingBox()
-        for actual, expected in zip(
-            (box.xmin, box.xmax, box.ymin, box.ymax, box.zmin, box.zmax),
-            (design.frame, design.width - design.frame,
-             design.depth - design.frame, design.depth,
-             design.leg_extension + design.frame, design.back_height - design.frame),
-        ):
-            self.assertAlmostEqual(actual, expected, places=6)
-        # Its low end shares the rear-left corner with the left side brace.
+        self.assertAlmostEqual(box.xmin, design.frame)
+        self.assertAlmostEqual(box.xmax, design.width - design.frame)
+        self.assertAlmostEqual(box.ymin, design.depth - design.frame)
+        self.assertAlmostEqual(box.ymax, design.depth)
+        self.assertAlmostEqual(box.zmin, by_name["back_bottom"].solid.BoundingBox().zmax)
+        self.assertAlmostEqual(box.zmax, by_name["back_top"].solid.BoundingBox().zmin)
+        # Its low end shares the rear-left post with the left side brace.
         left_brace = by_name["left_brace"].solid.BoundingBox()
         self.assertAlmostEqual(left_brace.ymax, box.ymin, places=6)
-        self.assertAlmostEqual(left_brace.zmin, box.zmin, places=6)
+        self.assertAlmostEqual(box.zmin, by_name["back_bottom"].solid.BoundingBox().zmax)
         # It sits in the frame plane, outside the back cladding.
         self.assertGreaterEqual(box.ymin, by_name["back_wall"].solid.BoundingBox().ymax)
 

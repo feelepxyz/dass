@@ -1,0 +1,116 @@
+# Frame fastening audit
+
+This is a beam screw-layout and collision check, not a structural screw-sizing calculation.
+Cladding is excluded because it is nailed.
+
+- Beam-to-beam connections: 42
+- Nominal screw marks: 84
+- Screw-mark overlaps: 0
+- Screw-path collisions: 0
+- Result: PASS
+
+## Angle checks
+
+| Check | Use | Drawing guide | Model guide | Run × rise |
+|---|---|---:|---:|---:|
+| SIDE-PITCH | finished side-frame pitch | 7.4° | 7.4° | 770 × 100 mm |
+| ROOF-PITCH | finished roof-beam pitch | 8.8° | 8.8° | 803 × 125 mm |
+| D1 | side diagonal saw cut | 36.0° | 34.9° | 725 × 960 mm |
+| D2 | back and door diagonal saw cut | 40.0° | 41.2° | 900 × 960 mm |
+
+## Screw marks
+
+| Mark | From beam | Into beam | Face | Source station | Target station | Lane |
+|---|---|---|---|---:|---:|---:|
+| F01-1 | LSV1 (front_post_left) | FBH1 (front_bottom) | front | 45.0 mm | 122.5 mm | 12.0 mm |
+| F01-2 | LSV1 (front_post_left) | FBH1 (front_bottom) | front | 45.0 mm | 122.5 mm | 33.0 mm |
+| F02-1 | RSV1 (front_post_right) | FBH1 (front_bottom) | front | 45.0 mm | 122.5 mm | 12.0 mm |
+| F02-2 | RSV1 (front_post_right) | FBH1 (front_bottom) | front | 45.0 mm | 122.5 mm | 33.0 mm |
+| F03-1 | LSV2 (back_post_left) | BWH1 (back_bottom) | rear | 45.0 mm | 122.5 mm | 12.0 mm |
+| F03-2 | LSV2 (back_post_left) | BWH1 (back_bottom) | rear | 45.0 mm | 122.5 mm | 33.0 mm |
+| F04-1 | RSV2 (back_post_right) | BWH1 (back_bottom) | rear | 45.0 mm | 122.5 mm | 12.0 mm |
+| F04-2 | RSV2 (back_post_right) | BWH1 (back_bottom) | rear | 45.0 mm | 122.5 mm | 33.0 mm |
+| F05-1 | LSV2 (back_post_left) | BWH2 (back_top) | rear | 45.0 mm | 1127.5 mm | 12.0 mm |
+| F05-2 | LSV2 (back_post_left) | BWH2 (back_top) | rear | 45.0 mm | 1127.5 mm | 33.0 mm |
+| F06-1 | RSV2 (back_post_right) | BWH2 (back_top) | rear | 45.0 mm | 1127.5 mm | 12.0 mm |
+| F06-2 | RSV2 (back_post_right) | BWH2 (back_top) | rear | 45.0 mm | 1127.5 mm | 33.0 mm |
+| F07-1 | LSV1 (front_post_left) | LSH1 (left_bottom) | side | 45.0 mm | 122.5 mm | 12.0 mm |
+| F07-2 | LSV1 (front_post_left) | LSH1 (left_bottom) | side | 45.0 mm | 122.5 mm | 33.0 mm |
+| F08-1 | LSV2 (back_post_left) | LSH1 (left_bottom) | side | 45.0 mm | 122.5 mm | 12.0 mm |
+| F08-2 | LSV2 (back_post_left) | LSH1 (left_bottom) | side | 45.0 mm | 122.5 mm | 33.0 mm |
+| F09-1 | LSV1 (front_post_left) | LSH2 (left_top) | side | 45.0 mm | 1127.5 mm | 12.0 mm |
+| F09-2 | LSV1 (front_post_left) | LSH2 (left_top) | side | 45.0 mm | 1127.5 mm | 33.0 mm |
+| F10-1 | LSV2 (back_post_left) | LSH2 (left_top) | side | 45.0 mm | 1127.5 mm | 12.0 mm |
+| F10-2 | LSV2 (back_post_left) | LSH2 (left_top) | side | 45.0 mm | 1127.5 mm | 33.0 mm |
+| F11-1 | RSV1 (front_post_right) | RSH1 (right_bottom) | side | 45.0 mm | 122.5 mm | 12.0 mm |
+| F11-2 | RSV1 (front_post_right) | RSH1 (right_bottom) | side | 45.0 mm | 122.5 mm | 33.0 mm |
+| F12-1 | RSV2 (back_post_right) | RSH1 (right_bottom) | side | 45.0 mm | 122.5 mm | 12.0 mm |
+| F12-2 | RSV2 (back_post_right) | RSH1 (right_bottom) | side | 45.0 mm | 122.5 mm | 33.0 mm |
+| F13-1 | RSV1 (front_post_right) | RSH2 (right_top) | side | 45.0 mm | 1127.5 mm | 12.0 mm |
+| F13-2 | RSV1 (front_post_right) | RSH2 (right_top) | side | 45.0 mm | 1127.5 mm | 33.0 mm |
+| F14-1 | RSV2 (back_post_right) | RSH2 (right_top) | side | 45.0 mm | 1127.5 mm | 12.0 mm |
+| F14-2 | RSV2 (back_post_right) | RSH2 (right_top) | side | 45.0 mm | 1127.5 mm | 33.0 mm |
+| F15-1 | LSV1 (front_post_left) | LSD1 (left_brace) | side | 45.0 mm | 1105.0 mm | 12.0 mm |
+| F15-2 | LSV1 (front_post_left) | LSD1 (left_brace) | side | 45.0 mm | 1105.0 mm | 33.0 mm |
+| F16-1 | LSV2 (back_post_left) | LSD1 (left_brace) | side | 45.0 mm | 145.0 mm | 12.0 mm |
+| F16-2 | LSV2 (back_post_left) | LSD1 (left_brace) | side | 45.0 mm | 145.0 mm | 33.0 mm |
+| F17-1 | RSV1 (front_post_right) | RSD1 (right_brace) | side | 45.0 mm | 1105.0 mm | 12.0 mm |
+| F17-2 | RSV1 (front_post_right) | RSD1 (right_brace) | side | 45.0 mm | 1105.0 mm | 33.0 mm |
+| F18-1 | RSV2 (back_post_right) | RSD1 (right_brace) | side | 45.0 mm | 145.0 mm | 12.0 mm |
+| F18-2 | RSV2 (back_post_right) | RSD1 (right_brace) | side | 45.0 mm | 145.0 mm | 33.0 mm |
+| F19-1 | LSV2 (back_post_left) | BWD1 (back_brace) | rear | 45.0 mm | 145.0 mm | 12.0 mm |
+| F19-2 | LSV2 (back_post_left) | BWD1 (back_brace) | rear | 45.0 mm | 145.0 mm | 33.0 mm |
+| F20-1 | RSV2 (back_post_right) | BWD1 (back_brace) | rear | 45.0 mm | 1105.0 mm | 12.0 mm |
+| F20-2 | RSV2 (back_post_right) | BWD1 (back_brace) | rear | 45.0 mm | 1105.0 mm | 33.0 mm |
+| F21-1 | RBH1 (roof_front) | RBS1 (roof_left) | slope-front | 45.0 mm | 45.0 mm | 12.0 mm |
+| F21-2 | RBH1 (roof_front) | RBS1 (roof_left) | slope-front | 45.0 mm | 45.0 mm | 33.0 mm |
+| F22-1 | RBH1 (roof_front) | RBS2 (roof_right) | slope-front | 45.0 mm | 45.0 mm | 12.0 mm |
+| F22-2 | RBH1 (roof_front) | RBS2 (roof_right) | slope-front | 45.0 mm | 45.0 mm | 33.0 mm |
+| F23-1 | RBH2 (roof_back) | RBS1 (roof_left) | slope-rear | 45.0 mm | 768.0 mm | 12.0 mm |
+| F23-2 | RBH2 (roof_back) | RBS1 (roof_left) | slope-rear | 45.0 mm | 768.0 mm | 33.0 mm |
+| F24-1 | RBH2 (roof_back) | RBS2 (roof_right) | slope-rear | 45.0 mm | 768.0 mm | 12.0 mm |
+| F24-2 | RBH2 (roof_back) | RBS2 (roof_right) | slope-rear | 45.0 mm | 768.0 mm | 33.0 mm |
+| F25-1 | RBC1 (roof_middle) | RBS1 (roof_left) | slope-middle | 45.0 mm | 406.0 mm | 12.0 mm |
+| F25-2 | RBC1 (roof_middle) | RBS1 (roof_left) | slope-middle | 45.0 mm | 406.0 mm | 33.0 mm |
+| F26-1 | RBC1 (roof_middle) | RBS2 (roof_right) | slope-middle | 45.0 mm | 406.0 mm | 12.0 mm |
+| F26-2 | RBC1 (roof_middle) | RBS2 (roof_right) | slope-middle | 45.0 mm | 406.0 mm | 33.0 mm |
+| F27-1 | FBB1 (floor_back_support) | FBS1 (floor_left_support) | top | 45.0 mm | 612.0 mm | 12.0 mm |
+| F27-2 | FBB1 (floor_back_support) | FBS1 (floor_left_support) | top | 45.0 mm | 612.0 mm | 33.0 mm |
+| F28-1 | FBB1 (floor_back_support) | FBS2 (floor_right_support) | top | 45.0 mm | 612.0 mm | 12.0 mm |
+| F28-2 | FBB1 (floor_back_support) | FBS2 (floor_right_support) | top | 45.0 mm | 612.0 mm | 33.0 mm |
+| F29-1 | FBS1 (floor_left_support) | FBH1 (front_bottom) | underside | 45.0 mm | 90.0 mm | 12.0 mm |
+| F29-2 | FBS1 (floor_left_support) | FBH1 (front_bottom) | underside | 45.0 mm | 90.0 mm | 33.0 mm |
+| F30-1 | FBS2 (floor_right_support) | FBH1 (front_bottom) | underside | 45.0 mm | 810.0 mm | 12.0 mm |
+| F30-2 | FBS2 (floor_right_support) | FBH1 (front_bottom) | underside | 45.0 mm | 810.0 mm | 33.0 mm |
+| F31-1 | FBS1 (floor_left_support) | FBB1 (floor_back_support) | underside | 45.0 mm | 90.0 mm | 12.0 mm |
+| F31-2 | FBS1 (floor_left_support) | FBB1 (floor_back_support) | underside | 45.0 mm | 90.0 mm | 33.0 mm |
+| F32-1 | FBS2 (floor_right_support) | FBB1 (floor_back_support) | underside | 45.0 mm | 810.0 mm | 12.0 mm |
+| F32-2 | FBS2 (floor_right_support) | FBB1 (floor_back_support) | underside | 45.0 mm | 810.0 mm | 33.0 mm |
+| F33-1 | SBS1 (seat_support_left) | SBH1 (seat_rail_1) | underside | 45.0 mm | 270.0 mm | 12.0 mm |
+| F33-2 | SBS1 (seat_support_left) | SBH1 (seat_rail_1) | underside | 45.0 mm | 270.0 mm | 33.0 mm |
+| F34-1 | SBS1 (seat_support_left) | SBH2 (seat_rail_2) | underside | 45.0 mm | 270.0 mm | 12.0 mm |
+| F34-2 | SBS1 (seat_support_left) | SBH2 (seat_rail_2) | underside | 45.0 mm | 270.0 mm | 33.0 mm |
+| F35-1 | SBS2 (seat_support_right) | SBH1 (seat_rail_1) | underside | 45.0 mm | 585.0 mm | 12.0 mm |
+| F35-2 | SBS2 (seat_support_right) | SBH1 (seat_rail_1) | underside | 45.0 mm | 585.0 mm | 33.0 mm |
+| F36-1 | SBS2 (seat_support_right) | SBH2 (seat_rail_2) | underside | 45.0 mm | 585.0 mm | 12.0 mm |
+| F36-2 | SBS2 (seat_support_right) | SBH2 (seat_rail_2) | underside | 45.0 mm | 585.0 mm | 33.0 mm |
+| F37-1 | DBV1 (door_left) | DBH1 (door_bottom) | door | 45.0 mm | 122.5 mm | 12.0 mm |
+| F37-2 | DBV1 (door_left) | DBH1 (door_bottom) | door | 45.0 mm | 122.5 mm | 33.0 mm |
+| F38-1 | DBV2 (door_right) | DBH1 (door_bottom) | door | 45.0 mm | 122.5 mm | 12.0 mm |
+| F38-2 | DBV2 (door_right) | DBH1 (door_bottom) | door | 45.0 mm | 122.5 mm | 33.0 mm |
+| F39-1 | DBV1 (door_left) | DBH2 (door_top) | door | 45.0 mm | 1127.5 mm | 12.0 mm |
+| F39-2 | DBV1 (door_left) | DBH2 (door_top) | door | 45.0 mm | 1127.5 mm | 33.0 mm |
+| F40-1 | DBV2 (door_right) | DBH2 (door_top) | door | 45.0 mm | 1127.5 mm | 12.0 mm |
+| F40-2 | DBV2 (door_right) | DBH2 (door_top) | door | 45.0 mm | 1127.5 mm | 33.0 mm |
+| F41-1 | DBV1 (door_left) | DBD1 (door_brace) | door | 45.0 mm | 1105.0 mm | 12.0 mm |
+| F41-2 | DBV1 (door_left) | DBD1 (door_brace) | door | 45.0 mm | 1105.0 mm | 33.0 mm |
+| F42-1 | DBV2 (door_right) | DBD1 (door_brace) | door | 45.0 mm | 145.0 mm | 12.0 mm |
+| F42-2 | DBV2 (door_right) | DBD1 (door_brace) | door | 45.0 mm | 145.0 mm | 33.0 mm |
+
+## Workshop notes
+
+- Fit every diagonal corner to corner and trim its ends flush with the receiving member faces.
+- Drive the 120 mm diagonal screws from the vertical members at a slight angle.
+- Measure the finished frame before final fastening and use the measured angle for the scribe.
+- Do not use the cladding nail pattern for beam screws.
+- Measure the finished frame side and roof pitch with a bevel gauge; record the actual value before final screws.

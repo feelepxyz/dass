@@ -19,6 +19,7 @@ class StageRoutingTest(unittest.TestCase):
         # stager reads its gallery tables.
         self.assertEqual(named([serve.SRC / "build_guide.py"]), ["pages", "assets"])
         self.assertEqual(named([serve.SRC / "cutlists.py"]), ["schedules", "pages"])
+        self.assertEqual(named([serve.SRC / "fastening.py"]), ["schedules", "pages"])
         self.assertEqual(
             named([serve.ROOT / "web/media/progress/beam-cuts.jpg"]),
             ["assets"],

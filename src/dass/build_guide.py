@@ -10,6 +10,10 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
+from .fastening import (
+    analyze_frame_fastening,
+    fastening_summary,
+)
 from .model import Design, box_at, build, side_panel
 from .cutlists import (
     BEAM_CODES,
@@ -2225,6 +2229,8 @@ def guide_html(
     cladding_stock_length: float = 4500,
     kerf: float = DEFAULT_KERF,
 ) -> str:
+    fastening = analyze_frame_fastening(design)
+    angle_map = {check.code: check for check in fastening.angles}
     beams = beam_pieces(design)
     boards = cladding_pieces(design)
     beam_stocks = pack_stock(beams, beam_stock_length, kerf)
@@ -2276,7 +2282,7 @@ def guide_html(
         )
     unit_steps = {
         "A": (
-            "Lay RBH1 and RBH2 around RBS1 and RBS2. Center RBC1. Match the diagonals, then fasten the frame.",
+            "Lay RBH1 and RBH2 around RBS1 and RBS2. Center RBC1. Match the diagonals, then place the frame screw marks.",
             f"Center the metal sheet with {fmt(roof_side_overhang)} at each side and "
             f"{fmt(roof_end_overhang)} at the front and rear.",
             "Fit the moving hinge leaf. After the shell is square, fit the fixed leaf and hang the roof.",
@@ -2307,7 +2313,7 @@ def guide_html(
         "G": (
             "Brace the left and right units upright. Install the back frame between them.",
             f"Install FBH1 across the front at the {fmt(design.leg_extension)} leg datum.",
-            "Match the shell diagonals before the final fasteners. Then install the floor deck.",
+            "Measure the finished side and roof beam angles, then match the shell diagonals before the final fasteners. Install the floor deck after the measurement.",
         ),
         "H": (
             "Install SBH3, SBH1, SBH2, SBS1, and SBS2 after the shell and floor are fixed.",
@@ -2467,6 +2473,13 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
     </div>
     <p class="sheet-note">Cut every piece at one stop setting before you change the stop.
     A batch that reaches the end of a stock length continues on the next length.</p>
+    <div class="note workshop-prep">
+      <h3>Workshop preparation · clean stock ends</h3>
+      <p>Before cutting the beams, run every beam in a serial pass and shave a little from
+      one end. Mark the new clean datum, then start the batches below. This is workshop
+      preparation, not a factory process; keep the modeled piece lengths and check the
+      stock before you begin.</p>
+    </div>
     <div class="table-scroll"><table>
       <caption>Batch order · A-200</caption>
       <thead><tr><th>Pass</th><th>Stop</th><th>Saw setup</th><th>Mark these pieces</th></tr></thead>
@@ -2494,6 +2507,12 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
     <p class="sheet-note">The first {len(first_panel_stocks)} stock lengths release all
     twenty-three {fmt(first_panel_length)} blanks. Fourteen side boards come first, then nine
     door boards, at one stop setting.</p>
+    <div class="note workshop-prep">
+      <h3>Workshop preparation · clean stock ends</h3>
+      <p>Before cutting the cladding planks, run every plank in a serial pass and shave a
+      little from one end to make a clean workshop datum. Mark that end, then cut the
+      modeled blanks below. This end clean-up is separate from the on-frame cladding trim.</p>
+    </div>
     <div class="note">
       <h3>Operation A · release every {fmt(first_panel_length)} blank</h3>
       <div class="table-scroll"><table>
@@ -2537,6 +2556,19 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
     change drawing emphasis. The printed drawing keeps every cut line, trim label, and
     notch note visible.</span><span class="on-paper">Each unit is drawn on its own sheet,
     with its assembly steps and its codes beside it.</span></p>
+    <div class="note" id="fastening">
+      <h3>Frame fastening and finished-angle check</h3>
+      <p>{fastening_summary(design)}</p>
+      <p>Fasten beam to beam from the marked face. Do not place a new screw in an existing
+      screw path. Every diagonal runs corner to corner and is trimmed flush with the vertical member faces;
+      its screw starts in that vertical member at a slight angle.</p>
+      <p>Before final fastening, measure the finished frame with a bevel gauge and record
+      the actual angle. Use the drawing and model values as the starting guide: side pitch
+      {angle_map["SIDE-PITCH"].model_degrees:.1f}°, roof pitch {angle_map["ROOF-PITCH"].model_degrees:.1f}°,
+      D1 cut {angle_map["D1"].model_degrees:.1f}° against the drawing {angle_map["D1"].drawing_degrees:.1f}°,
+      and D2 cut {angle_map["D2"].model_degrees:.1f}° against the drawing {angle_map["D2"].drawing_degrees:.1f}°.
+      Scribe to the measured frame if it has moved. Do not use the cladding nail pattern for beam screws.</p>
+    </div>
     <div class="drawing-grid">{''.join(module_cards)}</div>
   </section>
 
@@ -2667,6 +2699,12 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
 
       <p>The same model then generates assembly instructions that treat the door, roof,
       side walls, back wall, floor, and seat as individual pieces.</p>
+
+      <p>A fastening review then found a join the drawings did not make explicit. A 120 mm
+      screw from a vertical member into a rail can occupy the same corner as a screw driven
+      from that rail into a diagonal. The door, side, and back diagonals now run corner to
+      corner, with mitred ends stopped at the inner faces of the vertical members. The
+      fastening audit models both screw paths and keeps this clearance as a regression check.</p>
     </div>
   </section>
 
@@ -2735,6 +2773,14 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
   <section class="sheet" id="progress">
     <div class="sheet-head"><span class="sheet-no">Field notes 01</span><h2>How it's going</h2></div>
     <p class="sheet-note">Real-world progress following the drawing to build an outdoor toilet.</p>
+    <div class="note">
+      <h3>Latest model finding · diagonal fastening</h3>
+      <p>The fastening review found that diagonal-to-rail screws could meet the 120 mm rail
+      screws at the frame corners. The door, side, and back diagonals now run corner to
+      corner, with mitred ends stopped at the inner faces of the vertical members instead.
+      The audit models the angled screw paths and regression-tests the resulting clearance
+      before the timber reaches the bench.</p>
+    </div>
     <div class="progress-grid">{''.join(photos)}</div>
   </section>
 

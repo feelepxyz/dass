@@ -38,6 +38,9 @@ class Design:
     roof_thickness: float = 1
     roof_beam_run: float = 803
     door_brace_rise: float = 850
+    diagonal_end_setback: float = 0
+    screw_length: float = 120
+    diagonal_screw_angle: float = 10
     leg_extension: float = 100
     door_frame_height: float = 1050
     hinge_gap: float = 10
@@ -173,6 +176,14 @@ class Design:
         assert 0 < self.seat_depth < self.inner_depth
         assert 0 < self.seat_hole_width < self.interior_width
         assert 0 < self.seat_hole_depth < self.seat_depth
+        assert self.diagonal_end_setback >= 0
+        assert self.screw_length > 0
+        assert 0 < self.diagonal_screw_angle < 45
+        assert 2 * self.diagonal_end_setback < min(
+            self.front_post_height - self.leg_extension - 2 * self.frame,
+            self.back_height - self.leg_extension - 2 * self.frame,
+            self.door_frame_height - 2 * self.frame,
+        )
         assert self.door_top == self.front_height
     def validate_reference(self) -> None:
         """Prove that defaults reproduce the dimensions repeated in the sources."""
@@ -244,14 +255,18 @@ def single_cut_brace(
     tilt = math.degrees(math.asin(size / delta.Length))
     normal = cq.Vector(*plane_normal)
     diagonal = delta.normalized()
-    # Of the two tilts, take the steeper: the rails then make both cuts, so the
-    # brace bears on them rather than being trapped between the posts.
+    # Take the shallower tilt. The receiving-member boundary then makes the
+    # mitred end faces: x for the door/back frames and y for the side frames.
+    # The long points still reach both rail corners, while the solid does not
+    # extend through either vertical member.
     direction = max(
         (rotate_about(diagonal, normal, sign * tilt) for sign in (1, -1)),
-        key=lambda candidate: abs(candidate.z),
+        key=lambda candidate: -abs(candidate.z),
     )
     midpoint = va + delta.multiply(0.5)
-    reach = delta.dot(direction) / 2 + size
+    # Extend well past each receiving-member boundary so the final end is one
+    # clean contact plane, even when the end is set back from a frame corner.
+    reach = delta.dot(direction) / 2 + 2 * size
     start = midpoint - direction.multiply(reach)
     end = midpoint + direction.multiply(reach)
     bar = beam_between((start.x, start.y, start.z), (end.x, end.y, end.z), size)
@@ -259,26 +274,21 @@ def single_cut_brace(
 
 
 def cut_length(solid: cq.Shape) -> float:
-    """Long-point length of an angle-cut piece.
-
-    Both ends are mitred, so the longest edge falls short of the stock actually
-    needed. Measure the piece's extent along its own long axis instead, which
-    is the long-point-to-long-point dimension you cut to.
-    """
-    longest = max(solid.Edges(), key=lambda edge: edge.Length())
-    axis = (longest.endPoint() - longest.startPoint()).normalized()
-    reach = [axis.dot(cq.Vector(*vertex.toTuple())) for vertex in solid.Vertices()]
-    return max(reach) - min(reach)
+    """Return the long-point diagonal between the two mitred end faces."""
+    bbox = solid.BoundingBox()
+    spans = sorted((bbox.xlen, bbox.ylen, bbox.zlen), reverse=True)
+    return math.hypot(spans[0], spans[1])
 
 
 def door_brace_endpoints(d: Design) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
-    """D2 centreline joins the opposite inner corners of the door frame."""
+    """D2 centreline joins the opposite vertical stile corners."""
     frame_bottom = d.door_bottom
     frame_top = frame_bottom + d.door_frame_height
     frame_center_y = -d.frame - d.cladding - d.hinge_gap + d.frame / 2
+    end_setback = d.diagonal_end_setback
     return (
-        (d.frame, frame_center_y, frame_top - d.frame),
-        (d.width - d.frame, frame_center_y, frame_bottom + d.frame),
+        (d.frame, frame_center_y, frame_top - d.frame - end_setback),
+        (d.width - d.frame, frame_center_y, frame_bottom + d.frame + end_setback),
     )
 
 
@@ -575,12 +585,17 @@ def build(
             box_at(x, seat_support_front, seat_top_bottom - d.seat_support,
                    d.seat_support, seat_support_length, d.seat_support),
             (seat_support_length, d.seat_support, d.seat_support))
-    # Side braces join the opposite inner corners of each 750 × 950 mm frame.
-    # Their geometry is intentionally derived from those corners; the audit
-    # reports the small conflict with the nominal 1209 mm / 36° image row.
+    # Side braces run corner to corner. Their mitred end faces are made by the
+    # inner faces of the vertical members, so no stock extends into a post.
     for x, label in ((d.frame / 2, "left"), (d.width - d.frame / 2, "right")):
-        bottom = (x, d.depth - d.frame, d.leg_extension + d.frame)
-        top = (x, d.frame, d.front_post_height - d.frame)
+        bottom = (
+            x, d.depth - d.frame,
+            d.leg_extension + d.frame + d.diagonal_end_setback,
+        )
+        top = (
+            x, d.frame,
+            d.front_post_height - d.frame - d.diagonal_end_setback,
+        )
         side_opening = box_at(
             x - d.frame / 2,
             d.frame,
@@ -596,8 +611,14 @@ def build(
     # Back-wall brace. Its low end shares the rear-left corner with the left
     # side brace, so the bracing runs continuously around that corner. The
     # 850 x 950 opening matches the door frame, so this is a second D2 cut.
-    back_brace_bottom = (d.frame, d.depth - d.frame / 2, d.leg_extension + d.frame)
-    back_brace_top = (d.width - d.frame, d.depth - d.frame / 2, d.back_height - d.frame)
+    back_brace_bottom = (
+        d.frame, d.depth - d.frame / 2,
+        d.leg_extension + d.frame + d.diagonal_end_setback,
+    )
+    back_brace_top = (
+        d.width - d.frame, d.depth - d.frame / 2,
+        d.back_height - d.frame - d.diagonal_end_setback,
+    )
     back_opening = box_at(
         d.frame,
         d.depth - d.frame,
