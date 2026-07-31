@@ -80,10 +80,14 @@ prek install          # once, after cloning
 prek run --all-files  # run every hook now
 ```
 
-The commit hooks cover shell scripts, file hygiene, and YAML, JSON, and TOML
-syntax. The push hook runs the `unittest` suite. They skip `.agents/`, `build/`,
+The commit hooks run `ruff format`, `ruff check`, and `ty`, and they cover shell
+scripts, file hygiene, and YAML, JSON, and TOML syntax. The push hook runs the
+`pytest` suite, which takes about half a minute. They skip `.agents/`, `build/`,
 and `.cache/`, which hold vendored and generated files. Bypass them with
 `git commit --no-verify` when you must.
+
+GitHub Actions runs the same four checks on every push and pull request, on
+Python 3.11 and 3.14.
 
 ## Worktrees
 
