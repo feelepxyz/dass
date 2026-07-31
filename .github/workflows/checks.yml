@@ -1,0 +1,54 @@
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+      # Report both versions rather than stopping at the first red one.
+      fail-fast: false
+      matrix:
+        # The floor the project promises, and the version it is developed on.
+        python: ["3.11", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Importing cadquery loads OCP and VTK, which link against libGL. A
+      # headless runner has no GL stack until these are installed, and the
+      # failure reads as an unrelated ImportError.
+      - name: Install the OpenGL libraries VTK links against
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libglx-mesa0 libxrender1 libxext6
+
+      - uses: astral-sh/setup-uv@v9
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          python-version: ${{ matrix.python }}
+
+      # --frozen so that a lock file left behind by a dependency change fails
+      # here rather than resolving to something nobody tested.
+      - run: uv sync --frozen
+
+      - name: Format
+        run: uv run ruff format --check src tests scripts
+
+      - name: Lint
+        run: uv run ruff check src tests scripts
+
+      - name: Types
+        run: uv run ty check src tests scripts
+
+      - name: Tests
+        run: uv run pytest
