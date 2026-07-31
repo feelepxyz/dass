@@ -1,8 +1,10 @@
 # managed by the setup-git-hooks skill — re-run it to change hooks
 # regenerate: bash ~/.agents/skills/setup-git-hooks/setup-git-hooks.sh --apply --accept
 
-# .agents/ is vendored skill code, build/ and .cache/ are generated. Hooks that
-# rewrite files must not touch any of them.
+# HAND EDIT — the skill does not carry this line through a regenerate, and it
+# drops out silently. Put it back after any re-run.
+# .agents/ is vendored skill code, build/ and .cache/ are generated, and all
+# three are tracked. Hooks that rewrite files must not touch any of them.
 exclude = "^(\\.agents|build|\\.cache)/"
 
 [[repos]]
@@ -49,6 +51,33 @@ stages = ["pre-commit"]
 repo = "local"
 
 [[repos.hooks]]
+id = "ruff-format"
+name = "ruff-format"
+language = "system"
+entry = "uv run ruff format --check"
+files = "\\.py$"
+pass_filenames = false
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "ruff"
+name = "ruff"
+language = "system"
+entry = "uv run ruff check"
+files = "\\.py$"
+pass_filenames = false
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "pytest"
+name = "pytest"
+language = "system"
+entry = "uv run pytest"
+files = "\\.py$"
+pass_filenames = false
+stages = ["pre-push"]
+
+[[repos.hooks]]
 id = "shellcheck"
 name = "shellcheck"
 language = "system"
@@ -58,10 +87,10 @@ pass_filenames = true
 stages = ["pre-commit"]
 
 [[repos.hooks]]
-id = "unittest"
-name = "unittest"
+id = "ty"
+name = "ty"
 language = "system"
-entry = "uv run python -m unittest discover"
+entry = "uv run ty check src tests scripts"
 files = "\\.py$"
 pass_filenames = false
-stages = ["pre-push"]
+stages = ["pre-commit"]
