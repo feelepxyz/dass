@@ -11,5 +11,11 @@ __pycache__/
 web/render/node_modules/
 
 .wrangler
-.pytest_cache
 .impeccable
+
+# Tool caches and coverage data
+.pytest_cache
+.ruff_cache
+.coverage
+.coverage.*
+htmlcov/

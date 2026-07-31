@@ -26,3 +26,30 @@ packages = ["src/dass"]
 
 [tool.uv]
 package = true
+
+# Pinned exactly. ty is pre-1.0 and ruff changes its formatter between minor
+# releases, so an unpinned upgrade would break the hooks and CI on an
+# unrelated commit. Bump these deliberately, in their own change.
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "ruff==0.16.1",
+    "ty==0.0.65",
+]
+
+# `.agents/` is vendored skill code. `build/` and `.cache/` are generated.
+# None of them are ours to lint, type-check, or test.
+[tool.ruff]
+extend-exclude = [".agents", "build", ".cache"]
+
+[tool.ty.src]
+exclude = [".agents", "build", ".cache"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers --strict-config"
+
+[tool.coverage.run]
+source = ["src/dass", "scripts"]
+branch = true
