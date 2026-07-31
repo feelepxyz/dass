@@ -1,0 +1,67 @@
+# managed by the setup-git-hooks skill — re-run it to change hooks
+# regenerate: bash ~/.agents/skills/setup-git-hooks/setup-git-hooks.sh --apply --accept
+
+# .agents/ is vendored skill code, build/ and .cache/ are generated. Hooks that
+# rewrite files must not touch any of them.
+exclude = "^(\\.agents|build|\\.cache)/"
+
+[[repos]]
+repo = "builtin"
+
+[[repos.hooks]]
+id = "trailing-whitespace"
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "end-of-file-fixer"
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "check-merge-conflict"
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "detect-private-key"
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "check-added-large-files"
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "mixed-line-ending"
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "check-yaml"
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "check-json"
+exclude = "(^|/)(tsconfig|jsconfig|devcontainer)\\.json$|(^|/)\\.vscode/"
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "check-toml"
+stages = ["pre-commit"]
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "shellcheck"
+name = "shellcheck"
+language = "system"
+entry = "shellcheck"
+files = "\\.(sh|bash)$"
+pass_filenames = true
+stages = ["pre-commit"]
+
+[[repos.hooks]]
+id = "unittest"
+name = "unittest"
+language = "system"
+entry = "uv run python -m unittest discover"
+files = "\\.py$"
+pass_filenames = false
+stages = ["pre-push"]

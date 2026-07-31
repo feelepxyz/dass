@@ -1,0 +1,29 @@
+# managed by the setup-worktrunk skill — re-run it to change the layout
+# regenerate: bash ~/.agents/skills/setup-worktrunk/setup-worktrunk.sh --apply --accept
+
+[[post-start]]
+copy = "wt step copy-ignored"
+
+[[post-start]]
+herdr = '''
+set -eu
+command -v herdr >/dev/null 2>&1 || exit 0
+out=$(herdr worktree open --cwd {{ primary_worktree_path }} --path {{ worktree_path }} --label {{ branch | sanitize }} --no-focus --json) || exit 0
+[ "$(printf %s "$out" | jq -r .result.already_open)" = false ] || exit 0
+ws=$(printf %s "$out" | jq -r .result.workspace.workspace_id)
+p1=$(printf %s "$out" | jq -r .result.root_pane.pane_id)
+herdr pane rename "$p1" 'agent'
+p2=$(herdr pane split --pane "$p1" --direction right --cwd '{{ worktree_path }}' --no-focus | jq -r .result.pane.pane_id)
+herdr pane rename "$p2" 'guide'
+herdr pane run "$p2" 'uv run serve-guide --no-open'
+herdr pane run "$p1" 'claude'
+herdr workspace focus "$ws"
+'''
+
+[pre-remove]
+herdr = '''
+set -eu
+command -v herdr >/dev/null 2>&1 || exit 0
+ws=$(herdr worktree list --cwd {{ worktree_path }} --json | jq -r --arg p {{ worktree_path }} '.result.worktrees[] | select(.path==$p) | .open_workspace_id')
+[ -n "$ws" ] && [ "$ws" != null ] && herdr workspace close "$ws" || true
+'''

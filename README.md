@@ -64,6 +64,34 @@ uv run dass --set width=1050 --set seat_depth=550
 uv run render-photo --views open-hero --skip-build
 ```
 
+## Git hooks
+
+`prek` checks each commit and runs the tests before each push:
+
+```sh
+prek install          # once, after cloning
+prek run --all-files  # run every hook now
+```
+
+The commit hooks cover shell scripts, file hygiene, and YAML, JSON, and TOML
+syntax. The push hook runs the `unittest` suite. They skip `.agents/`, `build/`,
+and `.cache/`, which hold vendored and generated files. Bypass them with
+`git commit --no-verify` when you must.
+
+## Worktrees
+
+`wta <branch>` opens a worktree with the agent and the guide server already
+running, from the hooks in `.config/wt.toml`:
+
+```sh
+wta fix-seat        # new worktree off the default branch
+wt list             # what is checked out where
+wt remove           # tear the worktree and its panes down
+```
+
+The guide pane runs `serve-guide --no-open`. It takes the next free port, so
+several worktrees can serve their own guide at the same time.
+
 ## Model
 
 The current design has a 990 × 815 mm outside envelope. It uses 45 × 45 mm
