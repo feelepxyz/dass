@@ -24,6 +24,37 @@ from .cutlists import (
 )
 
 
+SITE_URL = "https://canaibuildatoiletyet.com"
+SOCIAL_IMAGE_URL = f"{SITE_URL}/web-renders/in-situ-open.jpg"
+
+
+def social_head(title: str, description: str, canonical_path: str = "") -> str:
+    """Return the shared document and social-card metadata for a public page."""
+    canonical = f"{SITE_URL}/{canonical_path}" if canonical_path else f"{SITE_URL}/"
+    title_attr = html.escape(title, quote=True)
+    description_attr = html.escape(description, quote=True)
+    canonical_attr = html.escape(canonical, quote=True)
+    image_attr = html.escape(SOCIAL_IMAGE_URL, quote=True)
+    return f"""  <meta name="description" content="{description_attr}">
+  <link rel="canonical" href="{canonical_attr}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="DASS">
+  <meta property="og:title" content="{title_attr}">
+  <meta property="og:description" content="{description_attr}">
+  <meta property="og:url" content="{canonical_attr}">
+  <meta property="og:image" content="{image_attr}">
+  <meta property="og:image:alt" content="Open timber outdoor toilet in a forest clearing">
+  <meta property="og:image:width" content="1400">
+  <meta property="og:image:height" content="1400">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@feelepxyz">
+  <meta name="twitter:creator" content="@feelepxyz">
+  <meta name="twitter:title" content="{title_attr}">
+  <meta name="twitter:description" content="{description_attr}">
+  <meta name="twitter:image" content="{image_attr}">
+  <meta name="twitter:image:alt" content="Open timber outdoor toilet in a forest clearing">"""
+
+
 PART_NAMES = {
     "front_post_left": "left front post",
     "back_post_left": "left rear post",
@@ -2372,6 +2403,10 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DASS · Working drawing</title>
+{social_head(
+    "DASS · Can AI build a toilet yet?",
+    "An open parametric CAD model, cut list, and interactive workshop guide for a small outdoor toilet.",
+)}
   <script type="importmap">
   {{"imports":{{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/addons/"}}}}
   </script>
@@ -2576,6 +2611,11 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DASS · How it started</title>
+{social_head(
+    "DASS · How it started",
+    "From Hannes Söderquist's outdoor-toilet drawing to a reconciled parametric model with Claude, Codex, and CadQuery.",
+    "how-it-started.html",
+)}
   <style>{STYLE}</style>
 </head>
 <body>
@@ -2673,6 +2713,11 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DASS · How it's going</title>
+{social_head(
+    "DASS · How it's going",
+    "Real-world build notes as the parametric outdoor-toilet drawing becomes labelled timber and workshop units.",
+    "how-its-going.html",
+)}
   <style>{STYLE}</style>
 </head>
 <body>

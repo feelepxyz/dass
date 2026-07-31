@@ -12,6 +12,7 @@ trap 'rm -rf -- "${deploy_dir:?}"' EXIT
 
 cp build/cut-guide.html "$deploy_dir/index.html"
 cp build/cut-guide.html "$deploy_dir/cut-guide.html"
+cp build/how-it-started.html "$deploy_dir/how-it-started.html"
 cp build/how-its-going.html "$deploy_dir/how-its-going.html"
 cp -R build/fonts "$deploy_dir/fonts"
 cp -R build/textures "$deploy_dir/textures"

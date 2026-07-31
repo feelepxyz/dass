@@ -1,5 +1,6 @@
 import unittest
 from collections import Counter
+from html import escape
 
 from dass import Design, build
 from dass.build_guide import (
@@ -138,6 +139,41 @@ class BuildGuideTest(unittest.TestCase):
             "Standing in the clearing with the door and roof open.",
             document,
         )
+
+    def test_public_pages_include_canonical_social_metadata(self):
+        pages = (
+            (
+                guide_html(self.design),
+                "https://canaibuildatoiletyet.com/",
+                "DASS · Can AI build a toilet yet?",
+            ),
+            (
+                started_html(),
+                "https://canaibuildatoiletyet.com/how-it-started.html",
+                "DASS · How it started",
+            ),
+            (
+                progress_html(),
+                "https://canaibuildatoiletyet.com/how-its-going.html",
+                "DASS · How it's going",
+            ),
+        )
+
+        for document, canonical, title in pages:
+            self.assertIn(f'<link rel="canonical" href="{canonical}">', document)
+            self.assertIn(
+                f'<meta property="og:title" content="{escape(title, quote=True)}">',
+                document,
+            )
+            self.assertIn(
+                '<meta property="og:image" content="https://canaibuildatoiletyet.com/web-renders/in-situ-open.jpg">',
+                document,
+            )
+            self.assertIn('<meta name="twitter:card" content="summary_large_image">', document)
+            self.assertIn(
+                '<meta name="twitter:site" content="@feelepxyz">',
+                document,
+            )
 
     def test_story_navigation_links_the_drawing_and_progress_pages(self):
         document = guide_html(self.design)
