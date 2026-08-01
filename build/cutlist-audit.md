@@ -17,7 +17,6 @@
 - User reconciliation assigns V1 to four structural uprights, V2 to two door uprights, and D2 to the single door diagonal.
 - The image specifies −36° cuts at both D1 ends and −40° cuts at both D2 ends.
 - CAD quantities are derived from the model, not copied from either reference table.
-- Exact side-frame corner geometry gives D1 = 1210.4 mm and a 38.3° cut.
 - Exact 850 × 950 mm door opening geometry gives D2 = 1274.8 mm and a 41.8° cut.
 
 ## Errors

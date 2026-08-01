@@ -1,7 +1,14 @@
+import math
+
 import pytest
 
+from dass import Design
 from dass.fastening import (
+    Connection,
+    ScrewMark,
     ScrewPath,
+    _diagonal_station,
+    _find_overlaps,
     analyze_frame_fastening,
     fastening_report,
     find_screw_path_collisions,
@@ -102,3 +109,44 @@ def test_report_records_collision_result_and_angle_check(design):
     assert "6 × 90 mm sunk wood screws" in report
     assert "2.8 × 60 mm nails or 6 × 60 mm sunk wood screws" in report
     assert "Do not use the cladding fastener pattern" in report
+
+
+def test_a_diagonal_the_schedule_cannot_place_names_itself(design):
+    # Every diagonal gets its station from an explicit brace-by-brace rule. A
+    # new brace added to CONNECTIONS without a matching rule would otherwise
+    # take whichever station fell through, and be off by the setback.
+    unplaceable = Connection("front_post_left", "roof_brace", "y", 0.0, diagonal=True)
+
+    with pytest.raises(ValueError, match="unknown diagonal connection"):
+        _diagonal_station(design, unplaceable)
+
+
+def test_two_marks_closer_than_the_spacing_minimum_are_reported_as_one_overlap():
+    # Same beam pair and same face, 12 mm apart across the station and lane
+    # axes together, which is inside the 20 mm minimum.
+    def mark(code: str, station: float, lane: float) -> ScrewMark:
+        return ScrewMark(
+            code, "front_post_left", "left_bottom", "y", station, 0.0, lane
+        )
+
+    crowded = (mark("A", 100.0, 0.0), mark("B", 109.0, 8.0))
+
+    assert _find_overlaps(crowded) == (("A", "B", almost(math.hypot(9.0, 8.0))),)
+    # A mark on a different face at the same station is a different joint.
+    apart = (
+        mark("A", 100.0, 0.0),
+        ScrewMark("C", "front_post_left", "left_bottom", "z", 100.0, 0.0, 0.0),
+    )
+    assert _find_overlaps(apart) == ()
+
+
+def test_a_schedule_naming_a_beam_the_model_does_not_build_is_rejected(monkeypatch):
+    # The schedule is written by hand against the model's beam names, so a
+    # rename in model.py must fail loudly here rather than silently drop screws.
+    monkeypatch.setattr(
+        "dass.fastening.CONNECTIONS",
+        (Connection("front_post_left", "no_such_beam", "y", 100.0),),
+    )
+
+    with pytest.raises(ValueError, match=r"missing frame beams: \['no_such_beam'\]"):
+        analyze_frame_fastening(Design())

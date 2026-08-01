@@ -1,6 +1,7 @@
 import csv
 import re
 from collections import Counter
+from dataclasses import replace
 
 import pytest
 
@@ -162,3 +163,62 @@ def test_raspont_coverage_leaves_trim_and_side_walls_are_gang_cut(design, boards
             and piece.finished_long > piece.finished_short
             for piece in panel
         )
+
+
+def test_profile_reads_as_a_stock_profile_label():
+    assert CutPiece("beam", 1000, 45, 45).profile == "45x45"
+    assert CutPiece("board", 1000, 120, 23).profile == "120x23"
+
+
+def test_panel_stock_plan_rejects_pieces_without_two_equal_gang_cut_sets():
+    with pytest.raises(ValueError, match="two equal side-panel sets"):
+        panel_stock_plan([CutPiece("square", 900, 45, 45)])
+
+
+def test_panel_stock_plan_rejects_gang_cut_blanks_of_different_lengths():
+    pieces = [
+        CutPiece("l1", 100, 120, 23, gang_cut="left_wall", code="L1"),
+        CutPiece("l2", 100, 120, 23, gang_cut="left_wall", code="L2"),
+        CutPiece("r1", 200, 120, 23, gang_cut="right_wall", code="R1"),
+        CutPiece("r2", 200, 120, 23, gang_cut="right_wall", code="R2"),
+    ]
+    with pytest.raises(ValueError, match="must share one length"):
+        panel_stock_plan(pieces)
+
+
+def test_panel_stock_plan_rejects_a_batch_that_cannot_be_compacted_to_fit(boards):
+    # Every side board is close to the 1175 mm door height, so a stock only
+    # just longer than one board leaves no room to compact a dozen of them
+    # down to a single length.
+    with pytest.raises(ValueError, match="do not fit 1 stock lengths"):
+        panel_stock_plan(boards, stock_length=1200, stock_limit=1)
+
+
+def test_board_count_corrects_a_float_rounding_shortfall_at_extreme_scale():
+    """`board_count` proves, by construction, that its naive board count
+    always leaves at least `minimum_end_trim`; the `+ 1` correction exists
+    only to guard against float64 rounding noise in that proof, which needs
+    values far outside any real råspont job to actually surface. At the
+    literal defaults (mm-scale spans), the correction is unreachable; at
+    these extreme magnitudes it fires, and this is that one case."""
+    cover_width = 897197477.5240914
+    board_width = 1026241448.6234032
+    minimum_end_trim = 139895398.22695148
+    span = 76250934162.42014
+    design = replace(Design(), width=span)
+
+    pieces = cladding_pieces(
+        design,
+        board_width=board_width,
+        cover_width=cover_width,
+        minimum_end_trim=minimum_end_trim,
+    )
+
+    door = [piece for piece in pieces if piece.name.startswith("door_")]
+    # The naive ceil() count for this span leaves a trim a hair under the
+    # minimum once rounded in float64; without the correction this would be
+    # 85 boards and would violate `minimum_end_trim`.
+    assert len(door) == 86
+    trim = door[0].panel_end_trim
+    assert trim is not None
+    assert trim >= minimum_end_trim

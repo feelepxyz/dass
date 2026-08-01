@@ -688,3 +688,15 @@ def test_no_part_overlaps_another_except_hinge_pins(door_angle, roof_lift_angle)
     for design in VARIANT_DESIGNS.values():
         _, parts = build(design, door_angle=door_angle, roof_lift_angle=roof_lift_angle)
         assert clashes(parts) == []
+
+
+def test_plan_grid_width_matches_the_post_to_post_grid(design):
+    assert design.plan_grid_width == design.width - design.frame == 945
+
+
+def test_roof_invisible_omits_only_the_metal_sheet(design):
+    _, parts = build(design, roof_visible=False)
+    names = {part.name for part in parts}
+    assert "roof" not in names
+    # The hinged frame the sheet sits on is still modelled and fastened.
+    assert {"roof_front", "roof_back", "roof_left", "roof_right"} <= names

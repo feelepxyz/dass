@@ -31,6 +31,7 @@ import errno
 import http.server
 import importlib.util
 import io
+import socketserver
 import subprocess
 import sys
 import threading
@@ -40,6 +41,8 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import cache, partial
 from pathlib import Path
+from types import ModuleType
+from typing import BinaryIO
 from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -57,7 +60,7 @@ POLL_SECONDS = 25.0
 
 
 @cache
-def staging():
+def staging() -> ModuleType:
     """The asset stager, loaded by path: `scripts/` is not an importable package."""
     source = ROOT / "scripts/build_web_assets.py"
     spec = importlib.util.spec_from_file_location("build_web_assets", source)
@@ -255,10 +258,17 @@ def inject(page: bytes, build_count: int) -> bytes:
 class Guide(http.server.SimpleHTTPRequestHandler):
     """Serves `build/`, holding `/__build` open until the next build lands."""
 
-    def __init__(self, *args, builds: Builds, **kwargs) -> None:
+    def __init__(
+        self,
+        request: socketserver._RequestType,
+        client_address: tuple[str, int] | str,
+        server: socketserver.BaseServer,
+        *,
+        builds: Builds,
+    ) -> None:
         # The base class runs the whole request from its constructor.
         self.builds = builds
-        super().__init__(*args, directory=str(BUILD), **kwargs)
+        super().__init__(request, client_address, server, directory=str(BUILD))
 
     def do_GET(self) -> None:
         if urlparse(self.path).path == "/__build":
@@ -277,7 +287,7 @@ class Guide(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def send_head(self):
+    def send_head(self) -> io.BytesIO | BinaryIO | None:
         page = Path(self.translate_path(self.path))
         if page.suffix != ".html" or not page.is_file():
             return super().send_head()
@@ -290,7 +300,7 @@ class Guide(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         return io.BytesIO(body)
 
-    def log_request(self, code="-", size="-") -> None:
+    def log_request(self, code: int | str = "-", size: int | str = "-") -> None:
         # A rebuild re-fetches every asset; only a failure is worth a line.
         if isinstance(code, int) and code >= 400:
             super().log_request(code, size)

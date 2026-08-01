@@ -10,6 +10,13 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Only the projection helpers name a CadQuery solid, and they are typed
+    # rather than imported at runtime: the guide is drawn from geometry the
+    # caller already built, so this module never touches cadquery itself.
+    import cadquery as cq
 
 from .cutlists import (
     BEAM_CODES,
@@ -182,7 +189,9 @@ def stock_bar(
     </article>"""
 
 
-def _ordered_batches(groups):
+def _ordered_batches(
+    groups: dict[tuple[float, float | None], list[CutPiece]],
+) -> list[tuple[tuple[float, float | None], list[CutPiece]]]:
     """Longest first, mitred batches before square ones."""
     return sorted(
         groups.items(),
@@ -286,7 +295,7 @@ def convex_hull(points: list[Point]) -> list[Point]:
     return half(ordered) + half(ordered[::-1])
 
 
-def outline(solid, view: View) -> list[Point]:
+def outline(solid: cq.Shape, view: View) -> list[Point]:
     """Exact projected profile of one part.
 
     Almost every part is a prism square to the plate, so its own largest face
@@ -307,7 +316,9 @@ def outline(solid, view: View) -> list[Point]:
     return convex_hull([view(vertex.toTuple()) for vertex in solid.Vertices()])
 
 
-def cross_section(solid, view: View, cut: float, slab: float = 0.4) -> list[Point]:
+def cross_section(
+    solid: cq.Shape, view: View, cut: float, slab: float = 0.4
+) -> list[Point]:
     """Profile where a cutting plane square to the plate crosses one part."""
     box = solid.BoundingBox()
     lows = [box.xmin - 1, box.ymin - 1, box.zmin - 1]
@@ -333,7 +344,7 @@ class Plate:
 
     def __init__(
         self, shapes: list[list[Point]], margin: float = 62.0, pad: float = 0.0
-    ):
+    ) -> None:
         points = [point for shape in shapes for point in shape]
         self.umin = min(u for u, _ in points)
         self.vmin = min(v for _, v in points)
@@ -1457,7 +1468,7 @@ def bounds(shape: list[Point]) -> tuple[float, float, float, float]:
 def draw_field(
     plate: Plate,
     profile: list[Point],
-    solid,
+    solid: cq.Shape,
     panel: Panel,
     view: View,
     uid: str,

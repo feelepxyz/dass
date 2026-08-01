@@ -103,9 +103,6 @@ def main() -> None:
         "- CAD quantities are derived from the model, not copied from either reference table."
     )
     lines.append(
-        "- Exact side-frame corner geometry gives D1 = 1210.4 mm and a 38.3° cut."
-    )
-    lines.append(
         "- Exact 850 × 950 mm door opening geometry gives D2 = 1274.8 mm and a 41.8° cut."
     )
     if errors:

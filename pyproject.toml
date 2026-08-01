@@ -53,3 +53,16 @@ addopts = "--strict-markers --strict-config"
 [tool.coverage.run]
 source = ["src/dass", "scripts"]
 branch = true
+
+# The whole measured set is covered, so the gate is binary rather than a
+# ratchet: nothing here is omitted, and there is no `# pragma: no cover` in
+# the tree. Both are deliberate. An omission is the easy way to hold this
+# number up while coverage quietly rots, so anything added to `omit` needs a
+# stated reason that survives being argued with -- needing a live browser,
+# needing the network, needing a real bound port or subprocess, or being a
+# third-party shim. "It is a CLI entry point" is not one: every `main()` here
+# is reached through argv injection, and every `if __name__ == "__main__":`
+# guard through `runpy` or a `SourceFileLoader`.
+[tool.coverage.report]
+fail_under = 100
+show_missing = true

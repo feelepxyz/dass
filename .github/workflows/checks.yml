@@ -43,6 +43,20 @@ jobs:
       # here rather than resolving to something nobody tested.
       - run: uv sync --frozen
 
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/render/package-lock.json
+
+      # The viewer is served from files copied out of the installed three
+      # package, so the suite checks that tree's real layout. `npm ci` rather
+      # than `npm install` for the same reason as `uv sync --frozen`: it
+      # installs the locked versions and fails on a stale lock file.
+      - name: Install the render dependencies
+        run: npm ci
+        working-directory: web/render
+
       - name: Format
         run: uv run ruff format --check src tests scripts
 

@@ -3,17 +3,25 @@ from html import escape
 
 import pytest
 
-from dass import Design
+from dass import Design, box_at
 from dass.build_guide import (
+    DEFAULT_ATLAS,
     FRONT,
     GALLERY,
+    LEFT,
     PLAN,
+    Panel,
+    Plate,
+    convex_hull,
     cross_section,
+    cut_batches,
+    draw_field,
     fmt,
     guide_html,
     module_plates,
     outline,
     panels,
+    plank_atlas,
     progress_html,
     started_html,
     viewer_parts,
@@ -527,3 +535,93 @@ def test_viewer_parts_carry_the_material_the_timber_pipeline_reads(design, board
     assert data["roof_hinge_pin"]["material"] == "metal"
     assert data["front_post_left"]["material"] == "wood"
     assert all(part["material"] for part in data.values())
+
+
+def test_cut_batches_can_drop_the_gang_cut_side_panels_from_the_table(design, boards):
+    # The side fields are batched separately in their own gang-cut table, so
+    # the shared square-cut table can be asked to exclude them.
+    stock_lookup = {piece.code: "P01" for piece in boards}
+    with_gang = cut_batches(boards, stock_lookup, design)
+    without_gang = cut_batches(boards, stock_lookup, design, include_gang=False)
+
+    assert "LSC1" in with_gang and "RSC1" in with_gang
+    assert "LSC1" not in without_gang and "RSC1" not in without_gang
+    # A non-gang-cut code is unaffected either way.
+    assert "DCB1" in with_gang
+    assert "DCB1" in without_gang
+
+
+def test_cross_section_returns_nothing_outside_the_solids_extent(by_name):
+    post = by_name["front_post_left"].solid.BoundingBox()
+    assert cross_section(by_name["front_post_left"].solid, PLAN, post.zmax + 1000) == []
+
+
+def test_convex_hull_returns_fewer_than_three_points_unchanged():
+    # A hull needs three points to enclose anything; below that there is
+    # nothing to wrap, so the point (or pair) is handed back as-is.
+    assert convex_hull([(0, 0)]) == [(0, 0)]
+    assert convex_hull([(0, 0), (1, 1)]) == [(0, 0), (1, 1)]
+
+
+def test_outline_falls_back_to_the_convex_hull_for_a_cylindrical_end_face(by_name):
+    # The hinge pin is a cylinder along x; viewed along that same axis (LEFT),
+    # its flat end faces read as "square" but each is a circle whose wire
+    # carries a single vertex, too few to return directly. outline() then
+    # falls back to the hull of every vertex on the solid, exactly like
+    # convex_hull() applied to the raw vertex list.
+    pin = by_name["roof_hinge_pin"].solid
+    expected = convex_hull([LEFT(vertex.toTuple()) for vertex in pin.Vertices()])
+    assert outline(pin, LEFT) == expected
+
+
+def test_plate_shape_skips_polygons_with_fewer_than_three_points():
+    plate = Plate([[(0, 0), (10, 10)]])
+    before = list(plate.body)
+
+    plate.shape([(0, 0), (5, 5)], "field")
+
+    assert plate.body == before
+
+
+def test_plate_dim_omits_the_label_when_no_measure_text_is_given():
+    plate = Plate([[(0, 0), (10, 10)]])
+
+    plate.dim((0, 0), (0, 10), 5, text="")  # vertical
+    plate.dim((0, 0), (10, 0), 5, text="")  # horizontal
+
+    assert not any("dim-text" in markup for markup in plate.body)
+
+
+def test_plank_atlas_falls_back_to_the_default_without_a_render_manifest(tmp_path):
+    assert plank_atlas(tmp_path) == DEFAULT_ATLAS
+
+
+def test_draw_field_rejects_a_panel_whose_axis_is_not_the_views_span_axis():
+    panel = Panel(
+        "door_panel", "DCB", "Door field", 0, (CutPiece("door_1", 900, 120, 23),)
+    )
+
+    # LEFT looks along the side walls (u_axis=1); a door-style panel (axis=0)
+    # can never be the field drawn in that view. The raise happens before
+    # `plate` or `solid` are read, so stand-ins for both are enough.
+    stand_in = Plate([[(0.0, 0.0), (1.0, 1.0)]])
+    with pytest.raises(ValueError, match="must be visible in the unit view"):
+        draw_field(stand_in, [], box_at(0, 0, 0, 1, 1, 1), panel, LEFT, "test-field")
+
+
+def test_draw_field_uses_the_full_profile_when_the_terminal_edge_has_no_match():
+    panel = Panel(
+        "door_panel", "DCB", "Door field", 0, (CutPiece("door_1", 900, 120, 23),)
+    )
+    solid = box_at(0, 0, 0, 120, 10, 10)
+    # Only the point at u=120 (the panel's computed terminal edge) is a real
+    # corner; fewer than two points land there, so the trim height must fall
+    # back to the whole profile's v-range (0 to 100), not just that one point.
+    profile = [(0.0, 0.0), (0.0, 5.0), (120.0, 100.0)]
+    plate = Plate([profile])
+
+    draw_field(plate, profile, solid, panel, FRONT, "test-field", label=False)
+
+    trim_path = next(markup for markup in plate.body if 'class="trim"' in markup)
+    assert f"{plate.y(0):.1f}" in trim_path
+    assert f"{plate.y(100):.1f}" in trim_path
