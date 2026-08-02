@@ -19,8 +19,9 @@ closed model, the unit drawings, and the workshop cut sequence.
 
 ## Current release
 
-Version `0.1.3` matches the interactive model's perspective, scale, and position
-to the in-situ render beside it. Read the [full changelog](CHANGELOG.md).
+Version `0.1.4` centres terminal-board cladding screws on the material left after
+trimming and keeps the fixing marks clear of beam-screw paths. Read the
+[full changelog](CHANGELOG.md).
 
 ## Run the guide
 
@@ -248,6 +249,6 @@ screenshots, inspection records, and evolution images.
 
 ## Model changelog
 
-Version 0.1.3 (2026-08-02) matches the interactive model viewport to the in-situ
-render beside it. Read the [full changelog](CHANGELOG.md) for the dated model
-history.
+Version 0.1.4 (2026-08-02) centres terminal cladding fixings after trimming and
+keeps them clear of beam-screw paths. Read the [full changelog](CHANGELOG.md)
+for the dated model history.

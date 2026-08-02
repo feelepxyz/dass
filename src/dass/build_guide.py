@@ -32,9 +32,12 @@ from .cutlists import (
 )
 from .fastening import (
     HARDWARE_SCHEDULE,
+    SCREW_LANES_MM,
+    SCREW_PATH_CLEARANCE_MM,
     FasteningAnalysis,
     ScrewMark,
     analyze_frame_fastening,
+    screw_path_distance,
 )
 from .model import Design, box_at, build, side_panel
 
@@ -761,6 +764,42 @@ class Panel:
     @property
     def codes(self) -> str:
         return f"{self.pieces[0].code}–{self.pieces[-1].code}"
+
+
+@dataclass(frozen=True)
+class CladdingScrewMark:
+    """One cladding fixing located on its finished board and support beam."""
+
+    board_code: str
+    row_member: str
+    point: tuple[float, float, float]
+    frame_clearance: float
+
+
+@dataclass(frozen=True)
+class CladdingScrewRow:
+    """One adjusted fixing row and its collision-checked board marks."""
+
+    member_name: str
+    station: float
+    marks: tuple[CladdingScrewMark, ...]
+
+
+def cladding_board_spans(panel: Panel, start: float = 0.0) -> list[tuple[float, float]]:
+    """Return the actual material span of each board after the field trim."""
+    field_end = start + panel.span
+    return [
+        (
+            start + index * COVER_WIDTH,
+            min(start + index * COVER_WIDTH + BOARD_WIDTH, field_end),
+        )
+        for index in range(panel.count)
+    ]
+
+
+def cladding_board_centres(panel: Panel, start: float = 0.0) -> list[float]:
+    """Return centres of the finished board material, including the end trim."""
+    return [(low + high) / 2 for low, high in cladding_board_spans(panel, start)]
 
 
 PANEL_SPECS = (
@@ -1957,9 +1996,10 @@ def draw_cladding_codes(
     while angle <= -90:
         angle += 180
 
-    for index, piece in enumerate(panel.pieces):
+    centres = cladding_board_centres(panel, lows[panel.axis])
+    for centre, piece in zip(centres, panel.pieces):
         point = [0.0, 0.0, 0.0]
-        point[panel.axis] = lows[panel.axis] + index * COVER_WIDTH + BOARD_WIDTH / 2
+        point[panel.axis] = centre
         point[run] = (lows[run] + highs[run]) / 2
         point[view.depth_axis] = depth
         plate.label(
@@ -2359,6 +2399,132 @@ def seat_installation_perspective(
     )
 
 
+def _cladding_frame_paths(
+    member_name: str,
+    parts: dict[str, cq.Shape],
+    fastening: FasteningAnalysis,
+    design: Design,
+) -> tuple[tuple[tuple[float, float, float], tuple[float, float, float]], ...]:
+    """Return frame screw paths which pass through one cladding support."""
+    return tuple(
+        _drawing_screw_path(
+            parts[mark.into_beam],
+            parts[mark.from_beam],
+            mark,
+            design,
+        )
+        for mark in fastening.screws
+        if member_name in {mark.from_beam, mark.into_beam}
+    )
+
+
+def cladding_screw_layout(
+    solid: cq.Shape,
+    panel: Panel,
+    view: View,
+    parts: dict[str, cq.Shape],
+    row_members: tuple[str, str],
+    fastening: FasteningAnalysis,
+    design: Design,
+) -> tuple[CladdingScrewRow, ...]:
+    """Place cladding fixings on finished boards clear of frame screw paths."""
+    box = solid.BoundingBox()
+    lows = (box.xmin, box.ymin, box.zmin)
+    highs = (box.xmax, box.ymax, box.zmax)
+    run = ({view.u_axis, view.v_axis} - {panel.axis}).pop()
+    depth = (lows[view.depth_axis] + highs[view.depth_axis]) / 2
+    spans = cladding_board_spans(panel, lows[panel.axis])
+    field_centre = lows[panel.axis] + panel.span / 2
+    rows: list[CladdingScrewRow] = []
+
+    for member_name in row_members:
+        member = parts[member_name].BoundingBox()
+        member_low, member_high = _box_axis(member, run)
+        member_depth_low, member_depth_high = _box_axis(member, view.depth_axis)
+        member_centre = (member_low + member_high) / 2
+        panel_run_centre = (lows[run] + highs[run]) / 2
+        lane_stations = (
+            member_low + SCREW_LANES_MM[0],
+            member_low + SCREW_LANES_MM[-1],
+        )
+        row_stations = (member_centre,) + tuple(
+            sorted(
+                lane_stations,
+                key=lambda station: abs(station - panel_run_centre),
+            )
+        )
+        frame_paths = _cladding_frame_paths(member_name, parts, fastening, design)
+
+        def frame_clearance(
+            across: float,
+            station: float,
+            paths: tuple[
+                tuple[tuple[float, float, float], tuple[float, float, float]], ...
+            ] = frame_paths,
+            depth_low: float = member_depth_low,
+            depth_high: float = member_depth_high,
+        ) -> float:
+            if not paths:
+                return math.inf
+            start = [0.0, 0.0, 0.0]
+            end = [0.0, 0.0, 0.0]
+            start[panel.axis] = end[panel.axis] = across
+            start[run] = end[run] = station
+            start[view.depth_axis] = depth_low
+            end[view.depth_axis] = depth_high
+            path_start = (start[0], start[1], start[2])
+            path_end = (end[0], end[1], end[2])
+            return min(
+                screw_path_distance(path_start, path_end, screw_start, screw_end)
+                for screw_start, screw_end in paths
+            )
+
+        def candidates(low: float, high: float) -> list[float]:
+            centre = (low + high) / 2
+            edge_margin = min(BOARD_WIDTH - COVER_WIDTH, (high - low) / 2)
+            lower = low + edge_margin
+            upper = high - edge_margin
+            direction = 1 if centre < field_centre else -1
+            values = [centre]
+            for delta in range(1, math.ceil(high - low) + 1):
+                values.extend((centre + direction * delta, centre - direction * delta))
+            return [value for value in values if lower <= value <= upper]
+
+        for station in dict.fromkeys(row_stations):
+            marks: list[CladdingScrewMark] = []
+            for piece, (board_low, board_high) in zip(panel.pieces, spans):
+                choice = next(
+                    (
+                        (across, clearance)
+                        for across in candidates(board_low, board_high)
+                        if (clearance := frame_clearance(across, station))
+                        >= SCREW_PATH_CLEARANCE_MM
+                    ),
+                    None,
+                )
+                if choice is None:
+                    break
+                across, clearance = choice
+                point = [0.0, 0.0, 0.0]
+                point[panel.axis] = across
+                point[run] = station
+                point[view.depth_axis] = depth
+                marks.append(
+                    CladdingScrewMark(
+                        piece.code,
+                        member_name,
+                        (point[0], point[1], point[2]),
+                        clearance,
+                    )
+                )
+            if len(marks) == panel.count:
+                rows.append(CladdingScrewRow(member_name, station, tuple(marks)))
+                break
+        else:
+            raise ValueError(f"no collision-free cladding screw row on {member_name}")
+    return tuple(rows)
+
+
 def draw_cladding_screws(
     plate: Plate,
     profile: list[Point],
@@ -2367,6 +2533,8 @@ def draw_cladding_screws(
     view: View,
     parts: dict[str, cq.Shape],
     row_members: tuple[str, str],
+    fastening: FasteningAnalysis,
+    design: Design,
 ) -> None:
     """Draw two model-backed screw rows through every board in a field."""
     start = len(plate.body)
@@ -2375,10 +2543,6 @@ def draw_cladding_screws(
     highs = (box.xmax, box.ymax, box.zmax)
     depth = (lows[view.depth_axis] + highs[view.depth_axis]) / 2
     run = ({view.u_axis, view.v_axis} - {panel.axis}).pop()
-    board_centres = [
-        lows[panel.axis] + index * COVER_WIDTH + BOARD_WIDTH / 2
-        for index in range(panel.count)
-    ]
     field_start = lows[panel.axis]
     field_end = field_start + panel.span
     field_bounds = bounds(profile)
@@ -2392,10 +2556,17 @@ def draw_cladding_screws(
         if run_world_axis == 2
         else ("REAR", "FRONT")
     )
-    for member_name in row_members:
-        member = parts[member_name].BoundingBox()
-        member_low, member_high = _box_axis(member, run)
-        row = (member_low + member_high) / 2
+    layout = cladding_screw_layout(
+        solid,
+        panel,
+        view,
+        parts,
+        row_members,
+        fastening,
+        design,
+    )
+    for screw_row in layout:
+        row = screw_row.station
 
         def at(across: float, row_value: float = row) -> Point:
             point = [0.0, 0.0, 0.0]
@@ -2407,8 +2578,8 @@ def draw_cladding_screws(
 
         line_start, line_end = at(field_start), at(field_end)
         plate.line(line_start, line_end, "screw-guide")
-        for centre in board_centres:
-            plate.screw(at(centre), (0.0, 0.0), line=False)
+        for mark in screw_row.marks:
+            plate.screw(view(mark.point), (0.0, 0.0), line=False)
 
         row_projected = line_start[run_projected_axis]
         edge = min(
@@ -2459,6 +2630,8 @@ def draw_unit_screws(
             view,
             parts,
             row_members,
+            fastening,
+            design,
         )
 
 
@@ -2724,6 +2897,8 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
         PLAN,
         parts,
         ("front_bottom", "floor_back_support"),
+        fastening,
+        design,
     )
     field_box = bounds(shapes["floor"])
     rail = bounds(shapes["front_bottom"])
@@ -2886,6 +3061,8 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
         FRONT,
         parts,
         members,
+        fastening,
+        design,
     )
     field_box = bounds(shapes["seat_front"])
     plate.dim(
@@ -4037,10 +4214,11 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
 
   <section class="sheet" id="progress">
     <div class="sheet-head"><span class="sheet-no">Field notes 01</span><h2>How it's going</h2></div>
-    <p class="sheet-note">Model 0.1.3 · the interactive model now matches the in-situ render beside it.</p>
+    <p class="sheet-note">Model 0.1.4 · cladding fixings are centred after trimming and clear the beam screws.</p>
     <div class="note model-changelog">
       <h3>Model changelog</h3>
       <ul>
+        <li><time datetime="2026-08-02">2026-08-02 · 0.1.4</time> Terminal-board cladding fixings are centred after trimming, and edge fixings clear the modeled beam-screw paths.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.3</time> The interactive line, textured, fallback, and print views share the in-situ render's perspective, scale, and position.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.2</time> Stack H carries all eight beam screws, and Stack J plus the final open SVG use the same model-aligned isometric projection.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.1</time> Seat-top boards run across the removable box, with outer supports and two additional frame screws, to improve integrity around the opening.</li>

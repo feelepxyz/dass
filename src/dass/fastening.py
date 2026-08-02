@@ -463,7 +463,7 @@ def _point_segment_distance(
     return math.sqrt(_dot(delta, delta))
 
 
-def _segment_distance(
+def screw_path_distance(
     first_start: tuple[float, float, float],
     first_end: tuple[float, float, float],
     second_start: tuple[float, float, float],
@@ -616,7 +616,7 @@ def find_screw_path_collisions(
         for second in paths[index + 1 :]:
             first_start, first_end = after_source(first)
             second_start, second_end = after_source(second)
-            distance = _segment_distance(
+            distance = screw_path_distance(
                 first_start, first_end, second_start, second_end
             )
             if distance < SCREW_PATH_CLEARANCE_MM:

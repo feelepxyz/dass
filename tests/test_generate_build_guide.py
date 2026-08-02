@@ -13,12 +13,16 @@ from dass.build_guide import (
     GALLERY,
     LEFT,
     PLAN,
+    REAR,
+    RIGHT,
     Panel,
     Plate,
     _drawing_screw_path,
     _face_center,
     _face_normal,
     _target_entry_face,
+    cladding_board_centres,
+    cladding_screw_layout,
     convex_hull,
     cross_section,
     cut_batches,
@@ -41,7 +45,7 @@ from dass.cutlists import (
     pack_stock,
     panel_stock_plan,
 )
-from dass.fastening import analyze_frame_fastening
+from dass.fastening import SCREW_PATH_CLEARANCE_MM, analyze_frame_fastening
 from tests.helpers import almost
 
 
@@ -328,10 +332,9 @@ def test_progress_page_uses_the_same_heading_and_supplied_photos(progress_docume
         "Real-world progress following the drawing to build an outdoor toilet."
         not in document
     )
-    assert (
-        "Model 0.1.3 · the interactive model now matches the in-situ render" in document
-    )
+    assert "Model 0.1.4 · cladding fixings are centred after trimming" in document
     assert "<h3>Model changelog</h3>" in document
+    assert "2026-08-02 · 0.1.4" in document
     assert "2026-08-02 · 0.1.3" in document
     assert "2026-08-02 · 0.1.2" in document
     assert "2026-08-02 · 0.1.1" in document
@@ -464,6 +467,65 @@ def test_cladding_is_trimmed_on_its_unit_after_fixing(guide_document, plates):
     assert "Fix FCB1 to FCB8" in document
     assert "FCB1–FCB8 · 8 boards" not in plates["G"]
     assert "LSH1, RSH1, and BWH1 100 mm above ground" in document
+
+
+def test_cladding_screws_centre_on_trimmed_boards_and_clear_frame_paths(
+    design, boards, by_name
+):
+    parts = {name: part.solid for name, part in by_name.items()}
+    fields = panels(boards)
+    fastening = analyze_frame_fastening(design)
+    units = {
+        "door_panel": (FRONT, ("door_bottom", "door_top")),
+        "left_wall": (LEFT, ("left_bottom", "left_top")),
+        "right_wall": (RIGHT, ("right_bottom", "right_top")),
+        "back_wall": (REAR, ("back_bottom", "back_top")),
+        "floor": (PLAN, ("front_bottom", "floor_back_support")),
+        "seat_top": (
+            PLAN,
+            ("seat_support_outer_left", "seat_support_outer_right"),
+        ),
+        "seat_front": (
+            FRONT,
+            ("seat_floor_support", "seat_box_support_front"),
+        ),
+    }
+    layouts = {
+        name: cladding_screw_layout(
+            parts[name], fields[name], view, parts, members, fastening, design
+        )
+        for name, (view, members) in units.items()
+    }
+
+    assert all(
+        mark.frame_clearance >= SCREW_PATH_CLEARANCE_MM
+        for layout in layouts.values()
+        for row in layout
+        for mark in row.marks
+    )
+
+    floor_centres = cladding_board_centres(fields["floor"], design.interior_x)
+    floor_last = layouts["floor"][0].marks[-1]
+    assert floor_last.board_code == "FCB8"
+    assert floor_last.point[fields["floor"].axis] == almost(floor_centres[-1])
+    assert floor_centres[-1] == almost(880)
+
+    seat_centres = cladding_board_centres(fields["seat_top"], design.seat_front_y)
+    seat_last = layouts["seat_top"][0].marks[-1]
+    assert seat_last.board_code == "STB5"
+    assert seat_last.point[fields["seat_top"].axis] == almost(seat_centres[-1])
+    assert seat_centres[-1] == almost(717)
+
+    side_centres = cladding_board_centres(fields["left_wall"])
+    side_first = layouts["left_wall"][0].marks[0].point[fields["left_wall"].axis]
+    mirrored_first = layouts["right_wall"][0].marks[0].point[fields["right_wall"].axis]
+    assert side_first > side_centres[0]
+    assert abs(side_first - side_centres[1]) < abs(side_centres[0] - side_centres[1])
+    assert mirrored_first == almost(side_first)
+
+    for row in layouts["seat_top"]:
+        member = parts[row.member_name].BoundingBox()
+        assert row.station != (member.xmin + member.xmax) / 2
 
 
 def test_shell_joint_precedes_cladding_only_floor_stack(guide_document, plates):

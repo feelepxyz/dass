@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4 — Cladding screw clearance · 2026-08-02
+
+- Centred cladding fixings on the material left after each field is trimmed,
+  moving FCB8, STB5, and the other terminal-board screws away from cut edges.
+- Shifted edge-board fixing marks and the seat-top screw lanes clear of the
+  modeled beam-screw paths. The left and right side fields now move their first
+  cladding fixings inward toward the second board.
+
 ## 0.1.3 — Matched model viewport · 2026-08-02
 
 - Matched the interactive model's camera, scale, and position to the in-situ
