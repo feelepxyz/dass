@@ -144,7 +144,7 @@ function faceArea(geometry, normal) {
  * normals rather than the bounding box, because the open door arrives rotated
  * about its hinge and its box then says nothing about which way the boards go.
  */
-export function plankFrame(group) {
+export function plankFrame(group, key = '') {
   const normal = new THREE.Vector3();
   const candidate = new THREE.Vector3();
   let widest = 0;
@@ -156,9 +156,13 @@ export function plankFrame(group) {
     }
   }
 
-  // Boards stand upright wherever the panel does; a floor or a seat top lays
-  // them front to back instead. Geometry space is the CAD frame, so Z is up.
-  const along = new THREE.Vector3(0, 0, 1).addScaledVector(normal, -normal.z);
+  // Boards stand upright wherever the panel does. The floor still runs front
+  // to back, while the rotated seat top runs left to right across the box.
+  // Geometry space is the CAD frame, so Z is up.
+  const preferred = key === 'seat_top' && Math.abs(normal.z) > 0.5
+    ? new THREE.Vector3(1, 0, 0)
+    : new THREE.Vector3(0, 0, 1);
+  const along = preferred.addScaledVector(normal, -preferred.dot(normal));
   if (along.lengthSq() < 0.05) along.set(0, 1, 0).addScaledVector(normal, -normal.y);
   along.normalize();
   const across = new THREE.Vector3().crossVectors(normal, along).normalize();
@@ -400,7 +404,7 @@ export function dressModel(root, { parts, textures, plank, atlas }) {
       for (const mesh of group.meshes) {
         if (mesh.geometry.index) mesh.geometry = mesh.geometry.toNonIndexed();
       }
-      frame = plankFrame(group);
+      frame = plankFrame(group, key);
     }
     const extent = group.box.getSize(new THREE.Vector3()).toArray();
     const grainAxis = extent.indexOf(Math.max(...extent));

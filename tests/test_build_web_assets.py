@@ -133,6 +133,23 @@ def test_stage_renders_names_the_missing_render(tmp_path, monkeypatch):
     assert "absent.png" in str(caught.value)
 
 
+def test_stage_renders_preserves_drawing_svgs(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        build_web_assets,
+        "GALLERY",
+        (("Drawing render", (("drawing-open", "Open", ""),)),),
+    )
+    source = tmp_path / "renders"
+    source.mkdir()
+    source_svg = source / "drawing-open.svg"
+    source_svg.write_text('<svg viewBox="0 0 10 10"><path d="M0 0L10 10"/></svg>')
+
+    written = build_web_assets.stage_renders(source, tmp_path / "web-renders")
+
+    assert [path.name for path in written] == ["drawing-open.svg"]
+    assert written[0].read_text() == source_svg.read_text()
+
+
 # Stage progress
 
 
@@ -175,6 +192,55 @@ def test_stage_progress_names_the_missing_photo(tmp_path, monkeypatch):
 
     assert "missing progress photo" in str(caught.value)
     assert "absent.jpg" in str(caught.value)
+
+
+def test_stage_progress_video_copies_the_browser_ready_pair(tmp_path, monkeypatch):
+    monkeypatch.setattr(build_web_assets, "ROOT", tmp_path)
+    progress_dir = tmp_path / "web/media/progress"
+    progress_dir.mkdir(parents=True)
+    for asset in build_web_assets.PROGRESS_VIDEO[:2]:
+        (progress_dir / asset).write_bytes(asset.encode())
+
+    target = tmp_path / "progress"
+    written = build_web_assets.stage_progress_video(target)
+
+    assert [path.name for path in written] == list(build_web_assets.PROGRESS_VIDEO[:2])
+    assert all(path.exists() for path in written)
+
+
+def test_stage_progress_video_names_the_missing_asset(tmp_path, monkeypatch):
+    monkeypatch.setattr(build_web_assets, "ROOT", tmp_path)
+    monkeypatch.setattr(
+        build_web_assets,
+        "PROGRESS_VIDEO",
+        ("missing.mp4", "missing-poster.jpg", "T", "C"),
+    )
+
+    with pytest.raises(SystemExit) as caught:
+        build_web_assets.stage_progress_video(tmp_path / "out")
+
+    assert "missing progress video asset" in str(caught.value)
+    assert "missing.mp4" in str(caught.value)
+
+
+def test_stage_progress_video_removes_local_pair_when_stream_is_configured(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(build_web_assets, "ROOT", tmp_path)
+    monkeypatch.setattr(
+        build_web_assets,
+        "CLOUDFLARE_STREAM_PLAYER_URL",
+        "https://customer-example.cloudflarestream.com/video-uid/iframe",
+    )
+    target = tmp_path / "progress"
+    target.mkdir(parents=True)
+    for asset in build_web_assets.PROGRESS_VIDEO[:2]:
+        (target / asset).write_bytes(b"old local asset")
+
+    assert build_web_assets.stage_progress_video(target) == []
+    assert all(
+        not (target / asset).exists() for asset in build_web_assets.PROGRESS_VIDEO[:2]
+    )
 
 
 # Stage started
@@ -375,6 +441,11 @@ def test_main_stages_every_asset_group_under_the_given_flags_and_reports_a_summa
     )
     monkeypatch.setattr(
         build_web_assets,
+        "PROGRESS_VIDEO",
+        ("video.mp4", "video-poster.jpg", "T", "C"),
+    )
+    monkeypatch.setattr(
+        build_web_assets,
         "STARTED_GALLERY",
         (("started-out.jpg", "started-in.jpg", "T", 20, 10),),
     )
@@ -396,6 +467,8 @@ def test_main_stages_every_asset_group_under_the_given_flags_and_reports_a_summa
     Image.new("RGB", (20, 10), "green").save(
         tmp_path / "web/media/progress/progress-in.jpg"
     )
+    (tmp_path / "web/media/progress/video.mp4").write_bytes(b"video")
+    (tmp_path / "web/media/progress/video-poster.jpg").write_bytes(b"poster")
     Image.new("RGB", (20, 10), "purple").save(tmp_path / "started-in.jpg")
     Image.new("RGB", (20, 10), "blue").save(tmp_path / "texture-in.jpg")
 
@@ -453,9 +526,18 @@ def test_running_as_a_script_fires_the_main_guard_without_touching_the_real_repo
     # `web/render/`.
     for _, views in build_web_assets.GALLERY:
         for name, _, _ in views:
-            _write_placeholder_image(tmp_path / "build/renders" / f"{name}.png")
+            if name in build_web_assets.SVG_RENDERS:
+                path = tmp_path / "build/renders" / f"{name}.svg"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('<svg viewBox="0 0 10 10"/>')
+            else:
+                _write_placeholder_image(tmp_path / "build/renders" / f"{name}.png")
     for _, source_name, _, _ in build_web_assets.PROGRESS_GALLERY:
         _write_placeholder_image(tmp_path / "web/media/progress" / source_name)
+    for asset in build_web_assets.PROGRESS_VIDEO[:2]:
+        video_asset = tmp_path / "web/media/progress" / asset
+        video_asset.parent.mkdir(parents=True, exist_ok=True)
+        video_asset.write_bytes(b"video")
     for _, source_name, _, _, _ in build_web_assets.STARTED_GALLERY:
         _write_placeholder_image(tmp_path / source_name)
     for _, relative, _, _, _ in build_web_assets.WEB_TEXTURES:

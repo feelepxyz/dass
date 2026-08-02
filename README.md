@@ -19,10 +19,8 @@ closed model, the unit drawings, and the workshop cut sequence.
 
 ## Current release
 
-Public release 001 records the `0.1.0` baseline, including the frame fastening
-collision check, finished-frame angle measurement, and workshop stock-end
-clean-up instructions. The current fastening correction is recorded under
-`Unreleased`. Read the [full changelog](CHANGELOG.md).
+Version `0.1.3` matches the interactive model's perspective, scale, and position
+to the in-situ render beside it. Read the [full changelog](CHANGELOG.md).
 
 ## Run the guide
 
@@ -233,6 +231,23 @@ The photoreal renderer writes its generated images and GLB variants to
 from `build/web-renders/` and stages the browser textures, font, vendor modules,
 and model files beside the guide.
 
+The progress page uses the local browser-ready MP4 by default. To use a
+Cloudflare Stream upload instead, export the Stream customer code and video UID
+before building or deploying:
+
+    DASS_CLOUDFLARE_STREAM_CUSTOMER_CODE=... \
+    DASS_CLOUDFLARE_STREAM_VIDEO_ID=... \
+    ./scripts/deploy-cut-guide.sh
+
+When both values are set, the page uses Cloudflare's responsive Stream Player
+iframe and the local video pair is not staged for deployment.
+
 Use `docs/original-drawing/` for supplied drawings and render targets. Use
 `docs/verification/` for retained geometry checks, drawing comparisons, guide
 screenshots, inspection records, and evolution images.
+
+## Model changelog
+
+Version 0.1.3 (2026-08-02) matches the interactive model viewport to the in-situ
+render beside it. Read the [full changelog](CHANGELOG.md) for the dated model
+history.

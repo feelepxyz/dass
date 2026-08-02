@@ -51,6 +51,7 @@ BUILD = ROOT / "build"
 RENDERS = BUILD / "renders"
 RENDERER = ROOT / "web/render"
 PAGE = "cut-guide.html"
+DRAWING_RENDERER = ROOT / "scripts/render-drawing.mjs"
 # The trees a save can land in. Every stage source below sits under one of them,
 # and watchfiles skips node_modules and __pycache__ on its own.
 WATCH = (ROOT / "src", ROOT / "web", ROOT / "scripts", ROOT / "docs")
@@ -122,6 +123,11 @@ def build_models() -> None:
     print(f"Wrote the viewer GLB variants to {RENDERS}")
 
 
+def build_drawing_renders() -> None:
+    """Export the viewer's line finish as static drawing-set SVGs."""
+    subprocess.run(["node", str(DRAWING_RENDERER)], cwd=ROOT, check=True)
+
+
 def stage_assets() -> None:
     call(staging().main)
 
@@ -146,6 +152,11 @@ STAGES = (
     ),
     Stage("pages", build_pages, (SRC,)),
     Stage("models", build_models, (SRC / "model.py",)),
+    Stage(
+        "drawing",
+        build_drawing_renders,
+        (SRC / "build_guide.py", SRC / "model.py", DRAWING_RENDERER),
+    ),
     # The stager reads the gallery tables out of the guide, so a change there
     # can rename or reorder the images it is staging.
     Stage(

@@ -36,6 +36,9 @@ class Connection:
     face: str
     target_station_mm: float
     diagonal: bool = False
+    centered: bool = False
+    position_axis: int | None = None
+    end_offset_mm: float | None = None
 
 
 @dataclass(frozen=True)
@@ -48,6 +51,8 @@ class ScrewMark:
     source_station_mm: float
     lane_mm: float
     diagonal: bool = False
+    centered: bool = False
+    position_axis: int | None = None
 
 
 @dataclass(frozen=True)
@@ -81,10 +86,11 @@ class FasteningAnalysis:
     recommendations: tuple[str, ...]
 
 
-# Each entry is one beam-to-beam connection. Two marks share a connection but
-# use separate lanes across the 45 mm face. Target stations are world-frame z
-# stations for the upright/rail joints; diagonal stations come from the model's
-# set-back endpoints.
+# Each entry is one beam-to-beam connection. The shell and door layouts retain
+# two marks in separate lanes across the 45 mm face. The roof, floor, and seat
+# layouts use one mark at the centre of the receiving beam end. Target stations
+# are world-frame z stations for the upright/rail joints; diagonal stations come
+# from the model's set-back endpoints.
 CONNECTIONS = (
     # Fixed shell frame.
     Connection("front_post_left", "front_bottom", "front", 122.5),
@@ -109,27 +115,131 @@ CONNECTIONS = (
     Connection("back_post_right", "right_brace", "side", 190, True),
     Connection("back_post_left", "back_brace", "rear", 190, True),
     Connection("back_post_right", "back_brace", "rear", 1010, True),
+    # Shell joint: the floor bearers are fitted inside the shell and fixed
+    # through the side/back rails from the interior. Their two marks sit 100 mm
+    # in from each end of the bearer, rather than on the centre of the joint.
+    Connection(
+        "floor_back_support",
+        "back_bottom",
+        "inside-back",
+        0,
+        position_axis=0,
+        end_offset_mm=100,
+    ),
+    Connection(
+        "floor_right_support",
+        "right_bottom",
+        "inside-side",
+        0,
+        position_axis=1,
+        end_offset_mm=100,
+    ),
+    Connection(
+        "floor_left_support",
+        "left_bottom",
+        "inside-side",
+        0,
+        position_axis=1,
+        end_offset_mm=100,
+    ),
+    # The front opening rail is fitted with the shell joint. One centred screw
+    # enters each end from the outside side rail into FBH1.
+    Connection(
+        "left_bottom",
+        "front_bottom",
+        "outside-side",
+        0,
+        centered=True,
+        position_axis=1,
+    ),
+    Connection(
+        "right_bottom",
+        "front_bottom",
+        "outside-side",
+        0,
+        centered=True,
+        position_axis=1,
+    ),
     # Roof frame.
-    Connection("roof_front", "roof_left", "slope-front", 45),
-    Connection("roof_front", "roof_right", "slope-front", 45),
-    Connection("roof_back", "roof_left", "slope-rear", 768),
-    Connection("roof_back", "roof_right", "slope-rear", 768),
-    Connection("roof_middle", "roof_left", "slope-middle", 406),
-    Connection("roof_middle", "roof_right", "slope-middle", 406),
+    Connection("roof_front", "roof_left", "slope-front", 45, centered=True),
+    Connection("roof_front", "roof_right", "slope-front", 45, centered=True),
+    Connection("roof_back", "roof_left", "slope-rear", 768, centered=True),
+    Connection("roof_back", "roof_right", "slope-rear", 768, centered=True),
+    Connection("roof_left", "roof_middle", "slope-middle", 406, centered=True),
+    Connection("roof_right", "roof_middle", "slope-middle", 406, centered=True),
     # Floor bearers.
-    Connection("floor_back_support", "floor_left_support", "top", 612),
-    Connection("floor_back_support", "floor_right_support", "top", 612),
-    Connection("floor_left_support", "front_bottom", "underside", 90),
-    Connection("floor_right_support", "front_bottom", "underside", 810),
-    Connection("floor_left_support", "floor_back_support", "underside", 90),
-    Connection("floor_right_support", "floor_back_support", "underside", 810),
+    Connection("floor_back_support", "floor_right_support", "top", 612, centered=True),
+    Connection("floor_back_support", "floor_left_support", "top", 612, centered=True),
     # Seat box frame. The lower front rail is not in this beam-to-beam schedule;
     # the seat side that fixes it is cladding and uses the separate cladding
     # fasteners.
-    Connection("seat_support_left", "seat_rail_1", "underside", 270),
-    Connection("seat_support_left", "seat_rail_2", "underside", 270),
-    Connection("seat_support_right", "seat_rail_1", "underside", 585),
-    Connection("seat_support_right", "seat_rail_2", "underside", 585),
+    Connection("seat_rail_2", "seat_support_left", "underside", 0, centered=True),
+    Connection("seat_rail_2", "seat_support_right", "underside", 0, centered=True),
+    Connection("seat_rail_1", "seat_support_left", "underside", 0, centered=True),
+    Connection("seat_rail_1", "seat_support_right", "underside", 0, centered=True),
+    # Four additional frame screws close the rotated seat box at its outer
+    # support beams. Each rail enters both outer supports, matching the four
+    # inner rail-to-support joints around the opening.
+    Connection("seat_rail_1", "seat_support_outer_left", "underside", 0, centered=True),
+    Connection("seat_rail_2", "seat_support_outer_left", "underside", 0, centered=True),
+    Connection(
+        "seat_rail_1", "seat_support_outer_right", "underside", 0, centered=True
+    ),
+    Connection(
+        "seat_rail_2", "seat_support_outer_right", "underside", 0, centered=True
+    ),
+    # Fixed seat-box bearers are screwed through the side cladding at their
+    # centre height, one screw per bearer on each side.
+    Connection(
+        "left_wall",
+        "seat_box_support_front",
+        "outside-side",
+        0,
+        centered=True,
+        position_axis=1,
+    ),
+    Connection(
+        "right_wall",
+        "seat_box_support_front",
+        "outside-side",
+        0,
+        centered=True,
+        position_axis=1,
+    ),
+    Connection(
+        "left_wall",
+        "seat_box_support_rear",
+        "outside-side",
+        0,
+        centered=True,
+        position_axis=1,
+    ),
+    Connection(
+        "right_wall",
+        "seat_box_support_rear",
+        "outside-side",
+        0,
+        centered=True,
+        position_axis=1,
+    ),
+    # The lower seat-front bearer shares the same 477 mm-from-back datum as
+    # SBB1, so the front cladding can be fixed at both its top and floor edges.
+    Connection(
+        "left_wall",
+        "seat_floor_support",
+        "outside-side",
+        0,
+        centered=True,
+        position_axis=1,
+    ),
+    Connection(
+        "right_wall",
+        "seat_floor_support",
+        "outside-side",
+        0,
+        centered=True,
+        position_axis=1,
+    ),
     # Door frame.
     Connection("door_left", "door_bottom", "door", 122.5),
     Connection("door_right", "door_bottom", "door", 122.5),
@@ -225,15 +335,63 @@ def _diagonal_station(design: Design, connection: Connection) -> float:
     raise ValueError(f"unknown diagonal connection: {connection}")
 
 
+def _positioned_stations(design: Design, connection: Connection) -> tuple[float, float]:
+    """Return the two model stations measured from the source beam ends."""
+    if connection.end_offset_mm is None or connection.position_axis is None:
+        raise ValueError(f"missing positioned-connection data: {connection}")
+    if connection.from_beam == "floor_back_support":
+        start = design.interior_x
+        length = design.interior_width
+    elif connection.from_beam in {"floor_left_support", "floor_right_support"}:
+        start = design.frame
+        length = design.back_wall_front - 2 * design.frame
+    else:
+        raise ValueError(f"unknown positioned connection: {connection}")
+    if not 0 < connection.end_offset_mm < length / 2:
+        raise ValueError(f"invalid end offset for positioned connection: {connection}")
+    return (
+        start + connection.end_offset_mm,
+        start + length - connection.end_offset_mm,
+    )
+
+
 def _screw_marks(design: Design) -> tuple[ScrewMark, ...]:
     marks: list[ScrewMark] = []
     for index, connection in enumerate(CONNECTIONS, 1):
+        if connection.end_offset_mm is not None:
+            for position_index, position in enumerate(
+                _positioned_stations(design, connection), 1
+            ):
+                marks.append(
+                    ScrewMark(
+                        f"F{index:02d}-{position_index}",
+                        connection.from_beam,
+                        connection.into_beam,
+                        connection.face,
+                        position,
+                        design.frame,
+                        design.frame / 2,
+                        connection.diagonal,
+                        connection.centered,
+                        connection.position_axis,
+                    )
+                )
+            continue
         target_station = (
             _diagonal_station(design, connection)
             if connection.diagonal
             else connection.target_station_mm
         )
-        for lane_index, lane in enumerate(SCREW_LANES_MM, 1):
+        if connection.into_beam == "front_bottom" and connection.position_axis == 1:
+            target_station = design.frame / 2
+        elif connection.into_beam == "seat_box_support_front":
+            target_station = design.seat_front_y + design.cladding + design.frame / 2
+        elif connection.into_beam == "seat_box_support_rear":
+            target_station = design.back_wall_front - design.frame / 2
+        elif connection.into_beam == "seat_floor_support":
+            target_station = design.seat_front_support_y + design.frame / 2
+        lanes = (design.frame / 2,) if connection.centered else SCREW_LANES_MM
+        for lane_index, lane in enumerate(lanes, 1):
             marks.append(
                 ScrewMark(
                     f"F{index:02d}-{lane_index}",
@@ -244,6 +402,8 @@ def _screw_marks(design: Design) -> tuple[ScrewMark, ...]:
                     design.frame,
                     lane,
                     connection.diagonal,
+                    connection.centered,
+                    connection.position_axis,
                 )
             )
     return tuple(marks)
@@ -356,6 +516,8 @@ def _screw_paths(
         "back_post_right",
         "door_left",
         "door_right",
+        "left_wall",
+        "right_wall",
     }
     paths: list[ScrewPath] = []
     for mark in marks:
@@ -367,7 +529,14 @@ def _screw_paths(
         if axis == "x":
             positive = target.xmin >= source.xmax - 1e-6
             start_axis = source.xmin if positive else source.xmax
-            start = (start_axis, source.ymin + mark.lane_mm, mark.target_station_mm)
+            if mark.position_axis == 1:
+                start = (
+                    start_axis,
+                    mark.target_station_mm,
+                    target.zmin + target.zlen / 2,
+                )
+            else:
+                start = (start_axis, source.ymin + mark.lane_mm, mark.target_station_mm)
             end = (
                 start_axis
                 + (design.screw_length if positive else -design.screw_length),
@@ -409,6 +578,11 @@ def _screw_paths(
                     start_axis + (axial_length if positive else -axial_length),
                     start[2] + z_direction * design.screw_length * math.sin(angle),
                 )
+        source_exit = (
+            design.cladding
+            if mark.from_beam in {"left_wall", "right_wall"}
+            else design.frame
+        )
         paths.append(
             ScrewPath(
                 mark.code,
@@ -417,7 +591,7 @@ def _screw_paths(
                 start,
                 end,
                 axis,
-                design.frame,
+                source_exit,
             )
         )
     return tuple(paths)
@@ -453,13 +627,7 @@ def find_screw_path_collisions(
 def analyze_frame_fastening(design: Design) -> FasteningAnalysis:
     """Check the nominal beam screw marks against the current model names."""
     _, parts = build(design)
-    beam_names = {
-        part.name
-        for part in parts
-        if part.material == "wood"
-        and part.width == design.frame
-        and part.thickness == design.frame
-    }
+    available_names = {part.name for part in parts}
     referenced = {
         name
         for connection in CONNECTIONS
@@ -468,7 +636,7 @@ def analyze_frame_fastening(design: Design) -> FasteningAnalysis:
             connection.into_beam,
         )
     }
-    missing = referenced - beam_names
+    missing = referenced - available_names
     if missing:
         raise ValueError(
             f"fastening schedule names missing frame beams: {sorted(missing)}"
@@ -531,17 +699,21 @@ def fastening_report(design: Design) -> str:
             "",
             "## Screw marks",
             "",
-            "| Mark | From beam | Into beam | Face | Source station | Target station | Lane |",
+            "| Mark | From beam | Into beam | Face | Source station | Target station / end | Lane / position |",
             "|---|---|---|---|---:|---:|---:|",
         )
     )
     for screw in analysis.screws:
         from_code = BEAM_CODES.get(screw.from_beam, screw.from_beam)
         into_code = BEAM_CODES.get(screw.into_beam, screw.into_beam)
+        target_station = (
+            "beam end centre" if screw.centered else f"{screw.target_station_mm:.1f} mm"
+        )
+        lane = "beam centre" if screw.centered else f"{screw.lane_mm:.1f} mm"
         lines.append(
             f"| {screw.code} | {from_code} ({screw.from_beam}) | {into_code} ({screw.into_beam}) | "
             f"{screw.target_face} | {screw.source_station_mm:.1f} mm | "
-            f"{screw.target_station_mm:.1f} mm | {screw.lane_mm:.1f} mm |"
+            f"{target_station} | {lane} |"
         )
     lines.extend(("", "## Workshop notes", ""))
     lines.extend(f"- {note}." for note in analysis.recommendations)

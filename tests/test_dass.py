@@ -42,7 +42,7 @@ def test_reference_dimensions_and_panels(design, parts):
         ("back cladding", 854, 1050),
         ("cladding", 1175, 990),
         ("floor", 747, 854),
-        ("seat top", 500, 854),
+        ("seat top", 500, 852),
         ("seat side", 397, 854),
     }:
         assert expected in panels
@@ -123,8 +123,33 @@ def test_floor_seat_and_hinge_follow_section_datums(design, by_name):
 
     seat_front = by_name["seat_front"].solid.BoundingBox()
     seat_top = by_name["seat_top"].solid.BoundingBox()
+    assert (seat_front.xmin, seat_front.xmax) == (68, 922)
+    assert (seat_top.xmin, seat_top.xmax) == (69, 921)
     assert (seat_front.zmin, seat_front.zmax) == (168, 565)
     assert (seat_top.zmin, seat_top.zmax) == (565, 588)
+    for name, y in (
+        ("seat_box_support_front", 270),
+        ("seat_box_support_rear", 702),
+    ):
+        support = by_name[name].solid.BoundingBox()
+        assert (
+            support.xmin,
+            support.xmax,
+            support.ymin,
+            support.ymax,
+            support.zmin,
+            support.zmax,
+        ) == (68, 922, y, y + 45, 475, 520)
+    floor_seat_support = by_name["seat_floor_support"].solid.BoundingBox()
+    assert (
+        floor_seat_support.xmin,
+        floor_seat_support.xmax,
+        floor_seat_support.ymin,
+        floor_seat_support.ymax,
+        floor_seat_support.zmin,
+        floor_seat_support.zmax,
+    ) == (68, 922, 270, 315, 168, 213)
+    assert design.seat_front_support_from_back == 477
     for name in ("seat_rail_1", "seat_rail_2"):
         rail = by_name[name].solid.BoundingBox()
         assert rail.zmax <= seat_top.zmin
@@ -148,6 +173,26 @@ def test_floor_seat_and_hinge_follow_section_datums(design, by_name):
     assert "door_hinge_2" in by_name
 
 
+def test_outer_seat_supports_close_the_rotated_board_frame(design, by_name):
+    expected_y = (design.seat_support_front_y, design.back_wall_front - design.frame)
+    expected_z = (
+        design.seat_top_bottom - design.seat_support,
+        design.seat_top_bottom,
+    )
+    for name, xmin in (
+        ("seat_support_outer_left", design.seat_box_x),
+        (
+            "seat_support_outer_right",
+            design.seat_box_x + design.seat_box_width - design.seat_support,
+        ),
+    ):
+        box = by_name[name].solid.BoundingBox()
+        assert (box.xmin, box.xmax) == (xmin, xmin + design.seat_support)
+        assert (box.ymin, box.ymax) == expected_y
+        assert (box.zmin, box.zmax) == expected_z
+        assert by_name[name].length == design.seat_support_length
+
+
 def test_wall_seat_and_floor_clearances_follow_panel_faces(design, by_name):
     left = by_name["left_wall"].solid.BoundingBox()
     right = by_name["right_wall"].solid.BoundingBox()
@@ -162,7 +207,9 @@ def test_wall_seat_and_floor_clearances_follow_panel_faces(design, by_name):
         "seat_top",
         "seat_rail_1",
         "seat_rail_2",
-        "seat_lower_rail",
+        "seat_support_outer_left",
+        "seat_support_outer_right",
+        "seat_floor_support",
     ):
         # Boolean cuts leave sub-nanometre noise on the cladding faces.
         box = by_name[name].solid.BoundingBox()
@@ -620,7 +667,7 @@ def test_back_brace_matches_side_brace_corners_and_d2_cut(design, by_name):
 def test_seat_top_has_oval_opening_clear_of_the_rails(design, by_name):
     seat_top = by_name["seat_top"].solid
 
-    solid_volume = design.interior_width * design.seat_depth * design.cladding
+    solid_volume = design.seat_box_width * design.seat_depth * design.cladding
     hole_area = (
         3.141592653589793 * (design.seat_hole_width / 2) * (design.seat_hole_depth / 2)
     )

@@ -21,20 +21,133 @@ def analysis(design):
     return analyze_frame_fastening(design)
 
 
-def test_every_screw_connects_two_modeled_frame_beams(analysis, parts):
-    beam_names = {
-        part.name
-        for part in parts
-        if part.material == "wood"
-        and part.category not in {"side cladding", "back cladding"}
-    }
+def test_every_screw_connects_two_modeled_parts(analysis, parts):
+    part_names = {part.name for part in parts}
 
     assert len(analysis.screws) > 0
     assert all(
-        screw.from_beam in beam_names and screw.into_beam in beam_names
+        screw.from_beam in part_names and screw.into_beam in part_names
         for screw in analysis.screws
     )
     assert analysis.overlaps == ()
+
+
+def test_roof_floor_and_seat_use_one_centered_screw_per_requested_joint(
+    analysis, design
+):
+    def pairs(prefix: str) -> set[tuple[str, str]]:
+        return {
+            (screw.from_beam, screw.into_beam)
+            for screw in analysis.screws
+            if screw.centered
+            and (
+                screw.from_beam.startswith(prefix) or screw.into_beam.startswith(prefix)
+            )
+        }
+
+    assert len(analysis.screws) == 82
+    assert pairs("roof") == {
+        ("roof_front", "roof_left"),
+        ("roof_front", "roof_right"),
+        ("roof_back", "roof_left"),
+        ("roof_back", "roof_right"),
+        ("roof_left", "roof_middle"),
+        ("roof_right", "roof_middle"),
+    }
+    assert pairs("floor") == {
+        ("floor_back_support", "floor_left_support"),
+        ("floor_back_support", "floor_right_support"),
+    }
+    assert {
+        pair
+        for pair in pairs("seat")
+        if not pair[1].startswith("seat_box_support_")
+        and pair[1] != "seat_floor_support"
+    } == {
+        ("seat_rail_1", "seat_support_left"),
+        ("seat_rail_1", "seat_support_right"),
+        ("seat_rail_2", "seat_support_left"),
+        ("seat_rail_2", "seat_support_right"),
+        ("seat_rail_1", "seat_support_outer_left"),
+        ("seat_rail_2", "seat_support_outer_left"),
+        ("seat_rail_1", "seat_support_outer_right"),
+        ("seat_rail_2", "seat_support_outer_right"),
+    }
+    assert {
+        (screw.from_beam, screw.into_beam)
+        for screw in analysis.screws
+        if screw.into_beam.startswith("seat_box_support_")
+    } == {
+        ("left_wall", "seat_box_support_front"),
+        ("right_wall", "seat_box_support_front"),
+        ("left_wall", "seat_box_support_rear"),
+        ("right_wall", "seat_box_support_rear"),
+    }
+    assert {
+        (screw.from_beam, screw.into_beam)
+        for screw in analysis.screws
+        if screw.into_beam == "seat_floor_support"
+    } == {
+        ("left_wall", "seat_floor_support"),
+        ("right_wall", "seat_floor_support"),
+    }
+
+    centered = [screw for screw in analysis.screws if screw.centered]
+    assert len(centered) == 24
+    assert all(screw.lane_mm == design.frame / 2 for screw in centered)
+    assert all(screw.centered for screw in centered)
+
+
+def test_shell_joint_uses_two_inside_out_screws_per_bearer(analysis, design):
+    shell_pairs = {
+        ("floor_back_support", "back_bottom"),
+        ("floor_right_support", "right_bottom"),
+        ("floor_left_support", "left_bottom"),
+    }
+    shell = [
+        screw
+        for screw in analysis.screws
+        if (screw.from_beam, screw.into_beam) in shell_pairs
+    ]
+
+    assert len(shell) == 6
+    assert {(screw.from_beam, screw.into_beam) for screw in shell} == shell_pairs
+    assert all(screw.position_axis is not None for screw in shell)
+    assert all(screw.lane_mm == design.frame / 2 for screw in shell)
+
+    positions = {
+        (screw.from_beam, screw.into_beam): sorted(
+            mark.target_station_mm
+            for mark in shell
+            if mark.from_beam == screw.from_beam
+        )
+        for screw in shell
+    }
+    assert positions[("floor_back_support", "back_bottom")] == [
+        design.interior_x + 100,
+        design.interior_x + design.interior_width - 100,
+    ]
+    for pair in (
+        ("floor_right_support", "right_bottom"),
+        ("floor_left_support", "left_bottom"),
+    ):
+        assert positions[pair] == [
+            design.frame + 100,
+            design.back_wall_front - design.frame - 100,
+        ]
+
+    front = [
+        screw
+        for screw in analysis.screws
+        if (screw.from_beam, screw.into_beam)
+        in {
+            ("left_bottom", "front_bottom"),
+            ("right_bottom", "front_bottom"),
+        }
+    ]
+    assert len(front) == 2
+    assert all(screw.centered for screw in front)
+    assert all(screw.target_station_mm == design.frame / 2 for screw in front)
 
 
 def test_diagonal_screws_are_angled_from_the_vertical_members(analysis, design):
@@ -69,7 +182,9 @@ def test_diagonal_connections_run_from_vertical_members_and_clear_paths(analysis
         ("door_left", "door_brace"),
         ("door_right", "door_brace"),
     }
-    assert len(analysis.screw_paths) == 52
+    # Collision paths are only needed for post-, stile-, and wall-driven
+    # screws; the two added seat rail paths do not originate in those parts.
+    assert len(analysis.screw_paths) == 58
     assert analysis.path_collisions == ()
 
 

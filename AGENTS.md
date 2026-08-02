@@ -91,6 +91,19 @@ test for geometry, cut-list, or guide changes. Make sure that dimensions,
 clearances, part counts, and generated content are correct at the most direct
 layer.
 
+## Changelog entries
+
+- Record every user-visible model or workshop change in `CHANGELOG.md`.
+- Use the next patch version by default, date the version heading as
+  `YYYY-MM-DD`, and keep the package version in `pyproject.toml` aligned.
+- Describe what changed and why it changed. Do not describe implementation
+  steps.
+- When existing entries are undated, inspect the relevant commits and source
+  history, then give each entry the date and version supported by that history.
+- Keep the README summary short and link it to the full changelog. The
+  generated “How it's going” page has one “Model changelog” box with dated,
+  short model entries.
+
 ## Commit & Pull Request Guidelines
 
 Use Conventional Commits with a focused scope, such as

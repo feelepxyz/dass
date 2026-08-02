@@ -22,12 +22,19 @@ from PIL import Image, ImageFile, ImageOps
 # reads as an invalid assignment.
 ImageFile.MAXBLOCK = 16 * 1024 * 1024  # ty: ignore[invalid-assignment]
 
-from dass.build_guide import GALLERY, PROGRESS_GALLERY, STARTED_GALLERY
+from dass.build_guide import (
+    CLOUDFLARE_STREAM_PLAYER_URL,
+    GALLERY,
+    IN_SITU_CROP_FOCUS,
+    PROGRESS_GALLERY,
+    PROGRESS_VIDEO,
+    STARTED_GALLERY,
+    SVG_RENDERS,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 LONG_EDGE = 1400
 QUALITY = 80
-IN_SITU_CROP_FOCUS = 1.0
 
 # Module specifier -> file, resolved through the page's import map.
 VENDOR = {
@@ -62,6 +69,16 @@ def stage_renders(source: Path, target: Path) -> list[Path]:
     written = []
     for group, views in GALLERY:
         for name, _, _ in views:
+            if name in SVG_RENDERS:
+                original = source / f"{name}.svg"
+                if not original.exists():
+                    raise SystemExit(
+                        f"missing render {original}; run `node scripts/render-drawing.mjs` first"
+                    )
+                out = target / original.name
+                shutil.copyfile(original, out)
+                written.append(out)
+                continue
             original = source / f"{name}.png"
             if not original.exists():
                 raise SystemExit(
@@ -100,6 +117,24 @@ def stage_progress(target: Path) -> list[Path]:
             )
         out = target / output_name
         image.save(out, "JPEG", quality=QUALITY, optimize=True, progressive=True)
+        written.append(out)
+    return written
+
+
+def stage_progress_video(target: Path) -> list[Path]:
+    """Copy the browser-ready video pair without loading either into Python."""
+    if CLOUDFLARE_STREAM_PLAYER_URL:
+        for asset in PROGRESS_VIDEO[:2]:
+            (target / asset).unlink(missing_ok=True)
+        return []
+    target.mkdir(parents=True, exist_ok=True)
+    written = []
+    for asset in PROGRESS_VIDEO[:2]:
+        original = ROOT / "web/media/progress" / asset
+        if not original.exists():
+            raise SystemExit(f"missing progress video asset {original}")
+        out = target / asset
+        shutil.copyfile(original, out)
         written.append(out)
     return written
 
@@ -205,14 +240,21 @@ def main() -> None:
     shots = stage_renders(args.renders, args.output / "web-renders")
     started = stage_started(args.output / "started")
     progress = stage_progress(args.output / "progress")
+    progress_video = stage_progress_video(args.output / "progress")
     vendor = stage_vendor(args.output / "vendor")
     textures = stage_textures(args.output / "textures")
     fonts = stage_fonts(args.output / "fonts")
     weigh = lambda paths: sum(path.stat().st_size for path in paths) / 1e6
+    video_summary = (
+        "Cloudflare Stream video"
+        if CLOUDFLARE_STREAM_PLAYER_URL
+        else f"{len(progress_video) // 2} progress video"
+    )
     print(
         f"Wrote {len(shots)} web renders ({weigh(shots):.1f} MB), "
         f"{len(started)} starting-point images ({weigh(started):.1f} MB), "
         f"{len(progress)} progress photos ({weigh(progress):.1f} MB), "
+        f"{video_summary}, "
         f"{len(textures)} textures ({weigh(textures):.1f} MB), "
         f"{len(vendor)} vendored modules, {len(fonts)} font"
     )

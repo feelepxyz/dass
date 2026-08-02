@@ -96,6 +96,18 @@
    "material": "wood",
    "category": "floor support"
   },
+  "seat_box_support_front": {
+   "material": "wood",
+   "category": "seat box support"
+  },
+  "seat_box_support_rear": {
+   "material": "wood",
+   "category": "seat box support"
+  },
+  "seat_floor_support": {
+   "material": "wood",
+   "category": "seat floor support"
+  },
   "seat_front": {
    "material": "wood",
    "category": "seat side"
@@ -112,15 +124,19 @@
    "material": "wood",
    "category": "HL1"
   },
-  "seat_lower_rail": {
-   "material": "wood",
-   "category": "HL1"
-  },
   "seat_support_left": {
    "material": "wood",
    "category": "seat support"
   },
   "seat_support_right": {
+   "material": "wood",
+   "category": "seat support"
+  },
+  "seat_support_outer_left": {
+   "material": "wood",
+   "category": "seat support"
+  },
+  "seat_support_outer_right": {
    "material": "wood",
    "category": "seat support"
   },

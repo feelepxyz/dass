@@ -48,10 +48,15 @@ def test_a_saved_file_runs_only_the_stages_that_read_it():
         return [stage.name for stage in serve.stages_for(paths)]
 
     # The geometry feeds every stage that measures the building.
-    assert named([serve.SRC / "model.py"]) == ["schedules", "pages", "models"]
+    assert named([serve.SRC / "model.py"]) == [
+        "schedules",
+        "pages",
+        "models",
+        "drawing",
+    ]
     # The guide is drawn from the model but does not change it, and the
     # stager reads its gallery tables.
-    assert named([serve.SRC / "build_guide.py"]) == ["pages", "assets"]
+    assert named([serve.SRC / "build_guide.py"]) == ["pages", "drawing", "assets"]
     assert named([serve.SRC / "cutlists.py"]) == ["schedules", "pages"]
     assert named([serve.SRC / "fastening.py"]) == ["schedules", "pages"]
     assert named([serve.ROOT / "web/media/progress/beam-cuts.jpg"]) == ["assets"]
@@ -79,6 +84,7 @@ def test_the_build_stage_names_are_the_child_process_arguments():
         "schedules",
         "pages",
         "models",
+        "drawing",
         "assets",
     ]
 
@@ -544,15 +550,15 @@ def test_watch_sources_rebuilds_only_stale_stages_and_lands_only_on_success(
     serve.watch_sources(builds)
 
     assert rebuilt == [
-        ["schedules", "pages", "models"],
-        ["schedules", "pages", "models"],
+        ["schedules", "pages", "models", "drawing"],
+        ["schedules", "pages", "models", "drawing"],
     ]
     # Only the successful rebuild lands a build the open page waits on.
     assert builds.count == 1
     output = capsys.readouterr().out
     assert "watching src, web, scripts, docs" in output
     assert "check-print.mjs" not in output
-    assert "model.py -> schedules, pages, models" in output
+    assert "model.py -> schedules, pages, models, drawing" in output
 
 
 # Entry point

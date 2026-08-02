@@ -3,7 +3,7 @@ D1,2,1203.0,45,45,wood
 D2,2,1315.9,45,45,wood
 HK1,4,725,45,45,wood
 HK2,2,812.7,45,45,wood
-HL1,3,854,45,45,wood
+HL1,2,852,45,45,wood
 HL1,2,900,45,45,wood
 HL2,2,900,45,45,wood
 HL2,2,990,45,45,wood
@@ -23,7 +23,9 @@ roof connector,1,900,45,45,wood
 roof hinge leaf,1,900,45,5,metal
 roof hinge leaf,1,900,53,5,metal
 roof hinge pin,1,900,16,16,metal
+seat box support,2,854,45,45,wood
+seat floor support,1,854,45,45,wood
 seat side,1,397,854,23,wood
-seat support,2,387,45,45,wood
-seat top,1,500,854,23,wood
+seat support,4,387,45,45,wood
+seat top,1,500,852,23,wood
 side cladding,2,770,1175,23,wood

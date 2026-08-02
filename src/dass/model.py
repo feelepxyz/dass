@@ -50,6 +50,7 @@ class Design:
     roof_connector_width: float = 45
     roof_connector_thickness: float = 45
     side_back_lift: float = 25
+    seat_box_clearance: float = 2
 
     @property
     def inner_width(self) -> float:
@@ -71,6 +72,51 @@ class Design:
     @property
     def back_wall_front(self) -> float:
         return self.depth - self.frame - self.cladding
+
+    @property
+    def floor_top(self) -> float:
+        return self.leg_extension + self.frame + self.cladding
+
+    @property
+    def seat_box_width(self) -> float:
+        return self.interior_width - self.seat_box_clearance
+
+    @property
+    def seat_box_x(self) -> float:
+        return self.interior_x + self.seat_box_clearance / 2
+
+    @property
+    def seat_front_y(self) -> float:
+        return self.back_wall_front - self.seat_depth
+
+    @property
+    def seat_top_bottom(self) -> float:
+        return self.floor_top + self.seat_height - self.cladding
+
+    @property
+    def seat_support_top(self) -> float:
+        """Upper face of the fixed bearers under the removable seat box."""
+        return self.seat_top_bottom - self.frame
+
+    @property
+    def seat_front_support_y(self) -> float:
+        """Front seat-support datum, shared by the upper and floor bearers."""
+        return self.seat_front_y + self.cladding
+
+    @property
+    def seat_front_support_from_back(self) -> float:
+        """Distance from the inside back face to the front seat support."""
+        return self.back_wall_front - self.seat_front_support_y
+
+    @property
+    def seat_support_front_y(self) -> float:
+        """Front end of the seat-box side supports between the rails."""
+        return self.seat_front_support_y + self.frame
+
+    @property
+    def seat_support_length(self) -> float:
+        """Length shared by the opening and outer seat-box side supports."""
+        return self.back_wall_front - self.frame - self.seat_support_front_y
 
     @property
     def plan_grid_width(self) -> float:
@@ -183,6 +229,8 @@ class Design:
         assert 0 < self.seat_hole_depth < self.seat_depth
         assert self.diagonal_end_setback >= 0
         assert self.screw_length > 0
+        assert 0 < self.seat_box_clearance < self.interior_width
+        assert 0 < self.seat_support_length < self.seat_depth
         assert 0 < self.diagonal_screw_angle < 45
         assert 2 * self.diagonal_end_setback < min(
             self.front_post_height - self.leg_extension - 2 * self.frame,
@@ -202,6 +250,8 @@ class Design:
         assert self.door_frame_height == 1050
         assert self.roof_run == 803 and self.roof_rise == 125
         assert self.seat_depth == 500 and self.seat_height - self.cladding == 397
+        assert self.seat_box_width == 852
+        assert self.seat_front_support_from_back == 477
 
 
 @dataclass
@@ -635,7 +685,7 @@ def build(
     floor_depth = back_wall_front
     floor_x = interior_x
     floor_bottom = d.leg_extension + d.frame
-    floor_top = floor_bottom + d.cladding
+    floor_top = d.floor_top
     add(
         "floor",
         "floor",
@@ -670,23 +720,61 @@ def build(
             (floor_side_length, d.frame, d.frame),
         )
 
-    seat_width = interior_width
-    seat_x = interior_x
+    # The seat box is a removable assembly. Its fixed bearers retain the full
+    # interior span, while every moving seat-box member is reduced by the
+    # named clearance and centred between the side skins.
+    seat_width = d.seat_box_width
+    seat_x = d.seat_box_x
     seat_back = back_wall_front
-    seat_front_y = seat_back - d.seat_depth
-    seat_top_bottom = floor_top + d.seat_height - d.cladding
+    seat_front_y = d.seat_front_y
+    seat_top_bottom = d.seat_top_bottom
+
+    for name, y in (
+        ("front", seat_front_y + d.cladding),
+        ("rear", seat_back - d.frame),
+    ):
+        add(
+            f"seat_box_support_{name}",
+            "seat box support",
+            box_at(
+                interior_x,
+                y,
+                d.seat_support_top - d.frame,
+                interior_width,
+                d.frame,
+                d.frame,
+            ),
+            (interior_width, d.frame, d.frame),
+        )
+    add(
+        "seat_floor_support",
+        "seat floor support",
+        box_at(
+            interior_x,
+            d.seat_front_support_y,
+            floor_top,
+            interior_width,
+            d.frame,
+            d.frame,
+        ),
+        (interior_width, d.frame, d.frame),
+    )
+    # The fixed front cladding runs between the inner side-cladding faces. It
+    # is deliberately wider than the removable 852 mm seat box by 1 mm at
+    # each side, so its joined field is trimmed to the full 854 mm opening
+    # before it is fixed to SBF1 and SBB1.
     add(
         "seat_front",
         "seat side",
         box_at(
-            seat_x,
+            interior_x,
             seat_front_y,
             floor_top,
-            seat_width,
+            interior_width,
             d.cladding,
             d.seat_height - d.cladding,
         ),
-        (d.seat_height - d.cladding, seat_width, d.cladding),
+        (d.seat_height - d.cladding, interior_width, d.cladding),
     )
     # Oval seat opening, centred in the seat box so the rails stay clear of it.
     seat_hole: cq.Shape = (  # ty: ignore[invalid-assignment]
@@ -706,36 +794,42 @@ def build(
         (d.seat_depth, seat_width, d.cladding),
     )
     # Both rails are concealed inside the seat box, immediately below its boards.
-    for index, y in enumerate(
-        (
-            seat_front_y + d.cladding,
-            seat_back - d.frame,
-        )
-    ):
+    for index, y in enumerate((seat_front_y + d.cladding, seat_back - d.frame)):
         add(
             f"seat_rail_{index + 1}",
             "HL1",
             box_at(seat_x, y, seat_top_bottom - d.frame, seat_width, d.frame, d.frame),
             (seat_width, d.frame, d.frame),
         )
-    add(
-        "seat_lower_rail",
-        "HL1",
-        box_at(
-            seat_x, seat_front_y + d.cladding, floor_top, seat_width, d.frame, d.frame
-        ),
-        (seat_width, d.frame, d.frame),
-    )
     # The opening cuts the middle seat boards, so a bearer runs down each side
     # of it, fitted between the two seat rails and flush under the boards.
-    seat_support_front = seat_front_y + d.cladding + d.frame
-    seat_support_length = (seat_back - d.frame) - seat_support_front
+    seat_support_front = d.seat_support_front_y
+    seat_support_length = d.seat_support_length
     for label, x in (
         ("left", (d.width - d.seat_hole_width) / 2 - d.seat_support),
         ("right", (d.width + d.seat_hole_width) / 2),
     ):
         add(
             f"seat_support_{label}",
+            "seat support",
+            box_at(
+                x,
+                seat_support_front,
+                seat_top_bottom - d.seat_support,
+                d.seat_support,
+                seat_support_length,
+                d.seat_support,
+            ),
+            (seat_support_length, d.seat_support, d.seat_support),
+        )
+    # The rotated seat boards run across the box, so two matching side beams
+    # close its outer edges and provide the second pair of board fixing lines.
+    for label, x in (
+        ("left", seat_x),
+        ("right", seat_x + seat_width - d.seat_support),
+    ):
+        add(
+            f"seat_support_outer_{label}",
             "seat support",
             box_at(
                 x,

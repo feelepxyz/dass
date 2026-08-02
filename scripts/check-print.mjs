@@ -139,13 +139,16 @@ if (wide.length) {
 const plates = await page.evaluate(() => [...document.querySelectorAll('.drawing .plate')].map((svg) => {
   const box = svg.getBoundingClientRect();
   const [, , vw, vh] = svg.getAttribute('viewBox').split(/\s+/).map(Number);
+  // Hidden perspective toggle layers have no box; they are not printed and
+  // must not make the visible minimum code size report as zero.
+  if (box.width === 0 || box.height === 0) return null;
   // preserveAspectRatio letterboxes the drawing inside its box.
   const scale = Math.min(box.width / vw, box.height / vh);
   return {
     ref: svg.closest('.drawing')?.querySelector('.drawing-ref')?.textContent.trim() ?? '',
     mark: +(16 * scale / (96 / 25.4) * 72 / 25.4).toFixed(1),
   };
-}));
+}).filter(Boolean));
 const smallest = plates.reduce((low, plate) => (plate.mark < low.mark ? plate : low), plates[0]);
 console.log(
   `plates      ${plates.length} drawings  smallest code mark ${smallest.mark}pt (${smallest.ref})`,

@@ -61,9 +61,13 @@ BEAM_CODES = {
     "floor_right_support": "FBS2",
     "seat_rail_1": "SBH1",
     "seat_rail_2": "SBH2",
-    "seat_lower_rail": "SBH3",
     "seat_support_left": "SBS1",
     "seat_support_right": "SBS2",
+    "seat_support_outer_left": "SBS3",
+    "seat_support_outer_right": "SBS4",
+    "seat_box_support_front": "SBB1",
+    "seat_box_support_rear": "SBB2",
+    "seat_floor_support": "SBF1",
     "door_left": "DBV1",
     "door_right": "DBV2",
     "door_bottom": "DBH1",
@@ -172,7 +176,9 @@ def cladding_pieces(
             )
 
     panel("floor", design.interior_width, design.back_wall_front)
-    panel("seat_top", design.interior_width, design.seat_depth)
+    # The seat boards now run across the box. Their five-board stack spans the
+    # 500 mm depth, and each blank is the full 852 mm box width.
+    panel("seat_top", design.seat_depth, design.seat_box_width)
     panel("seat_front", design.interior_width, design.seat_height - design.cladding)
     return pieces
 

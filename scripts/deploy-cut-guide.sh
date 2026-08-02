@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 
 uv run generate-cutlists
 uv run generate-build-guide
+node scripts/render-drawing.mjs
 uv run scripts/build_web_assets.py
 
 deploy_dir=$(mktemp -d)

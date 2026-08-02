@@ -163,6 +163,19 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
       display:block; max-width:58ch; margin-top:10px; font-size:var(--t-small);
       line-height:1.6; color:var(--grey-dark);
     }
+    .progress-video-figure {
+      grid-column:1 / -1; min-width:0; margin:0;
+    }
+    .progress-video-frame {
+      width:min(100%, 540px); aspect-ratio:9 / 16; margin:0 auto; overflow:hidden;
+      background:var(--grey-faint); border:1px solid var(--line);
+    }
+    .progress-video {
+      display:block; width:100%; height:100%; object-fit:contain; background:#111; border:0;
+    }
+    .progress-video-figure figcaption {
+      width:min(100%, 540px); margin:0 auto; padding:22px 12px 6px;
+    }
 
     .started-story { display:grid; gap:36px; margin-top:36px; }
     .started-story p { max-width:68ch; }
@@ -226,6 +239,7 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     /* Drawings. One caption under each, centred, the way the set captions them. */
     .drawing { margin:0; }
     .plate { display:block; width:100%; height:auto; background:var(--sheet); }
+    .perspective-drawing .perspective-left { display:none; }
     .drawing figcaption { padding:22px 12px 6px; text-align:center; }
     .drawing-name { display:block; font-size:var(--t-small); letter-spacing:.16em; text-transform:uppercase; }
     .drawing-ref {
@@ -238,11 +252,13 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     }
 
     .plate .member { fill:var(--sheet); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
+    .plate .member-edge { fill:none; stroke:var(--line); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .cut-member { fill:url(#hatch); stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
     .plate .field { fill:var(--grey-faint); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
     .plate .cut-field { fill:var(--grey-pale); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
     .plate .blank { fill:#fafafa; stroke:var(--grey-mid); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
     .plate .ghost { fill:none; stroke:var(--grey-mid); stroke-width:var(--hair); stroke-dasharray:10 6; vector-effect:non-scaling-stroke; }
+    .plate .ghost-edge { fill:none; stroke:var(--grey-mid); stroke-width:var(--hair); stroke-dasharray:10 6; vector-effect:non-scaling-stroke; }
     .plate .under { fill:none; stroke:var(--grey-dark); stroke-width:var(--hair); stroke-dasharray:7 5; vector-effect:non-scaling-stroke; }
     .plate .joint { stroke:var(--grey-light); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .trim { fill:url(#hatch-fine); stroke:var(--grey-dark); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
@@ -257,9 +273,22 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
       fill:var(--code); font-size:16px; letter-spacing:.08em;
       stroke:var(--sheet); stroke-width:3.5; paint-order:stroke;
     }
+    .plate .cladding-code {
+      fill:var(--code-deep); font-size:11px; letter-spacing:.04em;
+      stroke:var(--sheet); stroke-width:3px; paint-order:stroke;
+    }
     .plate .small { fill:var(--dim-ink); font-size:12px; }
     .plate .note-text { fill:var(--grey-dark); font-size:12px; }
     .plate .dim-text { fill:var(--dim-ink); font-size:12px; letter-spacing:.04em; }
+    .plate .screw-guide {
+      fill:none; stroke:var(--grey-light); stroke-width:var(--hair); stroke-dasharray:7 5;
+      vector-effect:non-scaling-stroke;
+    }
+    .plate .screw-stem {
+      fill:none; stroke:var(--line); stroke-width:1.2px; vector-effect:non-scaling-stroke;
+    }
+    .plate .screw-head { fill:var(--ink); stroke:var(--line); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
+    .plate .screw-recess { fill:var(--sheet); stroke:none; }
 
     /* Stock bars: one scaled diagram per stock length. */
     .stock-list { display:grid; gap:28px; margin-top:36px; }
@@ -289,7 +318,7 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     }
     .stock-piece b { top:calc(100% + 7px); font-size:var(--t-small); }
     .stock-piece span { top:calc(100% + 23px); font-size:var(--t-fine); color:var(--dim-ink); }
-    .stock-piece.is-gang { background:repeating-linear-gradient(45deg,transparent 0 5px,var(--grey-pale) 5px 6px); }
+    .stock-piece.is-gang { background:var(--sheet); }
     .saw-tick { position:absolute; top:-4px; bottom:-4px; width:1px; background:var(--line); z-index:2; }
     .stock-waste {
       background:repeating-linear-gradient(135deg,transparent 0 5px,var(--grey-light) 5px 6px);
@@ -342,9 +371,13 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     .gallery figcaption:empty { display:none; }
     .viewer-frame { cursor:grab; }
     .viewer-frame.is-over { cursor:pointer; }
-    .viewer-canvas { display:block; width:100%; height:100%; touch-action:none; }
+    .viewer-frame.is-dragging { cursor:grabbing; }
+    .viewer-canvas { position:absolute; inset:0; z-index:1; display:block; width:100%; height:100%; touch-action:none; }
+    .viewer-canvas:focus-visible { outline:1px solid var(--code); outline-offset:-4px; }
+    /* Keep the rendered plate as a no-JS fallback; the live canvas must sit above it. */
+    .drawing-render { position:absolute; inset:0; z-index:0; width:100%; height:100%; object-fit:contain; pointer-events:none; }
     .viewer-status {
-      position:absolute; left:0; right:0; bottom:0; margin:0; padding:9px 12px;
+      position:absolute; z-index:4; left:0; right:0; bottom:0; margin:0; padding:9px 12px;
       background:var(--sheet); border-top:1px solid var(--grey-pale);
       font-size:var(--t-fine); letter-spacing:.12em; text-transform:uppercase; color:var(--grey-dark);
     }
@@ -377,6 +410,14 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     .unit[data-face="cladding"] .plate .under,
     .unit[data-face="cladding"] .plate .ghost,
     .unit[data-face="cladding"] .plate .mark { opacity:.14; }
+    .unit[data-face="frame"] .plate .cladding-code { opacity:0; }
+    .unit[data-face="cladding"] .plate .cladding-code { opacity:1; }
+    .unit[data-face="left"] .perspective-right { display:none; }
+    .unit[data-face="left"] .perspective-left { display:block; }
+    .unit[data-face="right"] .perspective-right { display:block; }
+    .unit[data-face="right"] .perspective-left { display:none; }
+    .unit[data-face="frame"] .screw-cladding { opacity:0; }
+    .unit[data-face="cladding"] .screw-frame { opacity:0; }
     .unit-steps { margin-top:16px; padding-top:14px; border-top:1px solid var(--grey-pale); }
     .unit-steps ol { margin:10px 0 0; padding-left:22px; }
     .unit-steps li { margin-bottom:8px; font-size:var(--t-small); line-height:1.55; }
@@ -519,6 +560,7 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
       .drawing-ref::before { content:" · "; }
       .drawing-note { margin-top:5px; }
       .unit-face { display:none; }
+      .unit .screw-layer { opacity:1 !important; }
       .code-strip { padding-top:7px; }
       .stack-check { margin-top:8px; padding-top:7px; }
       .drawing, .unit, .stock, .note { break-inside:avoid; }
@@ -526,7 +568,7 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
          it. `break-inside` is only honoured while a block still fits the page,
          so each figure is bound on its height first: the image states one side
          and takes the ratio for the other, the way the model still does. */
-      .started-figure, .started-figure-pair, .progress-photo { break-inside:avoid; }
+      .started-figure, .started-figure-pair, .progress-photo, .progress-video-figure { break-inside:avoid; }
       .started-story { gap:10mm; margin-top:8mm; }
       .started-figure img { width:auto; height:auto; max-width:100%; max-height:118mm; margin:0 auto; }
       .started-figure-pair { gap:8mm; align-items:start; }
@@ -534,6 +576,7 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
       .progress-photo-frame { width:auto; height:130mm; max-width:100%; margin:0 auto; }
       .started-figure figcaption, .progress-photo figcaption { padding:5mm 0 0; }
       .progress-photo-note { margin-top:4px; }
+      .progress-video-figure { display:none; }
       a { text-decoration:none; }
     }
 </style>
@@ -567,9 +610,11 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
   <section class="sheet" id="started">
     <div class="sheet-head"><span class="sheet-no">Project notes 01</span><h2>How it started</h2></div>
     <div class="started-story">
-      <p>The project started with <a href="https://www.instagram.com/hannes.soderquist/"
-      target="_blank" rel="noopener noreferrer">Hannes Söderquist</a>'s design for an outdoor toilet. The
-      original drawing uses 50 × 50 mm beams and 120 × 25 mm cladding.</p>
+      <p>I wanted to build a compact outdoor toilet for caravan living in the woods. My
+      friend <a href="https://www.instagram.com/hannes.soderquist/" target="_blank"
+      rel="noopener noreferrer">Hannes Söderquist</a> had drawings for one, but the original
+      design uses 50 × 50 mm beams and 120 × 25 mm cladding, sizes that did not match the
+      stock in the local shop.</p>
       
         <figure class="started-figure">
           <img src="started/original-side-drawing.jpg" alt="Original side drawing" width="2618" height="818"
@@ -577,13 +622,11 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
           <figcaption><span class="started-figure-title">Original side drawing</span></figcaption>
         </figure>
 
-      <p>I asked Claude and Codex to build a CAD model with CadQuery and build123d. The
-      first generated versions had several geometry problems and did not match the
-      source design. I did not edit any of the CAD drawings directly. Instead, I gave
-      Codex the goal of continuing until the model aligned with the measurements in the
-      drawing, and supplied measurements from the drawing as model specifications, such
-      as how long each beam should be. I had to do a lot of nudging to make sure no
-      material clipped into another part and created impossible cuts.</p>
+      <p>I first asked Codex to copy the technical drawing into an editable, programmable
+      parametric CAD model using CadQuery and related tools. All CAD edits were done from
+      prompts only. The first generated versions had several geometry problems and did not
+      match the source design, so I had to do a lot of nudging to keep material from
+      clipping into other parts and creating impossible cuts.</p>
       
         <figure class="started-figure">
           <img src="started/validation-open.jpg" alt="Early open-model validation" width="1800" height="1200"
@@ -605,14 +648,22 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
         </figure>
       </div>
 
+      <p>I then had Codex and Claude add specifications from the technical drawing and make
+      comparison cut lists from the dimensions it specified. We kept going until the
+      editable model matched the drawing. This was less like asking for a finished model
+      and more like correcting a transcription until the geometry, dimensions, and cut
+      schedules agreed.</p>
+
       <p>One cool side-effect of the CAD model was that Codex could run some basic
       structural analysis on the original drawing. It found that the floor boards did
       not have enough support, so we added support beams.</p>
 
-      <p>The next step was to adapt the design to material available in the local shop:
-      45 × 45 mm beams and 120 × 23 mm Råspont (matchboard/V-groove cladding). I also changed the shape slightly
-      so that each interleaved cladding board has at least 10 mm of trim. The board
-      ends therefore do not leave a lip outside the frame.</p>
+      <p>Once the model matched the drawing, I asked it to change the beam and cladding
+      dimensions to the material available in the local shop: 45 × 45 mm beams and
+      120 × 23 mm Råspont (matchboard/V-groove cladding). I checked the shop supply and had
+      it create detailed cut lists from the available stock. I also changed the shape
+      slightly so that each interleaved cladding board has at least 10 mm of trim. The
+      board ends therefore do not leave a lip outside the frame.</p>
 
       <p>From there, the cut schedules follow the material lengths in the shop. The
       optimizer groups equal-length cuts so that they can run in sequence with a stop
@@ -621,6 +672,9 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
 
       <p>The same model then generates assembly instructions that treat the door, roof,
       side walls, back wall, floor, and seat as individual pieces.</p>
+
+      <p>The <a href="cut-guide.html#story-nav">working drawing</a> contains the detailed
+      drawings and cut lists for the current material sizes.</p>
 
       <p>A fastening review then found a join the drawings did not make explicit. A 120 mm
       screw from a vertical member into a rail can occupy the same corner as a screw driven

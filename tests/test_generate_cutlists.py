@@ -78,7 +78,7 @@ def test_variant_fits_requested_stock_options():
         roof_connector_width=45,
         roof_connector_thickness=45,
     )
-    assert len(pack_stock(beam_pieces(design), 4200, DEFAULT_KERF)) == 8
+    assert len(pack_stock(beam_pieces(design), 4200, DEFAULT_KERF)) == 9
     assert len(panel_stock_plan(cladding_pieces(design), 4500, DEFAULT_KERF)) == 12
 
 
@@ -101,6 +101,24 @@ def test_45x45_120x23_variant_cut_pieces_use_requested_profiles():
         "floor_back_support": design.interior_width,
         "floor_left_support": design.back_wall_front - 2 * design.frame,
         "floor_right_support": design.back_wall_front - 2 * design.frame,
+    }
+    seat_bearers = {
+        piece.name: piece.length
+        for piece in beam_pieces(design)
+        if piece.name.startswith("seat_box_support_")
+    }
+    assert seat_bearers == {
+        "seat_box_support_front": design.interior_width,
+        "seat_box_support_rear": design.interior_width,
+    }
+    outer_seat_bearers = {
+        piece.name: piece.length
+        for piece in beam_pieces(design)
+        if piece.name.startswith("seat_support_outer_")
+    }
+    assert outer_seat_bearers == {
+        "seat_support_outer_left": design.seat_support_length,
+        "seat_support_outer_right": design.seat_support_length,
     }
     cladding = cladding_pieces(design)
     assert all(piece.thickness == 23 for piece in cladding)
@@ -132,8 +150,10 @@ def test_panel_plan_reuses_only_shortest_batch_to_fit_twelve_stock_lengths(board
     assert len(stocks) == 12
     assert [
         [piece.code for piece in stock if piece.length == 397] for stock in stocks
-    ] == [["SFB1", "SFB2"], ["SFB3", "SFB4"], ["SFB5", "SFB6"]] + [[]] * 8 + [
-        ["SFB7", "SFB8"]
+    ] == [["SFB1", "SFB2"], ["SFB3", "SFB4"], ["SFB5", "SFB6"]] + [[]] * 6 + [
+        ["SFB7"],
+        ["SFB8"],
+        [],
     ]
 
 
@@ -142,7 +162,7 @@ def test_raspont_coverage_leaves_trim_and_side_walls_are_gang_cut(design, boards
         "door": (design.width, 9),
         "back_wall": (design.interior_width, 8),
         "floor": (design.interior_width, 8),
-        "seat_top": (design.interior_width, 8),
+        "seat_top": (design.seat_depth, 5),
         "seat_front": (design.interior_width, 8),
         "left_wall": (design.plan_grid_depth, 7),
         "right_wall": (design.plan_grid_depth, 7),
@@ -152,6 +172,10 @@ def test_raspont_coverage_leaves_trim_and_side_walls_are_gang_cut(design, boards
         assert len(panel) == count
         assert count * 110 + 10 - span >= 10
         assert {piece.panel_end_trim for piece in panel} == {count * 110 + 10 - span}
+
+    seat_top = [piece for piece in boards if piece.name.startswith("seat_top_")]
+    assert {piece.length for piece in seat_top} == {design.seat_box_width}
+    assert {piece.panel_end_trim for piece in seat_top} == {60.0}
 
     for side in ("left_wall", "right_wall"):
         panel = [piece for piece in boards if piece.gang_cut == side]
