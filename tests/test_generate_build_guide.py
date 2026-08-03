@@ -216,17 +216,17 @@ def test_masthead_names_the_project_and_credits_its_sources(guide_document):
     [
         (
             "guide_document",
-            "https://canaibuildatoiletyet.com/",
+            "https://feelep.xyz/dass/",
             "DASS · Can AI build a toilet yet?",
         ),
         (
             "started_document",
-            "https://canaibuildatoiletyet.com/how-it-started.html",
+            "https://feelep.xyz/dass/how-it-started.html",
             "DASS · How it started",
         ),
         (
             "progress_document",
-            "https://canaibuildatoiletyet.com/how-its-going.html",
+            "https://feelep.xyz/dass/how-its-going.html",
             "DASS · How it's going",
         ),
     ],
@@ -242,7 +242,7 @@ def test_public_pages_include_canonical_social_metadata(
         f'<meta property="og:title" content="{escape(title, quote=True)}">' in document
     )
     assert (
-        '<meta property="og:image" content="https://canaibuildatoiletyet.com/web-renders/in-situ-open.jpg">'
+        '<meta property="og:image" content="https://feelep.xyz/dass/web-renders/in-situ-open.jpg">'
         in document
     )
     assert '<meta name="twitter:card" content="summary_large_image">' in document

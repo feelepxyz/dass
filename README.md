@@ -2,7 +2,7 @@
 
 ## A small outdoor toilet, drawn from a parametric model
 
-[Open the interactive cut guide and model](https://canaibuildatoiletyet.com)
+[Open the interactive cut guide and model](https://feelep.xyz/dass)
 
 | Attribution | Detail |
 | --- | --- |

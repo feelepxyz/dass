@@ -8,26 +8,28 @@ uv run generate-build-guide
 node scripts/render-drawing.mjs
 uv run scripts/build_web_assets.py
 
-deploy_dir=$(mktemp -d)
+deploy_dir="$PWD/.deploy"
+rm -rf -- "$deploy_dir"
 trap 'rm -rf -- "${deploy_dir:?}"' EXIT
+site_dir="$deploy_dir/dass"
+mkdir -p "$site_dir"
 
-cp build/cut-guide.html "$deploy_dir/index.html"
-cp build/cut-guide.html "$deploy_dir/cut-guide.html"
-cp build/how-it-started.html "$deploy_dir/how-it-started.html"
-cp build/how-its-going.html "$deploy_dir/how-its-going.html"
-cp -R build/fonts "$deploy_dir/fonts"
-cp -R build/textures "$deploy_dir/textures"
-cp -R build/web-renders "$deploy_dir/web-renders"
-cp -R build/started "$deploy_dir/started"
-cp -R build/progress "$deploy_dir/progress"
-cp -R build/vendor "$deploy_dir/vendor"
+cp build/cut-guide.html "$site_dir/index.html"
+cp build/cut-guide.html "$site_dir/cut-guide.html"
+cp build/how-it-started.html "$site_dir/how-it-started.html"
+cp build/how-its-going.html "$site_dir/how-its-going.html"
+cp -R build/fonts "$site_dir/fonts"
+cp -R build/textures "$site_dir/textures"
+cp -R build/web-renders "$site_dir/web-renders"
+cp -R build/started "$site_dir/started"
+cp -R build/progress "$site_dir/progress"
+cp -R build/vendor "$site_dir/vendor"
 
 # The model viewer loads the same GLB variants the renderer photographs.
-mkdir -p "$deploy_dir/renders"
-cp build/renders/dass-open.glb build/renders/dass-closed.glb "$deploy_dir/renders/"
+mkdir -p "$site_dir/renders"
+cp build/renders/dass-open.glb build/renders/dass-closed.glb "$site_dir/renders/"
 
 npx --yes wrangler@4.116.0 deploy \
-  --name dass-cut-guide \
-  --assets "$deploy_dir" \
+  --config wrangler.jsonc \
   --domain canaibuildatoiletyet.com \
   --compatibility-date 2026-07-30

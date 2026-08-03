@@ -41,7 +41,7 @@ from .fastening import (
 )
 from .model import Design, box_at, build, side_panel
 
-SITE_URL = "https://canaibuildatoiletyet.com"
+SITE_URL = "https://feelep.xyz/dass"
 SOCIAL_IMAGE_URL = f"{SITE_URL}/web-renders/in-situ-open.jpg"
 IN_SITU_CROP_FOCUS = 1.0
 # Set both variables after uploading the clip in Stream. Until then, the

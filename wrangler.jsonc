@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "dass-cut-guide",
+  "main": "scripts/dass_worker.js",
+  "compatibility_date": "2026-07-30",
+  "route": "feelep.xyz/dass*",
+  "workers_dev": false,
+  "assets": {
+    "directory": ".deploy",
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "run_worker_first": true
+  }
+}

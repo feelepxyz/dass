@@ -11,6 +11,7 @@ __pycache__/
 web/render/node_modules/
 
 .wrangler
+.deploy/
 .impeccable
 
 # Tool caches and coverage data
