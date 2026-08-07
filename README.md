@@ -19,9 +19,11 @@ closed model, the unit drawings, and the workshop cut sequence.
 
 ## Current release
 
-Version `0.1.4` centres terminal-board cladding screws on the material left after
-trimming and keeps the fixing marks clear of beam-screw paths. Read the
-[full changelog](CHANGELOG.md).
+Version `0.1.6` matches the line model's white frames, pale grey cladding, and
+grey board joints to the unit drawings. It also rebuilds the unit drawings so
+each unit builds through a numbered sequence of single-operation steps, and
+corrects the back panel to be clad and trimmed flat before it is fitted. Read
+the [full changelog](CHANGELOG.md).
 
 ## Run the guide
 
@@ -249,6 +251,7 @@ screenshots, inspection records, and evolution images.
 
 ## Model changelog
 
-Version 0.1.4 (2026-08-02) centres terminal cladding fixings after trimming and
-keeps them clear of beam-screw paths. Read the [full changelog](CHANGELOG.md)
-for the dated model history.
+Version 0.1.6 (2026-08-07) matches the line finish to the unit drawings and
+builds each unit through a numbered construction sequence, finishing the back
+panel flat before it is fitted. Read the [full changelog](CHANGELOG.md) for the
+dated model history.

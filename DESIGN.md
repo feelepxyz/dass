@@ -155,6 +155,14 @@ lettering is near-uniform by convention; rank inside a drawing comes from ink
 colour and from what the text is attached to, not from size. Do not open these
 steps up to satisfy a contrast ratio meant for page type.
 
+A step plate carries a fraction of what a general arrangement carries and is
+drawn at roughly half its width, so it letters larger inside the same
+1000-unit space: `24px` for a code, `23px` for the operation, `17px` for a
+dimension, a datum or a detail note, `16px` for a board code, `18px` for the
+hardware call. These are the same ranks at the same finished size, not a
+second ramp; print raises the code to `27px` so no code on paper prints
+smaller than the ones on the general arrangements.
+
 ## Layout
 
 One sheet per phase, separated by generous quiet. Each sheet opens with a rule,
@@ -177,8 +185,10 @@ objects, thicker for what the section plane cuts.
 ## Shapes
 
 Every corner is square. Dashed lines mean an object that belongs to another
-drawing, or a cut not yet made. Cut timber is solid grey. Joined cladding is a
-pale tint with its board joints ruled across it.
+drawing, a cut not yet made, or a part travelling to its seat. Cut timber is
+solid grey. Joined cladding is a pale tint with its board joints ruled across
+it. A field that is present only because this step has not reached it yet is
+filled with no edge of its own, so nothing implies a cut that has not happened.
 
 ## Line weights
 
@@ -205,6 +215,22 @@ the line. Values are measured off the model, never typed. Thousands are spaced
 their code and length, saw ticks at each cut, the terminal offcut hatched.
 
 **Title block.** One per sheet. Project, sheet number, issue date, units.
+
+**Operation stamp.** One band under every step drawing, ruled off it in plate
+space reserved below the dimension gutter so it can never land on a dimension
+run. The operation at the left, and the fastener or tool it takes boxed at the
+right. It reads before the caption does, which is why it is drawn at all.
+
+**Travel track.** Hairline dashed, with an open arrowhead at the seat, from a
+member drawn off its seat to the ghost of where it goes. Only an assembly step
+carries one.
+
+**Datum.** A solid triangle whose apex touches the edge a step works from — a
+guide edge, a landing mark, a level — with its lettering clear of the geometry.
+The edge is named once, on the step that uses it.
+
+**Set-out line.** A cut marked and not yet made: section weight, dashed. It
+becomes solid at the step that makes it, and the waste beside it is hatched.
 
 ## Do's and Don'ts
 

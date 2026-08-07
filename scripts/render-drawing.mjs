@@ -91,6 +91,7 @@ async function writeDrawing(name) {
             a,
             b,
             width: node.userData.isPlankSeam ? 0.75 : 1.25,
+            color: node.userData.isPlankSeam ? '#b7b7b7' : '#151515',
           });
         }
         return;
@@ -267,7 +268,10 @@ async function writeDrawing(name) {
       y: line.a.y + (line.b.y - line.a.y) * t,
       z: line.a.z + (line.b.z - line.a.z) * t,
     });
-    const paths = new Map([[0.75, []], [1.25, []]]);
+    const paths = new Map([
+      ['0.75:#b7b7b7', []],
+      ['1.25:#151515', []],
+    ]);
     for (const line of lineSegments) {
       const xmin = Math.min(line.a.x, line.b.x);
       const xmax = Math.max(line.a.x, line.b.x);
@@ -310,18 +314,19 @@ async function writeDrawing(name) {
         if (occluded) continue;
         const a = pointAt(line, start);
         const b = pointAt(line, end);
-        paths.get(line.width).push(
+        paths.get(`${line.width}:${line.color}`).push(
           `M${(a.x * 600).toFixed(2)},${(-a.y * 600).toFixed(2)}`
           + `L${(b.x * 600).toFixed(2)},${(-b.y * 600).toFixed(2)}`,
         );
       }
     }
-    for (const [width, segments] of paths) {
+    for (const [style, segments] of paths) {
       if (!segments.length) continue;
+      const [width, color] = style.split(':');
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', segments.join(''));
       path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', '#151515');
+      path.setAttribute('stroke', color);
       path.setAttribute('stroke-width', String(width));
       path.setAttribute('vector-effect', 'non-scaling-stroke');
       path.setAttribute('stroke-linejoin', 'round');

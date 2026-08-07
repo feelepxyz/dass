@@ -25,7 +25,10 @@ const PDF = process.argv.includes('--pdf')
 const MM = 96 / 25.4;
 const PAGE = { width: (297 - 18) * MM, height: (210 - 24) * MM };
 // Blocks the print stylesheet promises to keep whole.
-const UNBREAKABLE = '.drawing, .unit, .stock, .note';
+// A unit now runs across the sheets it needs: its general arrangement opens on
+// one, its numbered steps run on from there. What must never break is a single
+// drawing, so a step is proved whole here even though its unit is not.
+const UNBREAKABLE = '.drawing, .step, .stock, .note';
 
 const TYPES = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -136,7 +139,8 @@ if (wide.length) {
 }
 
 // The plate is the reason any of this matters; report how large it prints.
-const plates = await page.evaluate(() => [...document.querySelectorAll('.drawing .plate')].map((svg) => {
+const MM_PX = 96 / 25.4;
+const plates = await page.evaluate((MM_PX) => [...document.querySelectorAll('.drawing .plate')].map((svg) => {
   const box = svg.getBoundingClientRect();
   const [, , vw, vh] = svg.getAttribute('viewBox').split(/\s+/).map(Number);
   // Hidden perspective toggle layers have no box; they are not printed and
@@ -144,14 +148,22 @@ const plates = await page.evaluate(() => [...document.querySelectorAll('.drawing
   if (box.width === 0 || box.height === 0) return null;
   // preserveAspectRatio letterboxes the drawing inside its box.
   const scale = Math.min(box.width / vw, box.height / vh);
+  // A step plate letters larger inside the same 1000-unit space than a key
+  // plate does, so the size is read off a real mark. A plate that carries no
+  // code mark has no code size to report and must not stand in for one.
+  const mark = svg.querySelector('.mark');
+  const size = mark ? parseFloat(getComputedStyle(mark).fontSize) : null;
   return {
     ref: svg.closest('.drawing')?.querySelector('.drawing-ref')?.textContent.trim() ?? '',
-    mark: +(16 * scale / (96 / 25.4) * 72 / 25.4).toFixed(1),
+    mark: size === null ? null : +(size * scale / (96 / 25.4) * 72 / 25.4).toFixed(1),
+    plate: `${Math.round(box.width / MM_PX)} x ${Math.round(box.height / MM_PX)}mm`,
   };
-}).filter(Boolean));
-const smallest = plates.reduce((low, plate) => (plate.mark < low.mark ? plate : low), plates[0]);
+}).filter(Boolean), MM_PX);
+const marked = plates.filter((plate) => plate.mark !== null);
+const smallest = marked.reduce((low, plate) => (plate.mark < low.mark ? plate : low), marked[0]);
 console.log(
-  `plates      ${plates.length} drawings  smallest code mark ${smallest.mark}pt (${smallest.ref})`,
+  `plates      ${plates.length} drawings, ${marked.length} coded  ` +
+  `smallest code mark ${smallest.mark}pt (${smallest.ref}, ${smallest.plate})`,
 );
 await page.emulateMedia({ media: null });
 

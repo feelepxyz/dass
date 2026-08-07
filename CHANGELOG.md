@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.1.6 — Match the unit-drawing line finish · 2026-08-07
+
+- Made the interactive line model and its exported drawing renders use white
+  frame members, pale grey cladding, and lighter grey board joints so they
+  read like the unit drawings.
+
+## 0.1.5 — Unit drawings as a construction sequence · 2026-08-07
+
+- Rebuilt sheet A-400 so every unit builds through its own numbered
+  construction steps. Each step is a drawing of one operation rather than a
+  line of prose: work already done drops back to a ghost, work the step
+  touches goes solid, and a band under the drawing names the operation and the
+  fastener or tool it takes. The steps replace about a thousand words of
+  instruction with roughly three hundred.
+- Kept a general arrangement only on the door and the two side units, which
+  carry set-out no single step can show: the door reliefs, and the slope, trim
+  and notch on either side. Every other unit is finished by its own last step,
+  so its overall drawing was repeating what the steps already say. Dropped the
+  repeated code strip under each unit for the same reason.
+- Drew each frame coming together as an exploded isometric, with every member
+  off its seat on the path it travels back down. Marking, cutting, fastening
+  and setting-out steps stay orthographic, because a saw line, a trim and a
+  notch lose precision in projection.
+- Split the operations a single sentence used to carry. A side field is now
+  clad, marked, gang-cut, trimmed and notched as five separate drawings, so
+  no cut is made from a step that also asked for something else.
+- Corrected the back unit build order: the back frame is clad and trimmed flat
+  before it is set between the side units. Fitted first, the side skins stand
+  in the way of the overhang the back field is cut from. The back frame also
+  now states that nothing screws it together, since every fixing into it comes
+  from a rear post.
+- Corrected the floor deck order: the joined field is cut to the bearers
+  before it is fixed, because once the boards are down there is no guide edge
+  left to run the saw on.
+- Added a screw step to the door, both side units and the seat box. A frame is
+  driven, and checked square as it is driven, before anything is fixed to it.
+  The seat box's eight beam screws are now drawn where they are made.
+- Merged the two seat-support units, which drew the same bearers twice. The
+  one that remains sets both beam tops off the finished deck and the inside
+  back face, drives the outside screws, and then takes the box.
+- Moved deliberately deferred work out of the numbered sequence into a hold
+  pinned to its unit, so the roof reliefs and the hinge leaves can no longer
+  be read as the next thing to do.
+- Replaced the single unit checkbox with a tick per step and a progress count
+  on each unit.
+- Bound each general arrangement to the screen so a unit opens in one view,
+  and stopped the layer toggle dimming a step drawing it was never aimed at.
+- Reprinted the packet: a unit takes the sheets it needs, with its steps three
+  across, no drawing split from its caption or its tick, and no empty sheet.
+
 ## 0.1.4 — Cladding screw clearance · 2026-08-02
 
 - Centred cladding fixings on the material left after each field is trimmed,

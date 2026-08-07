@@ -127,6 +127,11 @@ PART_NAMES = {
 }
 
 
+# The units whose general arrangement earns its place. Each carries set-out its
+# steps can only show one at a time: the door's reliefs, and the slope, trim and
+# notch on either side. Every other unit is finished by its own last step.
+KEY_PLATE_UNITS = ("B", "C", "D")
+
 MODULES = [
     ("A", "Roof unit", ("RB",)),
     ("B", "Door unit", ("DB", "DCB")),
@@ -136,10 +141,35 @@ MODULES = [
     ("F", "Shell joint", ("FBH", "FBB", "FBS")),
     ("G", "Floor deck", ("FCB",)),
     ("H", "Seat box", ("SBH", "SBS", "STB")),
-    ("I", "Seat supports", ("SBB",)),
-    ("J", "Seat box supports", ("SBB", "SBF")),
-    ("K", "Seat front cladding", ("SFB",)),
+    ("I", "Seat box supports", ("SBB", "SBF")),
+    ("J", "Seat front cladding", ("SFB",)),
 ]
+
+# Work a unit deliberately leaves undone. A hold is never a numbered step:
+# numbering it would invite someone to do it, and every one of these waits on
+# a part that does not exist yet or on a shell that is not yet square.
+UNIT_HOLDS: dict[str, tuple[str, ...]] = {
+    "A": (
+        "Fit the moving hinge leaf now. Hang the roof only after the shell is square.",
+    ),
+    "B": ("Fit the moving hinge leaves now. Hang the door after the shell is square.",),
+    "C": (
+        "Do not pre-cut the roof reliefs. Hang and close the roof, then cut to the scribe.",
+    ),
+    "D": (
+        "Do not pre-cut the roof reliefs. Hang and close the roof, then cut to the scribe.",
+    ),
+    "H": ("Seal every fresh cladding cut before the box goes in.",),
+    "I": (
+        "Leave both bearers screwed to the shell so the box lifts out as one assembly.",
+    ),
+}
+
+# One drawing number per unit, running without a gap so the register reads as
+# a register. A step takes its parent's number and its own place in the order.
+DRAWING_NUMBERS: dict[str, str] = {
+    letter: f"A-{400 + index}" for index, (letter, _, _) in enumerate(MODULES, 1)
+}
 
 
 def fmt(value: float) -> str:
@@ -350,6 +380,20 @@ def convex_hull(points: list[Point]) -> list[Point]:
     return half(ordered) + half(ordered[::-1])
 
 
+def shift_point(point: Point, delta: Point) -> Point:
+    return (point[0] + delta[0], point[1] + delta[1])
+
+
+def shift(points: list[Point], delta: Point) -> list[Point]:
+    """Move a projected profile across the plate.
+
+    Both projections are linear, so a part exploded off its seat by a model
+    offset moves by that offset's own projection. An exploded step is drawn by
+    shifting the profile, never by rebuilding the solid somewhere else.
+    """
+    return [shift_point(point, delta) for point in points]
+
+
 def outline(solid: cq.Shape, view: View) -> list[Point]:
     """Exact projected profile of one part.
 
@@ -448,7 +492,11 @@ class Plate:
     WIDTH = 1000.0
 
     def __init__(
-        self, shapes: list[list[Point]], margin: float = 62.0, pad: float = 0.0
+        self,
+        shapes: list[list[Point]],
+        margin: float = 62.0,
+        pad: float = 0.0,
+        band: float = 0.0,
     ) -> None:
         points = [point for shape in shapes for point in shape]
         self.umin = min(u for u, _ in points)
@@ -459,7 +507,11 @@ class Plate:
         v_span = self.vmax - self.vmin
         self.margin = margin
         self.scale = (self.WIDTH - 2 * margin) / u_span
-        self.height = v_span * self.scale + 2 * margin + pad
+        # The band is reserved below the dimension gutter, so an operation
+        # stamp can never land on the run of a dimension the way a lower-margin
+        # note used to land on the geometry.
+        self.band = band
+        self.height = v_span * self.scale + 2 * margin + pad + band
         self.body: list[str] = []
 
     def x(self, u: float) -> float:
@@ -489,12 +541,24 @@ class Plate:
             f'x2="{self.x(b[0]):.1f}" y2="{self.y(b[1]):.1f}"/>'
         )
 
-    def wire(self, solid: cq.Shape, view: AxonometricView, css: str) -> None:
+    def wire(
+        self,
+        solid: cq.Shape,
+        view: AxonometricView,
+        css: str,
+        delta: Point = (0.0, 0.0),
+    ) -> None:
         for start, end in projected_edges(solid, view):
-            self.line(start, end, css)
+            self.line(shift_point(start, delta), shift_point(end, delta), css)
 
-    def linear_dim(self, a: Point, b: Point, offset: float, text: str) -> None:
-        """Draw a dimension parallel to an arbitrary projected model edge."""
+    def linear_dim(
+        self, a: Point, b: Point, offset: float, text: str, at: float = 0.5
+    ) -> None:
+        """Draw a dimension parallel to an arbitrary projected model edge.
+
+        ``at`` slides the value along the run. Two dimensions that cross, such
+        as a pair of diagonals held equal, cannot both letter at their midpoint.
+        """
         start = self.at(a)
         end = self.at(b)
         dx, dy = end[0] - start[0], end[1] - start[1]
@@ -527,8 +591,12 @@ class Plate:
         while angle <= -90:
             angle += 180
         middle = (
-            (shifted_start[0] + shifted_end[0]) / 2 + normal[0] * 14,
-            (shifted_start[1] + shifted_end[1]) / 2 + normal[1] * 14,
+            shifted_start[0]
+            + (shifted_end[0] - shifted_start[0]) * at
+            + normal[0] * 14,
+            shifted_start[1]
+            + (shifted_end[1] - shifted_start[1]) * at
+            + normal[1] * 14,
         )
         self.add(
             f'<text class="dim-text" x="{middle[0]:.1f}" y="{middle[1]:.1f}" '
@@ -596,12 +664,89 @@ class Plate:
             f"{turn}{baseline}>{html.escape(text)}</text>"
         )
 
-    def corner(self, text: str) -> None:
-        """Note in the lower margin, clear of the drawing and dimensions."""
+    ARROW = 13.0
+
+    def track(self, start: Point, end: Point) -> None:
+        """The path a part travels from where it is drawn to where it seats."""
+        x1, y1 = self.at(start)
+        x2, y2 = self.at(end)
+        run = math.hypot(x2 - x1, y2 - y1)
+        if run < 1e-6:
+            return
+        ux, uy = (x2 - x1) / run, (y2 - y1) / run
+        self.add(f'<path class="track" d="M{x1:.1f} {y1:.1f} L{x2:.1f} {y2:.1f}"/>')
+        wing, spread = self.ARROW, self.ARROW * 0.42
         self.add(
-            f'<text class="note-text" x="14" y="{self.height - 52:.1f}" '
-            f'text-anchor="start">'
+            f'<path class="track-head" d="'
+            f"M{x2 - ux * wing - uy * spread:.1f} {y2 - uy * wing + ux * spread:.1f} "
+            f"L{x2:.1f} {y2:.1f} "
+            f'L{x2 - ux * wing + uy * spread:.1f} {y2 - uy * wing - ux * spread:.1f}"/>'
+        )
+
+    DATUM = 13.0
+
+    def datum(self, point: Point, text: str, side: str = "top") -> None:
+        """A solid setting-out triangle on the edge a step works from.
+
+        The apex touches the edge, the way a level or a grid reference does in
+        the reference set, and the lettering sits clear of the geometry.
+        """
+        x, y = self.at(point)
+        size = self.DATUM
+        if side in ("top", "bottom"):
+            sign = -1.0 if side == "top" else 1.0
+            base = y + sign * size
+            self.add(
+                f'<path class="datum" d="M{x:.1f} {y:.1f} '
+                f"L{x - size * 0.6:.1f} {base:.1f} "
+                f'L{x + size * 0.6:.1f} {base:.1f} Z"/>'
+            )
+            text_y = base - 9 if sign < 0 else base + 20
+            self.add(
+                f'<text class="datum-text" x="{x:.1f}" y="{text_y:.1f}" '
+                f'text-anchor="middle">{html.escape(text)}</text>'
+            )
+            return
+        sign = -1.0 if side == "left" else 1.0
+        base = x + sign * size
+        self.add(
+            f'<path class="datum" d="M{x:.1f} {y:.1f} '
+            f"L{base:.1f} {y - size * 0.6:.1f} "
+            f'L{base:.1f} {y + size * 0.6:.1f} Z"/>'
+        )
+        text_x = base - 9 if sign < 0 else base + 9
+        self.add(
+            f'<text class="datum-text" x="{text_x:.1f}" y="{y:.1f}" '
+            f'text-anchor="middle" transform="rotate(-90 {text_x:.1f} {y:.1f})">'
             f"{html.escape(text)}</text>"
+        )
+
+    def stamp(self, operation: str, hardware: str = "") -> None:
+        """The operation band under a step drawing.
+
+        One line, ruled off the drawing: what this step does at the left, and
+        the fastener or tool it is done with boxed at the right. It reads
+        before the caption does, which is the point of drawing it at all.
+        """
+        top = self.height - self.band
+        self.add(f'<path class="stamp-rule" d="M0 {top:.1f} H{self.WIDTH:.0f}"/>')
+        baseline = top + 30
+        self.add(
+            f'<text class="stamp-op" x="14" y="{baseline:.1f}" '
+            f'text-anchor="start">{html.escape(operation)}</text>'
+        )
+        if not hardware:
+            return
+        # InputMono is monospaced, so the box is measured off the string.
+        width = len(hardware) * 11.6 + 26
+        left = self.WIDTH - 14 - width
+        self.add(
+            f'<rect class="stamp-box" x="{left:.1f}" y="{top + 9:.1f}" '
+            f'width="{width:.1f}" height="30"/>'
+        )
+        self.add(
+            f'<text class="stamp-hardware" x="{self.WIDTH - 27:.1f}" '
+            f'y="{baseline:.1f}" text-anchor="end">{html.escape(hardware)}</text>'
         )
 
     def leader(
@@ -681,7 +826,7 @@ class Plate:
                 )
         else:
             side = 1 if offset >= 0 else -1
-            y = self.height - 18 if side > 0 else 18
+            y = self.height - self.band - 18 if side > 0 else 18
             self.add(
                 f'<path class="dim" d="M{x1:.1f} {y1:.1f} V{y:.1f} M{x2:.1f} {y2:.1f} V{y:.1f} '
                 f'M{x1:.1f} {y:.1f} H{x2:.1f}"/>'
@@ -727,6 +872,33 @@ class Plate:
             f"{''.join(self.body)}"
             f"</svg>"
         )
+
+
+ASSEMBLE = "ASSEMBLE"
+CLAD = "CLAD"
+MARK = "MARK"
+CUT = "CUT"
+FASTEN = "FASTEN"
+SET_OUT = "SET OUT"
+
+
+@dataclass(frozen=True)
+class Step:
+    """One numbered construction step: a drawing, a verb line, and a tick."""
+
+    op: str
+    caption: str
+    plate: str
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class UnitDrawings:
+    """A general arrangement for one unit, then the sequence that builds it."""
+
+    key: str
+    steps: tuple[Step, ...]
+    holds: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1229,6 +1401,7 @@ const ATLAS = __ATLAS__;
 const SHEET = 0xffffff;
 const CODE = 0xbb261a;
 const INK = 0x151515;
+const BOARD_JOINT = 0xb7b7b7;
 const SHADE = { frame: 0xffffff, field: 0xf2f2f0, deck: 0xe6e6e6, metal: 0xdededc, roof: 0xe6e6e6 };
 
 const figure = document.querySelector(".viewer");
@@ -1321,7 +1494,7 @@ scene.add(ground);
 
 const edgeInk = new THREE.LineBasicMaterial({ color: INK, linewidth: 1.25 });
 const edgeCode = new THREE.LineBasicMaterial({ color: CODE, linewidth: 1.25 });
-const plankInk = new THREE.LineBasicMaterial({ color: INK, linewidth: 0.75 });
+const plankInk = new THREE.LineBasicMaterial({ color: BOARD_JOINT, linewidth: 0.75 });
 
 const lineMaterials = new Map();
 function lineMaterialFor(key) {
@@ -1879,10 +2052,22 @@ def draw_field(
     view: View,
     uid: str,
     label: bool = True,
+    terminal: str = "cut",
+    gang: str = "cut",
 ) -> None:
-    """Draw fixed cladding with its nominal on-frame trim still attached."""
+    """Draw a cladding field at one stage of its construction.
+
+    A field is fixed oversize and cut on the frame, so the same geometry has
+    to draw four ways. ``attached`` is board still there and no line; ``marked``
+    adds the set-out line dashed, because the set means a dashed line is a cut
+    not yet made; ``cut`` hatches the waste and draws the cut at section
+    weight; ``done`` is the finished edge with the waste gone. The general
+    arrangement takes the default, which is every edge cut.
+    """
     if panel.axis not in {view.u_axis, view.v_axis}:
         raise ValueError("the cladding trim must be visible in the unit view")
+    if {terminal, gang} - {"attached", "marked", "cut", "done"}:
+        raise ValueError("a field edge is attached, marked, cut, or done")
     plate.shape(profile, "field")
     box = solid.BoundingBox()
     lows = (box.xmin, box.ymin, box.zmin)
@@ -1892,31 +2077,38 @@ def draw_field(
     run_projected_axis = 1 - panel_projected_axis
     panel_sign = view.u_sign if panel_projected_axis == 0 else view.v_sign
 
-    terminal = panel_sign * (lows[panel.axis] + panel.span)
+    terminal_at = panel_sign * (lows[panel.axis] + panel.span)
     rough_terminal = panel_sign * (lows[panel.axis] + panel.joined)
     terminal_points = [
         point[run_projected_axis]
         for point in profile
-        if math.isclose(point[panel_projected_axis], terminal, abs_tol=1e-3)
+        if math.isclose(point[panel_projected_axis], terminal_at, abs_tol=1e-3)
     ]
     if len(terminal_points) < 2:
         terminal_points = [point[run_projected_axis] for point in profile]
     trim_low, trim_high = min(terminal_points), max(terminal_points)
     trim_points = [
-        (terminal, trim_low),
+        (terminal_at, trim_low),
         (rough_terminal, trim_low),
         (rough_terminal, trim_high),
-        (terminal, trim_high),
+        (terminal_at, trim_high),
     ]
     trim = [
         point if panel_projected_axis == 0 else (point[1], point[0])
         for point in trim_points
     ]
-    plate.shape(trim, "trim")
+    # The waste joins the clip so the board joints rule across it while it is
+    # still attached; once it is cut away there is nothing left to rule.
+    waste: list[list[Point]] = []
     cut_start = trim[0]
     cut_end = trim[3]
-    plate.line(cut_start, cut_end, "cut")
-    trim_notes = [f"CUT AFTER FIXING · {fmt(panel.trim)} mm TRIM"]
+    if terminal != "done":
+        waste.append(trim)
+        plate.shape(trim, "trim" if terminal == "cut" else "field")
+        if terminal == "cut":
+            plate.line(cut_start, cut_end, "cut")
+        elif terminal == "marked":
+            plate.line(cut_start, cut_end, "cut-mark")
 
     if panel.pieces[0].gang_cut:
         depth = (lows[view.depth_axis] + highs[view.depth_axis]) / 2
@@ -1940,9 +2132,15 @@ def draw_field(
             lows[run] + (panel.pieces[-1].finished_short or panel.blank),
         )
         rough_end = projected(finish, rough_top)
-        plate.shape([cut_start, rough_end, cut_end], "trim")
-        plate.line(cut_start, cut_end, "cut")
-        trim_notes.append("MARK GANG CUT AFTER FIXING")
+        if gang != "done":
+            waste.append([cut_start, rough_end, cut_end])
+            plate.shape(
+                [cut_start, rough_end, cut_end], "trim" if gang == "cut" else "field"
+            )
+            if gang == "cut":
+                plate.line(cut_start, cut_end, "cut")
+            elif gang == "marked":
+                plate.line(cut_start, cut_end, "cut-mark")
 
     start = len(plate.body)
     for joint in board_joints(panel):
@@ -1958,14 +2156,19 @@ def draw_field(
         plate.line(ends[0], ends[1], "joint")
     joints = "".join(plate.body[start:])
     del plate.body[start:]
-    path = " ".join(
-        f"{'M' if index == 0 else 'L'}{plate.x(u):.1f} {plate.y(v):.1f}"
-        for index, (u, v) in enumerate(profile)
+    paths = "".join(
+        '<path d="'
+        + " ".join(
+            f"{'M' if index == 0 else 'L'}{plate.x(u):.1f} {plate.y(v):.1f}"
+            for index, (u, v) in enumerate(region)
+        )
+        + ' Z"/>'
+        for region in (profile, *waste)
     )
-    plate.add(f'<clipPath id="{uid}"><path d="{path} Z"/></clipPath>')
+    plate.add(f'<clipPath id="{uid}">{paths}</clipPath>')
     plate.add(f'<g clip-path="url(#{uid})">{joints}</g>')
-    draw_cladding_codes(plate, solid, panel, view)
-    plate.corner(" · ".join(trim_notes))
+    if label:
+        draw_cladding_codes(plate, solid, panel, view)
 
 
 def draw_cladding_codes(
@@ -2296,8 +2499,14 @@ def _seat_installation_perspective(
     fastening: FasteningAnalysis,
     side: str,
     view: AxonometricView,
+    dimensioned: bool = True,
 ) -> Plate:
-    """Draw the installed shell and fixed bearers from one front corner."""
+    """Draw the installed shell and fixed bearers from one front corner.
+
+    The general arrangement carries the setting-out. Used as the step that
+    drives the screws, the same view drops its dimensions: those are set out on
+    the step before it, and a set writes a number once.
+    """
     wall = f"{side}_wall"
     members = (
         "seat_box_support_front",
@@ -2316,7 +2525,12 @@ def _seat_installation_perspective(
     # shell its visible face is therefore the front face at ymin, meeting the
     # side's inner face before that side continues to the rear outer edge.
     shapes["back_wall"] = projected_face_at(parts["back_wall"], view, 1, back_box.ymin)
-    plate = Plate(list(shapes.values()), margin=62, pad=72)
+    plate = Plate(
+        list(shapes.values()),
+        margin=62,
+        pad=72 if dimensioned else 10,
+        band=0.0 if dimensioned else STEP_BAND,
+    )
 
     for name in context:
         plate.shape(shapes[name], "ghost")
@@ -2333,6 +2547,9 @@ def _seat_installation_perspective(
         design,
         pair_set,
     )
+
+    if not dimensioned:
+        return plate
 
     # The front 352 mm marker checks SBB1/SBF1 at the side wall. Anchor the
     # upper marker at the outer, back corner of SBB2 so its line visibly runs
@@ -2369,34 +2586,7 @@ def _seat_installation_perspective(
         -42,
         f"{fmt(design.seat_front_support_from_back)} mm",
     )
-    plate.corner(
-        f"{wall.upper()} · SBB1 / SBB2 / SBF1 · {fmt(design.seat_front_support_from_back)} FROM BACK · "
-        "23 MM SIDE CLADDING · 2 × 120 SCREWS FROM OUTSIDE"
-    )
     return plate
-
-
-def seat_installation_perspective(
-    design: Design,
-    parts: dict[str, cq.Shape],
-    fastening: FasteningAnalysis,
-) -> str:
-    """Return a right/left toggle drawing for the fixed seat-box bearers."""
-    right = _seat_installation_perspective(design, parts, fastening, "right", AXO_RIGHT)
-    left = _seat_installation_perspective(design, parts, fastening, "left", AXO_LEFT)
-    title = "Seat box supports"
-    caption = "isometric projection"
-    return (
-        '<figure class="drawing perspective-drawing">'
-        f"{right.element('plate perspective-right', title, 'right side')}"
-        f"{left.element('plate perspective-left', title, 'left side')}"
-        "<figcaption>"
-        f'<span class="drawing-name">{html.escape(title.upper())}</span>'
-        f'<span class="drawing-ref">A-411 · {html.escape(caption.upper())}</span>'
-        '<span class="drawing-note">Flip the side toggle to see the two outside screw pairs.</span>'
-        "</figcaption>"
-        "</figure>"
-    )
 
 
 def _cladding_frame_paths(
@@ -2548,14 +2738,6 @@ def draw_cladding_screws(
     field_bounds = bounds(profile)
     panel_projected_axis = 0 if panel.axis == view.u_axis else 1
     run_projected_axis = 1 - panel_projected_axis
-    run_world_axis = run
-    edge_names = (
-        ("LEFT", "RIGHT")
-        if run_world_axis == 0
-        else ("TOP", "BOTTOM")
-        if run_world_axis == 2
-        else ("REAR", "FRONT")
-    )
     layout = cladding_screw_layout(
         solid,
         panel,
@@ -2584,12 +2766,8 @@ def draw_cladding_screws(
         row_projected = line_start[run_projected_axis]
         edge = min(
             (
-                (
-                    abs(row_projected - value),
-                    value,
-                    edge_names[index],
-                )
-                for index, value in enumerate(
+                (abs(row_projected - value), value)
+                for value in (
                     field_bounds[::2] if run_projected_axis == 0 else field_bounds[1::2]
                 )
             ),
@@ -2597,11 +2775,13 @@ def draw_cladding_screws(
         )
         dimension_point = list(line_start)
         dimension_point[run_projected_axis] = edge[1]
+        # The run itself shows which edge the row is set out from, so the
+        # value is the value. Spelling the edge out again overflows the plate.
         plate.dim(
             (dimension_point[0], dimension_point[1]),
             line_start,
             44,
-            f"{fmt(edge[0])} mm FROM {edge[2]}",
+            fmt(edge[0]),
         )
     plate.group(start, "screw-layer screw-cladding")
 
@@ -2635,8 +2815,17 @@ def draw_unit_screws(
         )
 
 
-def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
-    """One precise construction plate per lettered stack."""
+@dataclass(frozen=True)
+class UnitContext:
+    """Everything the unit drawings measure, resolved from the model once."""
+
+    design: Design
+    parts: dict[str, cq.Shape]
+    fields: dict[str, Panel]
+    fastening: FasteningAnalysis
+
+
+def unit_context(design: Design, boards: list[CutPiece]) -> UnitContext:
     _, part_list = build(design)
     parts = {part.name: part.solid for part in part_list}
     # The modeled side fields already carry the roof reliefs, which the workshop
@@ -2644,33 +2833,23 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     # Each unit plate adds the rough terminal edge that is trimmed after fixing.
     parts["left_wall"] = side_panel(design, design.frame, False)
     parts["right_wall"] = side_panel(design, design.width - design.frame, True)
-    fields = panels(boards)
-    fastening = analyze_frame_fastening(design)
+    return UnitContext(design, parts, panels(boards), analyze_frame_fastening(design))
+
+
+def key_plates(context: UnitContext) -> dict[str, str]:
+    """The general arrangement of the units that need one: one plate, fully cut.
+
+    A key plate carries the overall dimensions and every code the unit owns.
+    The steps beside it carry the sequence, so nothing here says when.
+    """
+    design = context.design
+    parts = context.parts
+    fields = context.fields
+    fastening = context.fastening
     plates: dict[str, str] = {}
 
     def shapes_for(view: View, *names: str) -> dict[str, list[Point]]:
         return {name: outline(parts[name], view) for name in names}
-
-    # A · Roof unit, in plan, with the sheet it carries.
-    members = ("roof_left", "roof_right", "roof_front", "roof_back", "roof_middle")
-    shapes = shapes_for(PLAN, *members, "roof")
-    plate = plate_for(shapes, members, ("roof",))
-    draw_members(plate, shapes, members)
-    draw_unit_screws(plate, parts, set(members), PLAN, fastening, design, fields)
-    frame_box = bounds([point for name in members for point in shapes[name]])
-    sheet = bounds(shapes["roof"])
-    plate.dim((sheet[0], sheet[3]), (sheet[2], sheet[3]), 40)
-    plate.dim((frame_box[0], frame_box[1]), (frame_box[2], frame_box[1]), -40)
-    plate.dim((sheet[2], sheet[1]), (sheet[2], sheet[3]), 40)
-    plate.corner(
-        "sheet ghosted · slope beams foreshortened, cut them to the batch length"
-    )
-    plates["A"] = plate.svg(
-        "A-401",
-        "Roof unit",
-        PLAN.short,
-        note=f"{PLAN.caption} · built flat, then hung",
-    )
 
     # B · Door unit, seen from outside, with the field on its inner face.
     members = ("door_left", "door_right", "door_bottom", "door_top", "door_brace")
@@ -2702,16 +2881,16 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
     plate.dim((frame_box[0], frame_box[1]), (frame_box[0], frame_box[3]), -40)
     plate.dim((field_box[2], field_box[1]), (field_box[2], field_box[3]), 40)
     plates["B"] = plate.svg(
-        "A-402",
+        DRAWING_NUMBERS["B"],
         "Door unit",
         FRONT.short,
         note=f"{FRONT.caption} · hatched edge is the estimated on-frame trim",
     )
 
     # C and D · Side units, each seen from outside its own wall.
-    for letter, number, side, view in (
-        ("C", "A-403", "left", LEFT),
-        ("D", "A-404", "right", RIGHT),
+    for letter, side, view in (
+        ("C", "left", LEFT),
+        ("D", "right", RIGHT),
     ):
         members = (
             f"front_post_{side}",
@@ -2777,62 +2956,622 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
             field.pieces[-1].finished_short or field.blank
         )
         plates[letter] = plate.svg(
-            number,
+            DRAWING_NUMBERS[letter],
             f"{side.title()} side unit",
             view.short,
             note=f"{view.caption} · {fmt(fall)} fall over {fmt(field.span)} · "
             f"{fmt(design.frame)} × {fmt(design.frame)} bottom-front notch",
         )
 
-    # E · Back unit, seen from outside, between the two rear posts.
+    return plates
+
+
+STEP_MARGIN = 62.0
+STEP_PAD = 10.0
+STEP_BAND = 66.0
+
+
+def centre_of(points: list[Point]) -> Point:
+    umin, vmin, umax, vmax = bounds(points)
+    return ((umin + umax) / 2, (vmin + vmax) / 2)
+
+
+def explode(
+    parts: dict[str, cq.Shape],
+    view: View | AxonometricView,
+    offsets: dict[str, tuple[float, float, float]],
+) -> dict[str, tuple[list[Point], list[Point], Point]]:
+    """Seat profile, exploded profile, and projected travel for each member.
+
+    Both projections are linear, so a member offset in the model moves on the
+    plate by that offset's own projection. An offset square to the plate has
+    nowhere to travel and the member simply stays on its seat.
+    """
+    placed: dict[str, tuple[list[Point], list[Point], Point]] = {}
+    for name, offset in offsets.items():
+        delta = view(offset)
+        seated = (
+            projected_outline(parts[name], view)
+            if isinstance(view, AxonometricView)
+            else outline(parts[name], view)
+        )
+        placed[name] = (seated, shift(seated, delta), delta)
+    return placed
+
+
+def draw_explosion(
+    plate: Plate,
+    parts: dict[str, cq.Shape],
+    view: View | AxonometricView,
+    placed: dict[str, tuple[list[Point], list[Point], Point]],
+    codes: bool = True,
+) -> None:
+    """Members off their seats, each on the track it travels back down."""
+    travelling = [item for item in placed.values() if math.hypot(*item[2]) > 1e-6]
+    for seated, _, _ in travelling:
+        plate.shape(seated, "ghost")
+    for name, (_, moved, delta) in placed.items():
+        plate.shape(moved, "member")
+        if isinstance(view, AxonometricView):
+            plate.wire(parts[name], view, "member-edge", delta)
+    for seated, moved, _ in travelling:
+        plate.track(centre_of(moved), centre_of(seated))
+    if codes:
+        for name, (_, moved, _) in placed.items():
+            plate.code_in(moved, BEAM_CODES.get(name, ""))
+
+
+def explosion_shapes(
+    placed: dict[str, tuple[list[Point], list[Point], Point]],
+) -> list[list[Point]]:
+    return [profile for item in placed.values() for profile in item[:2]]
+
+
+def trim_run(panel: Panel, solid: cq.Shape, view: View) -> tuple[Point, Point]:
+    """The two ends of the trim that comes off one edge of a fixed field.
+
+    The strip is a few millimetres on a field of hundreds, so its dimension is
+    taken across the waste itself rather than off the field, and it is the only
+    number a trim step carries.
+    """
+    box = solid.BoundingBox()
+    lows = (box.xmin, box.ymin, box.zmin)
+    across = 0 if panel.axis == view.u_axis else 1
+    sign = view.u_sign if across == 0 else view.v_sign
+    cut = sign * (lows[panel.axis] + panel.span)
+    rough = sign * (lows[panel.axis] + panel.joined)
+    profile = outline(solid, view)
+    along = [
+        point[1 - across]
+        for point in profile
+        if math.isclose(point[across], cut, abs_tol=1e-3)
+    ] or [point[1 - across] for point in profile]
+    middle = (min(along) + max(along)) / 2
+    ends = ((cut, middle), (rough, middle))
+    return ends if across == 0 else ((middle, cut), (middle, rough))
+
+
+class StepSheet:
+    """The step plates for one unit, set in one shared drawing frame.
+
+    Every step drawn in the unit's own projection uses the same extent and the
+    same scale, so the strip reads as one drawing changing under the builder's
+    hands. A step drawn in another projection takes its own frame, which is
+    what a set does when it turns a detail to show it.
+    """
+
+    def __init__(self, frame: list[list[Point]]) -> None:
+        self.frame = [point for shape in frame for point in shape]
+        self.steps: list[Step] = []
+
+    def plate(self) -> Plate:
+        return Plate([self.frame], STEP_MARGIN, STEP_PAD, STEP_BAND)
+
+    @staticmethod
+    def free(shapes: list[list[Point]]) -> Plate:
+        return Plate(shapes, STEP_MARGIN, STEP_PAD, STEP_BAND)
+
+    def add(
+        self,
+        op: str,
+        caption: str,
+        plate: Plate,
+        hardware: str = "",
+        note: str = "",
+    ) -> None:
+        if len(caption.split()) > 8:
+            raise ValueError(f"a step caption is eight words or fewer: {caption}")
+        # A fastening step whose members have no scheduled joint between them
+        # draws an empty frame and reads as a step with nothing to do.
+        if op == FASTEN and "screw-head" not in "".join(plate.body):
+            raise ValueError(f"a fastening step has to draw a screw: {caption}")
+        plate.stamp(op, hardware)
+        self.steps.append(
+            Step(op, caption, plate.element("plate step-plate", caption, op), note)
+        )
+
+
+# Squareness is checked as the frame is screwed, not on a step of its own: a
+# frame that is racked when the screws go in cannot be pulled straight after.
+SQUARE = "Match the frame diagonals before you drive a screw."
+
+
+def unit_sequences(context: UnitContext) -> dict[str, tuple[Step, ...]]:
+    """The numbered construction sequence that builds each key plate.
+
+    A step draws one operation and nothing else. What is already done ghosts
+    back, what this step touches goes solid, and the operation stamp under the
+    drawing names the action before the caption is read.
+    """
+    design = context.design
+    parts = context.parts
+    fields = context.fields
+    fastening = context.fastening
+    sequences: dict[str, tuple[Step, ...]] = {}
+
+    def call(names: set[str], pairs: set[tuple[str, str]] | None = None) -> str:
+        """The fastener stamp, counted off the same schedule the plate draws."""
+        count = sum(
+            1
+            for mark in fastening.screws
+            if mark.from_beam in names
+            and mark.into_beam in names
+            and (pairs is None or (mark.from_beam, mark.into_beam) in pairs)
+        )
+        return f"6 × {fmt(design.screw_length)} · {count} OFF" if count else ""
+
+    def run(panel: Panel) -> str:
+        return f"{panel.pieces[0].code} to {panel.pieces[-1].code}"
+
+    # A · Roof unit. Built flat on the ground, then hung on the finished shell.
+    members = ("roof_left", "roof_right", "roof_front", "roof_back", "roof_middle")
+    shapes = {name: outline(parts[name], PLAN) for name in (*members, "roof")}
+    sheet = StepSheet(list(shapes.values()))
+    frame_box = bounds([point for name in members for point in shapes[name]])
+
+    lift = design.width * 0.15
+    placed = explode(
+        parts,
+        AXO_RIGHT,
+        {
+            "roof_front": (0, -lift, 0),
+            "roof_back": (0, lift, 0),
+            "roof_left": (-lift, 0, 0),
+            "roof_right": (lift, 0, 0),
+            "roof_middle": (0, 0, lift),
+        },
+    )
+    plate = sheet.free(explosion_shapes(placed))
+    draw_explosion(plate, parts, AXO_RIGHT, placed)
+    sheet.add(ASSEMBLE, "Lay the five roof beams", plate, "45 × 45 STOCK")
+
+    plate = sheet.plate()
+    for name in members:
+        plate.shape(shapes[name], "ghost")
+        plate.code_in(shapes[name], BEAM_CODES[name])
+    draw_frame_screws(plate, parts, set(members), PLAN, fastening, design)
+    sheet.add(FASTEN, "Screw the frame corners", plate, call(set(members)), SQUARE)
+
+    plate = sheet.plate()
+    plate.shape(shapes["roof"], "field")
+    for name in members:
+        plate.shape(shapes[name], "ghost")
+        plate.code_in(shapes[name], BEAM_CODES[name])
+    sheet_box = bounds(shapes["roof"])
+    plate.dim((sheet_box[0], sheet_box[1]), (frame_box[0], sheet_box[1]), -40)
+    plate.dim((frame_box[2], sheet_box[1]), (sheet_box[2], sheet_box[1]), -40)
+    plate.dim((sheet_box[2], sheet_box[1]), (sheet_box[2], frame_box[1]), 40)
+    plate.dim((sheet_box[2], frame_box[3]), (sheet_box[2], sheet_box[3]), 40)
+    sheet.add(ASSEMBLE, "Centre the metal sheet", plate, "1 050 × 1 085 SHEET")
+    sequences["A"] = tuple(sheet.steps)
+
+    # B · Door unit. Clad on the inside face, then trimmed and relieved.
+    members = ("door_left", "door_right", "door_bottom", "door_top", "door_brace")
+    panel = fields["door_panel"]
+    shapes = {name: outline(parts[name], FRONT) for name in (*members, "door_panel")}
+    sheet = StepSheet(list(shapes.values()))
+
+    def door_relief(start: float, end: float) -> list[Point]:
+        top = design.door_top
+        return [
+            FRONT((start, 0, top - design.frame)),
+            FRONT((end, 0, top - design.frame)),
+            FRONT((end, 0, top)),
+            FRONT((start, 0, top)),
+        ]
+
+    reliefs = (
+        door_relief(0, design.frame),
+        door_relief(design.width - design.frame, design.width),
+    )
+
+    lift = design.width * 0.14
+    placed = explode(
+        parts,
+        AXO_RIGHT,
+        {
+            "door_left": (-lift, 0, 0),
+            "door_right": (lift, 0, 0),
+            "door_bottom": (0, 0, -lift),
+            "door_top": (0, 0, lift),
+            "door_brace": (0, -lift * 1.5, 0),
+        },
+    )
+    plate = sheet.free(explosion_shapes(placed))
+    draw_explosion(plate, parts, AXO_RIGHT, placed)
+    sheet.add(ASSEMBLE, "Build the frame and fit DBD1", plate, "45 × 45 STOCK")
+
+    plate = sheet.plate()
+    for name in members:
+        plate.shape(shapes[name], "ghost")
+        plate.code_in(shapes[name], BEAM_CODES[name])
+    draw_frame_screws(plate, parts, set(members), FRONT, fastening, design)
+    sheet.add(FASTEN, "Screw the door frame", plate, call(set(members)), SQUARE)
+
+    plate = sheet.plate()
+    draw_field(
+        plate,
+        shapes["door_panel"],
+        parts["door_panel"],
+        panel,
+        FRONT,
+        "b-field-2",
+        terminal="attached",
+    )
+    for relief in reliefs:
+        plate.shape(relief, "field-fill")
+    for name in members:
+        plate.shape(shapes[name], "ghost")
+    draw_cladding_screws(
+        plate,
+        shapes["door_panel"],
+        parts["door_panel"],
+        panel,
+        FRONT,
+        parts,
+        ("door_bottom", "door_top"),
+        fastening,
+        design,
+    )
+    field_box = bounds(shapes["door_panel"])
+    plate.datum((field_box[0], field_box[3]), "ALIGN DCB1", "bottom")
+    sheet.add(CLAD, f"Fix {run(panel)} on the inside face", plate, "2.8 × 60 NAILS")
+
+    plate = sheet.plate()
+    draw_field(
+        plate,
+        shapes["door_panel"],
+        parts["door_panel"],
+        panel,
+        FRONT,
+        "b-field-3",
+        label=False,
+    )
+    for relief in reliefs:
+        plate.shape(relief, "field-fill")
+    for name in members:
+        plate.shape(shapes[name], "ghost")
+    plate.datum((field_box[2], field_box[3]), "SAW GUIDE", "bottom")
+    plate.dim(*trim_run(panel, parts["door_panel"], FRONT), -40, f"{fmt(panel.trim)}")
+    sheet.add(CUT, "Trim the right overhang", plate, "CIRCULAR SAW")
+
+    plate = sheet.plate()
+    draw_field(
+        plate,
+        shapes["door_panel"],
+        parts["door_panel"],
+        panel,
+        FRONT,
+        "b-field-4",
+        label=False,
+        terminal="done",
+    )
+    for name in members:
+        plate.shape(shapes[name], "ghost")
+    for relief in reliefs:
+        plate.shape(relief, "trim")
+        plate.loop([relief[0], relief[3], relief[2]], "cut")
+    plate.dim(reliefs[0][0], reliefs[0][1], -40)
+    plate.dim(reliefs[1][1], reliefs[1][2], 40)
+    sheet.add(CUT, "Cut the two top reliefs", plate, "HANDSAW")
+    sequences["B"] = tuple(sheet.steps)
+
+    # C and D · Side units. Every final edge is cut on the fixed field.
+    for letter, side, view in (("C", "left", LEFT), ("D", "right", RIGHT)):
+        members = (
+            f"front_post_{side}",
+            f"back_post_{side}",
+            f"{side}_bottom",
+            f"{side}_top",
+            f"{side}_brace",
+        )
+        wall = f"{side}_wall"
+        panel = fields[wall]
+        shapes = {name: outline(parts[name], view) for name in (*members, wall)}
+        sheet = StepSheet(list(shapes.values()))
+        field_box = bounds(shapes[wall])
+        front_sign = 1.0 if side == "left" else -1.0
+        notch = [
+            view((0, 0, design.leg_extension)),
+            view((0, design.frame, design.leg_extension)),
+            view((0, design.frame, design.leg_extension + design.frame)),
+            view((0, 0, design.leg_extension + design.frame)),
+        ]
+
+        lift = design.depth * 0.2
+        placed = explode(
+            parts,
+            AXO_LEFT if side == "left" else AXO_RIGHT,
+            {
+                f"front_post_{side}": (0, -lift, 0),
+                f"back_post_{side}": (0, lift, 0),
+                f"{side}_bottom": (0, 0, -lift),
+                f"{side}_top": (0, 0, lift),
+                f"{side}_brace": (-lift * 1.4 * front_sign, 0, 0),
+            },
+        )
+        axo = AXO_LEFT if side == "left" else AXO_RIGHT
+        plate = sheet.free(explosion_shapes(placed))
+        draw_explosion(plate, parts, axo, placed)
+        sheet.add(ASSEMBLE, "Build the side frame", plate, "45 × 45 STOCK")
+
+        plate = sheet.plate()
+        for name in members:
+            plate.shape(shapes[name], "ghost")
+            plate.code_in(shapes[name], BEAM_CODES[name])
+        draw_frame_screws(plate, parts, set(members), view, fastening, design)
+        sheet.add(FASTEN, "Screw the side frame", plate, call(set(members)), SQUARE)
+
+        plate = sheet.plate()
+        draw_field(
+            plate,
+            shapes[wall],
+            parts[wall],
+            panel,
+            view,
+            f"{letter.lower()}-field-2",
+            terminal="attached",
+            gang="attached",
+        )
+        plate.shape(notch, "field-fill")
+        for name in members:
+            plate.shape(shapes[name], "ghost")
+        draw_cladding_screws(
+            plate,
+            shapes[wall],
+            parts[wall],
+            panel,
+            view,
+            parts,
+            (f"{side}_bottom", f"{side}_top"),
+            fastening,
+            design,
+        )
+        plate.datum(
+            (field_box[0] if side == "right" else field_box[2], field_box[3]),
+            f"ALIGN {panel.pieces[0].code}",
+            "bottom",
+        )
+        sheet.add(CLAD, f"Fix {run(panel)}, front to rear", plate, "2.8 × 60 NAILS")
+
+        plate = sheet.plate()
+        draw_field(
+            plate,
+            shapes[wall],
+            parts[wall],
+            panel,
+            view,
+            f"{letter.lower()}-field-3",
+            label=False,
+            terminal="attached",
+            gang="marked",
+        )
+        plate.shape(notch, "field-fill")
+        for name in members:
+            plate.shape(shapes[name], "ghost")
+        front_x = field_box[2] if side == "left" else field_box[0]
+        back_x = field_box[0] if side == "left" else field_box[2]
+        plate.dim(
+            (front_x, field_box[3]),
+            (
+                front_x,
+                -(
+                    design.leg_extension
+                    + (panel.pieces[0].finished_long or panel.blank)
+                ),
+            ),
+            40 if side == "left" else -40,
+        )
+        plate.dim(
+            (back_x, field_box[3]),
+            (
+                back_x,
+                -(
+                    design.leg_extension
+                    + (panel.pieces[-1].finished_short or panel.blank)
+                ),
+            ),
+            -40 if side == "left" else 40,
+        )
+        sheet.add(MARK, "Mark the slope at front and rear", plate, "CHALK LINE")
+
+        plate = sheet.plate()
+        draw_field(
+            plate,
+            shapes[wall],
+            parts[wall],
+            panel,
+            view,
+            f"{letter.lower()}-field-4",
+            label=False,
+            terminal="attached",
+            gang="cut",
+        )
+        plate.shape(notch, "field-fill")
+        for name in members:
+            plate.shape(shapes[name], "ghost")
+        sheet.add(CUT, "One gang cut along the mark", plate, "CIRCULAR SAW")
+
+        plate = sheet.plate()
+        draw_field(
+            plate,
+            shapes[wall],
+            parts[wall],
+            panel,
+            view,
+            f"{letter.lower()}-field-5",
+            label=False,
+            gang="done",
+        )
+        plate.shape(notch, "field-fill")
+        for name in members:
+            plate.shape(shapes[name], "ghost")
+        plate.datum((back_x, field_box[3]), "SAW GUIDE", "bottom")
+        plate.dim(*trim_run(panel, parts[wall], view), -40, f"{fmt(panel.trim)}")
+        sheet.add(CUT, "Trim the rear overhang", plate, "CIRCULAR SAW")
+
+        plate = sheet.plate()
+        draw_field(
+            plate,
+            shapes[wall],
+            parts[wall],
+            panel,
+            view,
+            f"{letter.lower()}-field-6",
+            label=False,
+            terminal="done",
+            gang="done",
+        )
+        for name in members:
+            plate.shape(shapes[name], "ghost")
+        plate.shape(notch, "trim")
+        plate.loop([notch[1], notch[2], notch[3]], "cut")
+        plate.dim(notch[0], notch[1], -40)
+        plate.dim(notch[1], notch[2], 40 if side == "left" else -40)
+        sheet.add(CUT, "Cut the bottom-front notch", plate, "HANDSAW")
+        sequences[letter] = tuple(sheet.steps)
+
+    # E · Back unit. Clad and trimmed flat, then set between the side units.
+    # It has to be finished before it goes in: once the sides are up, their
+    # skins stand in the way of the overhang this field is cut from.
     members = ("back_bottom", "back_top", "back_brace")
-    ghosts = ("back_post_left", "back_post_right")
-    shapes = shapes_for(REAR, *members, *ghosts, "back_wall")
-    plate = plate_for(shapes, members, ghosts)
+    posts = ("back_post_left", "back_post_right")
+    panel = fields["back_wall"]
+    shapes = {
+        name: outline(parts[name], REAR) for name in (*members, *posts, "back_wall")
+    }
+    sheet = StepSheet(list(shapes.values()))
+    field_box = bounds(shapes["back_wall"])
+    frame_box = bounds([point for name in members for point in shapes[name]])
+
+    lift = design.width * 0.16
+    placed = explode(
+        parts,
+        AXO_RIGHT,
+        {
+            "back_bottom": (0, 0, -lift),
+            "back_top": (0, 0, lift),
+            "back_brace": (0, lift * 1.5, 0),
+        },
+    )
+    plate = sheet.free(explosion_shapes(placed))
+    draw_explosion(plate, parts, AXO_RIGHT, placed)
+    # Nothing screws this frame together: every fixing into it comes from a
+    # rear post, and the posts belong to the side units. It is held square,
+    # clad, and only then driven.
+    sheet.add(
+        ASSEMBLE,
+        "Build the bare back frame",
+        plate,
+        "45 × 45 STOCK",
+        "Hold it square while you clad it. Nothing screws it until the posts do.",
+    )
+
+    plate = sheet.plate()
     draw_field(
         plate,
         shapes["back_wall"],
         parts["back_wall"],
-        fields["back_wall"],
+        panel,
         REAR,
-        "back-field",
+        "e-field-3",
+        terminal="attached",
     )
-    draw_members(plate, shapes, members)
-    draw_unit_screws(
+    for name in members:
+        plate.shape(shapes[name], "ghost")
+    draw_cladding_screws(
         plate,
-        parts,
-        set(members) | set(ghosts),
+        shapes["back_wall"],
+        parts["back_wall"],
+        panel,
         REAR,
+        parts,
+        ("back_bottom", "back_top"),
         fastening,
         design,
-        fields,
-        "back_wall",
-        ("back_bottom", "back_top"),
     )
-    posts = bounds([point for name in ghosts for point in shapes[name]])
-    rear_post = bounds(shapes["back_post_left"])
-    field_box = bounds(shapes["back_wall"])
-    plate.dim((posts[0], posts[1]), (posts[2], posts[1]), -40)
-    plate.dim((field_box[0], field_box[3]), (field_box[2], field_box[3]), 40)
-    plate.dim((posts[0], field_box[3]), (field_box[0], field_box[3]), 84)
-    plate.dim((posts[2], field_box[1]), (posts[2], field_box[3]), 36)
-    bottom = bounds(shapes["back_bottom"])
+    # The field is narrower than the frame by the side skins it fits between.
+    # That inset is the landing mark, and it is set out before the sides exist.
     plate.dim(
-        (bottom[2], rear_post[3]),
-        (bottom[2], bottom[3]),
-        -40,
-        fmt(design.leg_extension),
+        (frame_box[0], field_box[3]),
+        (field_box[0], field_box[3]),
+        84,
+        fmt(design.cladding),
     )
-    plates["E"] = plate.svg(
-        "A-405",
-        "Back unit",
-        REAR.short,
-        note=f"{REAR.caption} · posts ghosted · trim after the boards are fixed",
+    plate.datum((field_box[0], field_box[3]), f"ALIGN {panel.pieces[0].code}", "bottom")
+    sheet.add(
+        CLAD,
+        f"Fix {run(panel)} to the landing marks",
+        plate,
+        "2.8 × 60 NAILS",
+        "Clad and trim the back flat. Fitted first, the side skins foul this overhang.",
     )
 
-    # F · Shell joint, in plan, with all four floor-level beams fitted inside
-    # the ghosted side and back shell. The front opening rail is installed here
-    # rather than left as a ghost for the later floor-deck operation.
+    plate = sheet.plate()
+    draw_field(
+        plate,
+        shapes["back_wall"],
+        parts["back_wall"],
+        panel,
+        REAR,
+        "e-field-4",
+        label=False,
+    )
+    for name in members:
+        plate.shape(shapes[name], "ghost")
+    plate.datum((field_box[2], field_box[3]), "LANDING MARK", "bottom")
+    plate.dim(*trim_run(panel, parts["back_wall"], REAR), -40, f"{fmt(panel.trim)}")
+    sheet.add(CUT, "Trim the right overhang", plate, "CIRCULAR SAW")
+
+    approach = design.depth * 0.34
+    placed = explode(
+        parts, AXO_RIGHT, {name: (0, approach, 0) for name in (*members, "back_wall")}
+    )
+    walls = [
+        projected_outline(parts[name], AXO_RIGHT)
+        for name in ("left_wall", "right_wall")
+    ]
+    plate = sheet.free(explosion_shapes(placed) + walls)
+    for wall_shape in walls:
+        plate.shape(wall_shape, "ghost")
+    draw_explosion(plate, parts, AXO_RIGHT, placed)
+    sheet.add(ASSEMBLE, "Set it between the two side units", plate, "CLAMPS")
+
+    plate = sheet.plate()
+    for name in (*members, *posts):
+        plate.shape(shapes[name], "ghost")
+    draw_frame_screws(plate, parts, set(members) | set(posts), REAR, fastening, design)
+    for name in (*members, *posts):
+        plate.code_in(shapes[name], BEAM_CODES[name])
+    sheet.add(
+        FASTEN,
+        "Screw the rear posts into BWH1 and BWH2",
+        plate,
+        call(set(members) | set(posts)),
+    )
+    sequences["E"] = tuple(sheet.steps)
+
+    # F · Shell joint. The four floor-level beams that make the shell one box.
     members = (
         "floor_back_support",
         "floor_left_support",
@@ -2847,78 +3586,112 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
         "right_wall",
         "back_wall",
     )
-    shapes = shapes_for(PLAN, *members, *ghosts)
-    plate = plate_for(shapes, members, ghosts)
-    draw_members(plate, shapes, members)
-    for name in ("left_bottom", "right_bottom", "back_bottom"):
-        plate.code_in(shapes[name], BEAM_CODES[name])
-    shell_joint_pairs = {
+    shapes = {name: outline(parts[name], PLAN) for name in (*members, *ghosts)}
+    reach = design.depth * 0.26
+    placed = explode(
+        parts,
+        PLAN,
+        {
+            "floor_back_support": (0, reach, 0),
+            "floor_left_support": (-reach, 0, 0),
+            "floor_right_support": (reach, 0, 0),
+            "front_bottom": (0, -reach, 0),
+        },
+    )
+    sheet = StepSheet(list(shapes.values()) + explosion_shapes(placed))
+
+    plate = sheet.plate()
+    for name in ghosts:
+        plate.shape(shapes[name], "ghost")
+    draw_explosion(plate, parts, PLAN, placed)
+    sheet.add(ASSEMBLE, "Fit FBB1, FBS1, FBS2 and FBH1", plate, "45 × 45 STOCK")
+
+    shell_pairs = {
         ("floor_back_support", "back_bottom"),
         ("floor_right_support", "right_bottom"),
         ("floor_left_support", "left_bottom"),
         ("left_bottom", "front_bottom"),
         ("right_bottom", "front_bottom"),
     }
+    plate = sheet.plate()
+    for name in (*members, *ghosts):
+        plate.shape(shapes[name], "ghost")
+    for name in (*members, "left_bottom", "right_bottom", "back_bottom"):
+        plate.code_in(shapes[name], BEAM_CODES[name])
     draw_frame_screws(
+        plate, parts, set(members) | set(ghosts), PLAN, fastening, design, shell_pairs
+    )
+    beam_box = bounds(shapes["floor_back_support"])
+    for mark in fastening.screws:
+        if (mark.from_beam, mark.into_beam) != ("floor_back_support", "back_bottom"):
+            continue
+        head, _ = _drawing_screw_path(
+            parts[mark.into_beam], parts[mark.from_beam], mark, design
+        )
+        point = PLAN(head)
+        edge = min(beam_box[0], beam_box[2], key=lambda value: abs(point[0] - value))
+        plate.dim((edge, point[1]), point, -40)
+    sheet.add(
+        FASTEN,
+        "Screw all four beams to the shell",
         plate,
-        parts,
-        set(members) | set(ghosts),
-        PLAN,
-        fastening,
-        design,
-        shell_joint_pairs,
-    )
-    shell = bounds([point for name in members + ghosts for point in shapes[name]])
-    plate.dim((shell[0], shell[3]), (shell[2], shell[3]), 44)
-    plate.corner(
-        "8 × 120 SCREWS · 6 FROM INSIDE OUT · 2 FROM OUTSIDE SIDE RAILS INTO FBH1"
-    )
-    plates["F"] = plate.svg(
-        "A-406",
-        "Shell joint",
-        PLAN.short,
-        note=f"{PLAN.caption} · sides and back ghosted · fit FBB1, FBS1, FBS2, and FBH1",
+        call(set(members) | set(ghosts), shell_pairs),
     )
 
-    # G · Floor deck, in plan. The bearers and front rail are already fitted;
-    # keep them ghosted and show only the cladding operation.
-    members = ("floor_back_support", "floor_left_support", "floor_right_support")
-    ghosts = members + ("front_bottom",)
-    shapes = shapes_for(PLAN, *ghosts, "floor")
-    plate = plate_for(shapes, (), ghosts)
+    sequences["F"] = tuple(sheet.steps)
+
+    # G · Floor deck. The joined field is cut to the bearers before it is
+    # fixed: once the boards are down there is no guide edge left to run on.
+    bearers = (
+        "floor_back_support",
+        "floor_left_support",
+        "floor_right_support",
+        "front_bottom",
+    )
+    panel = fields["floor"]
+    shapes = {name: outline(parts[name], PLAN) for name in (*bearers, "floor")}
+    sheet = StepSheet(list(shapes.values()))
+    field_box = bounds(shapes["floor"])
+
+    plate = sheet.plate()
+    for name in bearers:
+        plate.shape(shapes[name], "ghost")
+        plate.code_in(shapes[name], BEAM_CODES[name])
     draw_field(
-        plate, shapes["floor"], parts["floor"], fields["floor"], PLAN, "floor-field"
+        plate, shapes["floor"], parts["floor"], panel, PLAN, "g-field-1", label=False
+    )
+    plate.datum((field_box[2], field_box[3]), "SAW GUIDE", "bottom")
+    plate.dim(*trim_run(panel, parts["floor"], PLAN), -40, f"{fmt(panel.trim)}")
+    sheet.add(CUT, "Trim the right overhang", plate, "CIRCULAR SAW")
+
+    plate = sheet.plate()
+    for name in bearers:
+        plate.shape(shapes[name], "ghost")
+    draw_field(
+        plate,
+        shapes["floor"],
+        parts["floor"],
+        panel,
+        PLAN,
+        "g-field-2",
+        terminal="done",
     )
     draw_cladding_screws(
         plate,
         shapes["floor"],
         parts["floor"],
-        fields["floor"],
+        panel,
         PLAN,
         parts,
         ("front_bottom", "floor_back_support"),
         fastening,
         design,
     )
-    field_box = bounds(shapes["floor"])
-    rail = bounds(shapes["front_bottom"])
-    plate.dim((field_box[0], field_box[3]), (field_box[2], field_box[3]), 44)
-    plate.dim((field_box[0], field_box[1]), (field_box[0], field_box[3]), -40)
-    plate.label(
-        ((rail[0] + rail[2]) / 2, rail[1] + (rail[3] - rail[1]) / 2),
-        "FBH1 · FRONT EDGE LANDS HERE LAST",
-        "small",
-    )
-    plates["G"] = plate.svg(
-        "A-407",
-        "Floor deck",
-        PLAN.short,
-        note=f"{PLAN.caption} · cladding side only · bearers already fitted",
-    )
+    plate.datum((field_box[0], field_box[3]), f"ALIGN {panel.pieces[0].code}", "bottom")
+    sheet.add(CLAD, f"Fix {run(panel)} to the bearers", plate, "2.8 × 60 NAILS")
+    sequences["G"] = tuple(sheet.steps)
 
-    # H · Seat box, in plan, with everything the top has to clear. The top
-    # boards now run across the 852 mm width, so the outer side beams carry
-    # the two board-fixing screw rows.
+    # H · Seat box. Built as one removable assembly, then topped and opened.
     members = (
         "seat_rail_1",
         "seat_rail_2",
@@ -2927,170 +3700,275 @@ def module_plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
         "seat_support_outer_left",
         "seat_support_outer_right",
     )
-    shapes = shapes_for(PLAN, *members, "seat_top")
-    plate = plate_for(shapes, members)
+    panel = fields["seat_top"]
+    shapes = {name: outline(parts[name], PLAN) for name in (*members, "seat_top")}
+    sheet = StepSheet(list(shapes.values()))
+    field_box = bounds(shapes["seat_top"])
+    centre = (design.width / 2, -(design.back_wall_front - design.seat_depth / 2))
+
+    lift = design.seat_depth * 0.34
+    placed = explode(
+        parts,
+        AXO_RIGHT,
+        {
+            "seat_rail_1": (0, -lift, 0),
+            "seat_rail_2": (0, lift, 0),
+            "seat_support_outer_left": (-lift, 0, 0),
+            "seat_support_outer_right": (lift, 0, 0),
+            "seat_support_left": (0, 0, lift * 0.9),
+            "seat_support_right": (0, 0, lift * 1.7),
+        },
+    )
+    plate = sheet.free(explosion_shapes(placed))
+    draw_explosion(plate, parts, AXO_RIGHT, placed)
+    sheet.add(ASSEMBLE, "Build the removable seat box", plate, "45 × 45 STOCK")
+
+    plate = sheet.plate()
+    for name in members:
+        plate.shape(shapes[name], "ghost")
+        plate.code_in(shapes[name], BEAM_CODES[name])
+    draw_frame_screws(plate, parts, set(members), PLAN, fastening, design)
+    sheet.add(FASTEN, "Screw the box frame", plate, call(set(members)), SQUARE)
+
+    plate = sheet.plate()
     draw_field(
         plate,
         shapes["seat_top"],
         parts["seat_top"],
-        fields["seat_top"],
+        panel,
         PLAN,
-        "seat-field",
+        "h-field-2",
+        terminal="attached",
+    )
+    for name in members:
+        plate.shape(shapes[name], "under")
+    draw_cladding_screws(
+        plate,
+        shapes["seat_top"],
+        parts["seat_top"],
+        panel,
+        PLAN,
+        parts,
+        ("seat_support_outer_left", "seat_support_outer_right"),
+        fastening,
+        design,
+    )
+    plate.datum((field_box[0], field_box[3]), f"ALIGN {panel.pieces[0].code}", "bottom")
+    sheet.add(CLAD, f"Fix {run(panel)} across the top", plate, "2.8 × 60 NAILS")
+
+    plate = sheet.plate()
+    draw_field(
+        plate,
+        shapes["seat_top"],
+        parts["seat_top"],
+        panel,
+        PLAN,
+        "h-field-3",
         label=False,
     )
     for name in members:
         plate.shape(shapes[name], "under")
-        plate.code_in(shapes[name], BEAM_CODES.get(name, ""))
-    draw_unit_screws(
+    plate.datum((field_box[0], field_box[3]), "BOX FRAME EDGE", "bottom")
+    plate.dim(*trim_run(panel, parts["seat_top"], PLAN), -40, f"{fmt(panel.trim)}")
+    sheet.add(CUT, "Trim the front overhang", plate, "CIRCULAR SAW")
+
+    plate = sheet.plate()
+    draw_field(
         plate,
-        parts,
-        set(members),
+        shapes["seat_top"],
+        parts["seat_top"],
+        panel,
         PLAN,
-        fastening,
-        design,
-        fields,
-        "seat_top",
-        ("seat_support_outer_left", "seat_support_outer_right"),
+        "h-field-4",
+        label=False,
+        terminal="done",
     )
-    centre = (design.width / 2, -(design.back_wall_front - design.seat_depth / 2))
+    for name in members:
+        plate.shape(shapes[name], "under")
     plate.add(
-        f'<ellipse class="opening" cx="{plate.x(centre[0]):.1f}" cy="{plate.y(centre[1]):.1f}" '
+        f'<ellipse class="opening-waste" cx="{plate.x(centre[0]):.1f}" '
+        f'cy="{plate.y(centre[1]):.1f}" '
         f'rx="{design.seat_hole_width / 2 * plate.scale:.1f}" '
         f'ry="{design.seat_hole_depth / 2 * plate.scale:.1f}"/>'
     )
-    field_box = bounds(shapes["seat_top"])
-    plate.dim((field_box[0], field_box[3]), (field_box[2], field_box[3]), 44)
-    plate.dim((field_box[2], field_box[1]), (field_box[2], field_box[3]), 40)
-    plate.label(
-        centre,
-        f"{fmt(design.seat_hole_width)} × {fmt(design.seat_hole_depth)}",
-        "small",
+    plate.dim(
+        (centre[0] - design.seat_hole_width / 2, centre[1]),
+        (centre[0] + design.seat_hole_width / 2, centre[1]),
+        -40,
     )
-    plates["H"] = plate.svg(
-        "A-408",
-        "Seat box",
-        PLAN.short,
-        note=(
-            f"{PLAN.caption} · 852 removable box · STB1–STB{fields['seat_top'].count} "
-            "run across the width · trim before cutting the opening"
-        ),
+    plate.dim(
+        (centre[0], centre[1] - design.seat_hole_depth / 2),
+        (centre[0], centre[1] + design.seat_hole_depth / 2),
+        40,
     )
+    sheet.add(CUT, "Cut the seat opening", plate, "JIGSAW")
 
-    # I · Fixed seat-box supports, in plan. The floor, side cladding, and back
-    # wall are already in place; the two full-width bearers sit directly below
-    # SBH1 and SBH2 and are driven from both side exteriors.
-    members = ("seat_box_support_front", "seat_box_support_rear")
-    ghosts = (
-        "left_wall",
-        "right_wall",
-        "back_wall",
-        "left_bottom",
-        "right_bottom",
-        "back_bottom",
-        "front_bottom",
-    )
-    shapes = shapes_for(PLAN, *members, *ghosts, "floor")
-    plate = plate_for(shapes, members, ghosts)
-    plate.shape(shapes["floor"], "field")
-    draw_members(plate, shapes, members)
+    sequences["H"] = tuple(sheet.steps)
+
+    # I · The fixed bearers and the removable box that sits on them. Set out
+    # off the finished deck and the inside back face, screwed from outside
+    # through the side cladding, and only then loaded.
+    bearers = ("seat_box_support_front", "seat_box_support_rear")
+    floor_bearer = "seat_floor_support"
+    # The section is bound to the deck and the three beams standing on it. The
+    # walls would take four fifths of the plate and say nothing; the face the
+    # beams are set out from is ruled instead of drawn.
+    section = {
+        name: outline(parts[name], LEFT) for name in (*bearers, floor_bearer, "floor")
+    }
+    sheet = StepSheet(list(section.values()))
+
+    plate = sheet.free(list(section.values()))
+    plate.shape(section["floor"], "field")
+    back_face = -design.back_wall_front
+    deck, top = -design.floor_top, -design.seat_support_top
+    plate.line((back_face, deck), (back_face, top - 40), "datum-line")
+    for name in (*bearers, floor_bearer):
+        plate.shape(section[name], "cut-member")
+        plate.code_in(section[name], BEAM_CODES[name])
+    rear_box = bounds(section["seat_box_support_rear"])
+    level = (rear_box[0] + rear_box[2]) / 2
+    # The run itself starts on the deck, so the deck needs no second label.
+    plate.dim((level, deck), (level, top), 40)
+    # SBB1 and SBF1 share one front datum, so the run to it is written once and
+    # both beams stand on it. LEFT looks along the width, where the plate axis
+    # is the negated depth.
+    front = -parts[bearers[0]].BoundingBox().ymin
+    plate.dim((back_face, deck), (front, deck), -40)
+    plate.datum((back_face, top - 40), "INSIDE BACK FACE", "top")
+    sheet.add(SET_OUT, "Set both beam tops above the deck", plate, "SPIRIT LEVEL")
+
     support_pairs = {
         ("left_wall", "seat_box_support_front"),
         ("right_wall", "seat_box_support_front"),
         ("left_wall", "seat_box_support_rear"),
         ("right_wall", "seat_box_support_rear"),
     }
-    draw_frame_screws(
+    plate = _seat_installation_perspective(
+        design, parts, fastening, "right", AXO_RIGHT, dimensioned=False
+    )
+    sheet.add(
+        FASTEN,
+        "Drive one screw from each side",
         plate,
-        parts,
-        set(members) | set(ghosts),
-        PLAN,
-        fastening,
-        design,
-        support_pairs,
-    )
-    support_front = bounds(shapes["seat_box_support_front"])
-    back_wall_edge = PLAN((design.interior_x, design.back_wall_front, 0))
-    front_support_edge = PLAN(
-        (design.interior_x, design.seat_front_y + design.cladding, 0)
-    )
-    plate.dim(
-        (support_front[0], back_wall_edge[1]),
-        (support_front[0], front_support_edge[1]),
-        44,
-        fmt(design.back_wall_front - (design.seat_front_y + design.cladding)),
-    )
-    plate.corner(
-        "SBB1 / SBB2 · 854 LONG · 4 × 120 SCREWS FROM OUTSIDE THROUGH SIDE CLADDING"
-    )
-    plates["I"] = plate.svg(
-        "A-409",
-        "Seat supports",
-        PLAN.short,
-        note=(
-            f"{PLAN.caption} · floor, sides, and back already attached · "
-            f"{fmt(design.back_wall_front - (design.seat_front_y + design.cladding))} "
-            "from back wall to front support face"
-        ),
+        call(set(bearers) | {"left_wall", "right_wall"}, support_pairs),
     )
 
-    # J · Corner view for the outside screw pair and the seat-front panel.
-    plates["J"] = seat_installation_perspective(design, parts, fastening)
-
-    # K · The loose seat-front boards, shown square-on with both fixing beams
-    # ghosted into the finished unit. This is a cladding-only view: the field
-    # carries its own board codes and the two fixing rows carry one screw per
-    # board at each support.
-    members = ("seat_floor_support", "seat_box_support_front")
-    ghosts = members
-    shapes = shapes_for(FRONT, *members, *ghosts, "seat_front")
-    plate = plate_for(shapes, (), ())
-    draw_individual_cladding(
-        plate,
-        parts["seat_front"],
-        fields["seat_front"],
-        FRONT,
+    box = (
+        "seat_rail_1",
+        "seat_rail_2",
+        "seat_support_outer_left",
+        "seat_support_outer_right",
+        "seat_top",
     )
-    for name in ghosts:
+    shell = ("left_wall", "right_wall", "back_wall", "floor")
+    lift = design.seat_height * 0.75
+    placed = explode(parts, AXO_RIGHT, {name: (0, 0, lift) for name in box})
+    context_shapes = [
+        projected_outline(parts[name], AXO_RIGHT) for name in (*bearers, *shell)
+    ]
+    plate = sheet.free(explosion_shapes(placed) + context_shapes)
+    for name in shell:
+        plate.shape(projected_outline(parts[name], AXO_RIGHT), "ghost")
+    for name in bearers:
+        seat = projected_outline(parts[name], AXO_RIGHT)
+        plate.shape(seat, "member")
+        plate.wire(parts[name], AXO_RIGHT, "member-edge")
+        plate.code_in(seat, BEAM_CODES[name])
+    draw_explosion(plate, parts, AXO_RIGHT, placed, codes=False)
+    sheet.add(ASSEMBLE, "Lower the box onto SBB1 and SBB2", plate, "LIFTS OUT WHOLE")
+    sequences["I"] = tuple(sheet.steps)
+
+    # J · Seat front cladding, laid loose and trimmed before it is fixed.
+    supports = ("seat_floor_support", "seat_box_support_front")
+    panel = fields["seat_front"]
+    shapes = {name: outline(parts[name], FRONT) for name in (*supports, "seat_front")}
+    sheet = StepSheet(list(shapes.values()))
+    field_box = bounds(shapes["seat_front"])
+    solid = parts["seat_front"]
+    seat_box = solid.BoundingBox()
+    waste_start = seat_box.xmin + panel.span
+    waste_end = seat_box.xmin + panel.joined
+    waste = [
+        FRONT((waste_start, 0, seat_box.zmin)),
+        FRONT((waste_end, 0, seat_box.zmin)),
+        FRONT((waste_end, 0, seat_box.zmax)),
+        FRONT((waste_start, 0, seat_box.zmax)),
+    ]
+
+    plate = sheet.plate()
+    draw_individual_cladding(plate, solid, panel, FRONT)
+    for name in supports:
         plate.shape(shapes[name], "ghost")
-    draw_cladding_codes(plate, parts["seat_front"], fields["seat_front"], FRONT)
+    draw_cladding_codes(plate, solid, panel, FRONT)
+    plate.datum((field_box[0], field_box[3]), f"ALIGN {panel.pieces[0].code}", "bottom")
+    sheet.add(CLAD, f"Lay {run(panel)} in order", plate, "LOOSE BOARDS")
+
+    plate = sheet.plate()
+    draw_individual_cladding(plate, solid, panel, FRONT)
+    for name in supports:
+        plate.shape(shapes[name], "ghost")
+    plate.shape(waste, "trim")
+    plate.loop([waste[0], waste[3]], "cut")
+    plate.dim((field_box[0], field_box[3]), (field_box[2], field_box[3]), 44)
+    plate.dim(waste[0], waste[1], -40, f"{fmt(panel.trim)}")
+    sheet.add(CUT, "Trim the field to the opening width", plate, "CIRCULAR SAW")
+
+    plate = sheet.plate()
+    draw_individual_cladding(plate, solid, panel, FRONT)
+    for name in supports:
+        plate.shape(shapes[name], "ghost")
+        plate.code_in(shapes[name], BEAM_CODES[name])
     draw_cladding_screws(
         plate,
         shapes["seat_front"],
-        parts["seat_front"],
-        fields["seat_front"],
+        solid,
+        panel,
         FRONT,
         parts,
-        members,
+        supports,
         fastening,
         design,
     )
-    field_box = bounds(shapes["seat_front"])
-    plate.dim(
-        (field_box[0], field_box[1]),
-        (field_box[0], field_box[3]),
-        -40,
-        fmt(design.seat_height - design.cladding),
+    sheet.add(FASTEN, "Screw every board to SBF1 and SBB1", plate, "2.8 × 60 NAILS")
+    sequences["J"] = tuple(sheet.steps)
+
+    return sequences
+
+
+def step_html(letter: str, number: str, index: int, step: Step) -> str:
+    """One numbered step: its drawing, its verb line, and its tick."""
+    key = f"step-{letter.lower()}-{index}"
+    note = (
+        f'<span class="drawing-note">{html.escape(step.note)}</span>'
+        if step.note
+        else ""
     )
-    plate.dim(
-        (field_box[0], field_box[3]),
-        (field_box[2], field_box[3]),
-        44,
-        fmt(design.interior_width),
+    return (
+        f'<li class="step" id="{key}">'
+        f'<figure class="drawing step-drawing">{step.plate}<figcaption>'
+        f'<span class="step-name"><b class="step-no">{index}</b>'
+        f"{html.escape(step.caption)}</span>"
+        f'<span class="drawing-ref">{number}.{index}</span>{note}'
+        f"</figcaption></figure>"
+        f'<label class="step-check">'
+        f'<input type="checkbox" data-check="{key}"><span>Done</span></label>'
+        f"</li>"
     )
-    plate.corner(
-        f"SFB1–SFB8 · {fmt(design.seat_front_support_from_back)} FROM BACK · "
-        "2 SCREWS PER BOARD TO SBF1 AND SBB1"
-    )
-    plates["K"] = plate.svg(
-        "A-412",
-        "Seat front cladding",
-        FRONT.short,
-        note=(
-            f"{FRONT.caption} · cladding face only · {fmt(design.cladding)} mm wall · "
-            "SBF1 and SBB1 ghosted"
-        ),
-    )
-    return plates
+
+
+def unit_drawings(design: Design, boards: list[CutPiece]) -> dict[str, UnitDrawings]:
+    """A construction sequence for each unit, and the general arrangement of
+    the units that carry set-out their steps can only show one at a time."""
+    context = unit_context(design, boards)
+    keys = key_plates(context)
+    sequences = unit_sequences(context)
+    return {
+        letter: UnitDrawings(
+            keys.get(letter, ""), sequences[letter], UNIT_HOLDS.get(letter, ())
+        )
+        for letter, _, _ in MODULES
+    }
 
 
 """The sheet stylesheet.
@@ -3282,7 +4160,7 @@ STYLE = """
     .table-scroll table { min-width:620px; }
 
     /* The two inks. Red is codes. Blue is dimensions and measured detail. */
-    .code, .marks b, .stock-piece b, .code-strip b { color:var(--code); letter-spacing:.06em; }
+    .code, .marks b, .stock-piece b { color:var(--code); letter-spacing:.06em; }
     .measure { color:var(--dim-ink); white-space:nowrap; }
     .pass { color:var(--grey-dark); }
     .marks b + b { margin-left:8px; }
@@ -3325,6 +4203,9 @@ STYLE = """
     .plate .member-edge { fill:none; stroke:var(--line); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .cut-member { fill:url(#hatch); stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
     .plate .field { fill:var(--grey-faint); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
+    /* Board that is still there because this step has not reached it yet. It
+       is filled over the finished profile, so no edge implies a cut. */
+    .plate .field-fill { fill:var(--grey-faint); stroke:none; }
     .plate .cut-field { fill:var(--grey-pale); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
     .plate .blank { fill:#fafafa; stroke:var(--grey-mid); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
     .plate .ghost { fill:none; stroke:var(--grey-mid); stroke-width:var(--hair); stroke-dasharray:10 6; vector-effect:non-scaling-stroke; }
@@ -3333,7 +4214,29 @@ STYLE = """
     .plate .joint { stroke:var(--grey-light); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .trim { fill:url(#hatch-fine); stroke:var(--grey-dark); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .cut { fill:none; stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
+    /* A line set out and not yet cut. The set already means dashed as "not
+       there yet"; at section weight it reads as the cut it is about to be. */
+    .plate .cut-mark {
+      fill:none; stroke:var(--line); stroke-width:var(--section); stroke-dasharray:14 9;
+      vector-effect:non-scaling-stroke;
+    }
+    /* The path a part travels from where it is drawn to where it seats. */
+    .plate .track {
+      fill:none; stroke:var(--grey-dark); stroke-width:var(--hair); stroke-dasharray:9 7;
+      vector-effect:non-scaling-stroke;
+    }
+    .plate .track-head {
+      fill:none; stroke:var(--grey-dark); stroke-width:var(--hair);
+      stroke-linejoin:miter; vector-effect:non-scaling-stroke;
+    }
+    .plate .datum { fill:var(--line); stroke:none; }
+    .plate .datum-line { stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
+    .plate .datum-text {
+      fill:var(--ink); font-size:12px; letter-spacing:.12em;
+      stroke:var(--sheet); stroke-width:3px; paint-order:stroke;
+    }
     .plate .opening { fill:none; stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
+    .plate .opening-waste { fill:url(#hatch-fine); stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
     .plate .dim, .plate .dim-tick { fill:none; stroke:var(--dim); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .leader { fill:none; stroke:var(--dim); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .leader-dot { fill:var(--dim); stroke:none; }
@@ -3359,6 +4262,22 @@ STYLE = """
     }
     .plate .screw-head { fill:var(--ink); stroke:var(--line); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .screw-recess { fill:var(--sheet); stroke:none; }
+
+    /* The operation band under a step drawing. It sits in reserved plate space
+       below the dimension gutter, so it can never land on a dimension run. */
+    .plate .stamp-rule { stroke:var(--line); stroke-width:var(--border); vector-effect:non-scaling-stroke; }
+    .plate .stamp-op { fill:var(--ink); font-size:23px; letter-spacing:.22em; }
+    .plate .stamp-box { fill:none; stroke:var(--grey-mid); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
+    .plate .stamp-hardware { fill:var(--grey-dark); font-size:18px; letter-spacing:.1em; }
+
+    /* A step plate carries a fraction of what its key plate carries, and is
+       drawn at roughly half the width, so its lettering is set larger inside
+       the same 1000-unit space. On paper both land at the same cap height. */
+    .step-plate .mark { font-size:24px; }
+    .step-plate .cladding-code { font-size:16px; }
+    .step-plate .small, .step-plate .datum-text { font-size:17px; }
+    .step-plate .dim-text { font-size:17px; }
+    .step-plate .stamp-hardware { font-size:17px; }
 
     /* Stock bars: one scaled diagram per stock length. */
     .stock-list { display:grid; gap:28px; margin-top:36px; }
@@ -3460,14 +4379,29 @@ STYLE = """
     .viewer-tip .tip-name { margin:3px 0 6px; text-transform:uppercase; letter-spacing:.1em; color:var(--grey-dark); }
     .viewer-tip .tip-size { color:var(--dim-ink); }
 
-    /* Unit drawings. */
-    .drawing-grid {
-      display:grid; grid-template-columns:1fr 1fr; gap:44px 40px; margin-top:36px;
+    /* Unit drawings. One unit takes the full sheet: a general arrangement,
+       then the numbered sequence that builds it. */
+    .drawing-grid { display:grid; gap:clamp(48px,6vw,88px); margin-top:36px; }
+    /* The general arrangement is bound to the screen, not to the column: a
+       1 175 mm elevation drawn to the full width runs past the fold on any
+       laptop, and a unit has to open in one view. */
+    .unit-key { display:flex; justify-content:center; }
+    .unit-key .plate {
+      width:auto; height:auto; max-width:min(100%,750px); max-height:76vh;
     }
-    .unit { display:flex; flex-direction:column; break-inside:avoid; }
-    .unit > header { display:flex; gap:14px; align-items:baseline; margin-bottom:8px; }
+    .unit { display:flex; flex-direction:column; }
+    .unit > header {
+      display:flex; flex-wrap:wrap; gap:14px; align-items:baseline;
+      margin-bottom:8px; padding-bottom:12px; border-bottom:1px solid var(--line);
+    }
     .unit-letter { color:var(--code); font-size:var(--t-mark); letter-spacing:.14em; }
-    .unit-face { display:flex; margin-left:auto; border:1px solid var(--grey-light); }
+    .unit > header > div:first-of-type { margin-right:auto; }
+    .unit-count {
+      font-size:var(--t-fine); letter-spacing:.14em;
+      text-transform:uppercase; color:var(--grey-dark);
+    }
+    .unit-count.is-done { color:var(--code); }
+    .unit-face { display:flex; border:1px solid var(--grey-light); }
     .unit-face button {
       border:0; background:var(--sheet); padding:7px 9px; cursor:pointer;
       color:var(--grey-dark); font-size:var(--t-fine); letter-spacing:.1em;
@@ -3476,28 +4410,67 @@ STYLE = """
     .unit-face button + button { border-left:1px solid var(--grey-light); }
     .unit-face button.is-on { color:var(--code); box-shadow:inset 0 -2px 0 var(--code); }
     .unit-face button:focus-visible { outline:1px solid var(--line); outline-offset:-3px; }
-    .unit[data-face="cladding"] .plate .member,
-    .unit[data-face="cladding"] .plate .under,
-    .unit[data-face="cladding"] .plate .ghost,
-    .unit[data-face="cladding"] .plate .mark { opacity:.14; }
-    .unit[data-face="frame"] .plate .cladding-code { opacity:0; }
-    .unit[data-face="cladding"] .plate .cladding-code { opacity:1; }
-    .unit[data-face="left"] .perspective-right { display:none; }
-    .unit[data-face="left"] .perspective-left { display:block; }
-    .unit[data-face="right"] .perspective-right { display:block; }
-    .unit[data-face="right"] .perspective-left { display:none; }
-    .unit[data-face="frame"] .screw-cladding { opacity:0; }
-    .unit[data-face="cladding"] .screw-frame { opacity:0; }
-    .unit-steps { margin-top:16px; padding-top:14px; border-top:1px solid var(--grey-pale); }
-    .unit-steps ol { margin:10px 0 0; padding-left:22px; }
-    .unit-steps li { margin-bottom:8px; font-size:var(--t-small); line-height:1.55; }
-    .unit-steps li:last-child { margin-bottom:0; }
-    .code-strip { display:flex; flex-wrap:wrap; gap:4px 12px; padding:14px 0 0; font-size:var(--t-fine); }
-    .stack-check {
-      display:flex; align-items:center; gap:10px; margin-top:16px; padding-top:14px;
-      border-top:1px solid var(--grey-pale); font-size:var(--t-fine); letter-spacing:.14em;
-      text-transform:uppercase; color:var(--grey-dark); cursor:pointer;
+    /* The layer toggle belongs to the general arrangement only. The steps show
+       frame then cladding in order, which is what the toggle used to stand in
+       for, and a step must never be dimmed by a control aimed at another
+       drawing. */
+    .unit[data-face="cladding"] .unit-key .member,
+    .unit[data-face="cladding"] .unit-key .under,
+    .unit[data-face="cladding"] .unit-key .ghost,
+    .unit[data-face="cladding"] .unit-key .mark { opacity:.14; }
+    .unit[data-face="frame"] .unit-key .cladding-code { opacity:0; }
+    .unit[data-face="cladding"] .unit-key .cladding-code { opacity:1; }
+    .unit[data-face="left"] .unit-key .perspective-right { display:none; }
+    .unit[data-face="left"] .unit-key .perspective-left { display:block; }
+    .unit[data-face="right"] .unit-key .perspective-right { display:block; }
+    .unit[data-face="right"] .unit-key .perspective-left { display:none; }
+    .unit[data-face="frame"] .unit-key .screw-cladding { opacity:0; }
+    .unit[data-face="cladding"] .unit-key .screw-frame { opacity:0; }
+
+    /* The step strip. Two up, so a step plate lands at the width the key plate
+       used to take and its lettering reads at the same size on paper. */
+    .unit-steps {
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:38px 32px; margin:34px 0 0; padding:0; list-style:none;
     }
+    .step { display:flex; flex-direction:column; break-inside:avoid; }
+    .step-drawing { flex:1 1 auto; display:flex; flex-direction:column; }
+    /* A step is a detail of the general arrangement and is drawn smaller than
+       it, whichever way round the unit is. */
+    .step .plate {
+      width:auto; height:auto; max-width:100%; max-height:52vh;
+      margin-inline:auto; border:1px solid var(--grey-pale);
+    }
+    .step figcaption { padding:16px 0 0; text-align:left; }
+    .step-name {
+      display:block; font-size:var(--t-note); letter-spacing:.1em;
+      text-transform:uppercase; line-height:1.4;
+    }
+    .step-no {
+      display:inline-block; min-width:1.9em; color:var(--code); font-weight:400;
+    }
+    .step .drawing-ref { margin-top:7px; padding-left:1.9em; text-align:left; }
+    .step .drawing-note {
+      margin:8px 0 0 1.9em; max-width:44ch; text-align:left;
+    }
+    .step-check {
+      display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:12px;
+      border-top:1px solid var(--grey-pale); font-size:var(--t-fine);
+      letter-spacing:.14em; text-transform:uppercase; color:var(--grey-dark);
+      cursor:pointer;
+    }
+    /* A hold is what this unit deliberately leaves undone. It reads before
+       the steps, not after them: a builder needs to know the roof reliefs are
+       scribed before they reach the step that would otherwise cut them. */
+    .unit-holds {
+      margin-top:26px; padding:16px 20px; border:1px solid var(--code);
+      max-width:72ch;
+    }
+    .unit-holds h4 {
+      color:var(--code-deep); font-size:var(--t-fine); letter-spacing:.18em;
+      text-transform:uppercase;
+    }
+    .unit-holds p { margin-top:8px; font-size:var(--t-small); line-height:1.6; }
 
     .set-foot {
       display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between;
@@ -3523,7 +4496,14 @@ STYLE = """
     }
     .reset:hover, .reset:focus-visible { background:var(--code); border-color:var(--code); color:#fff; outline:0; }
 
-    @media (max-width:1080px) { .view-grid, .drawing-grid { grid-template-columns:1fr; } }
+    @media (max-width:1080px) { .view-grid { grid-template-columns:1fr; } }
+    /* Narrow: the column is already the constraint, and a viewport height cap
+       on top of it would shrink a plate twice. One drawing per row, full
+       width, and the reader scrolls the way they already are. */
+    @media (max-width:860px) {
+      .unit-steps { grid-template-columns:1fr; }
+      .unit-key .plate, .step .plate { width:100%; max-width:100%; max-height:none; }
+    }
     @media (max-width:720px) {
       :root { --t-fine:.6rem; --t-small:.68rem; --t-mark:.73rem; --t-note:.8rem; }
       .masthead-top { grid-template-columns:1fr; gap:28px; }
@@ -3600,29 +4580,50 @@ STYLE = """
          hairline waste block would print off the edge of the sheet, so the
          last one on a track hangs from its right end instead. */
       .stock-waste span { left:auto; right:0; transform:none; }
-      /* One unit, one sheet. Each unit is built standalone, so the sheet a
-         builder carries to the bench holds its drawing, its steps and its codes
-         together. The unit is exactly one page tall and the drawing takes every
-         millimetre the steps beside it leave, so no plate is ever guessed at a
-         height and no drawing is ever split across a page. */
-      /* No top margin: every unit already opens its own sheet, and 8mm of it
-         would push the first unit past the page and orphan its header. The
-         height is the page box, which the page margin has already inset. */
+      /* A unit takes the sheets it needs. The general arrangement opens the
+         unit on its own sheet, bound to the page box so it is never guessed at
+         a height, and the numbered steps run on from there. No plate is ever
+         shrunk to save a sheet, and no step is ever split off its caption. */
+      /* No top margin on the first: every unit already opens its own sheet, and
+         8mm of it would push the first unit past the page and orphan its
+         header. */
       .drawing-grid { display:block; margin-top:0; }
-      .unit {
-        display:grid; grid-template-columns:1fr 74mm;
-        grid-template-rows:auto 1fr auto auto; gap:6mm 8mm;
-        height:184mm; break-before:page;
+      .unit { display:block; break-before:page; }
+      /* The unit's first sheet carries its header, its general arrangement and
+         its codes. The plate takes what those leave, not the whole page box:
+         at the full height the code strip is pushed to a sheet of its own and
+         the browser leaves the overflow page blank. */
+      .unit .unit-key {
+        display:flex; flex-direction:column; height:166mm; break-inside:avoid;
       }
-      .unit > header { grid-column:1 / -1; }
-      .unit .drawing {
-        grid-column:1; grid-row:2 / span 3;
-        display:flex; flex-direction:column; min-height:0;
+      .unit .unit-key .plate { width:100%; max-width:none; max-height:none; }
+      .unit .unit-key .drawing {
+        display:flex; flex-direction:column; min-height:0; flex:1 1 auto;
       }
-      .unit .drawing .plate { flex:1 1 auto; min-height:0; }
-      .unit .unit-steps { grid-column:2; grid-row:2; }
-      .unit .code-strip { grid-column:2; grid-row:3; align-content:end; }
-      .unit .stack-check { grid-column:2; grid-row:4; }
+      .unit .unit-key .plate { flex:1 1 auto; min-height:0; }
+      /* Three steps across. The column, not a guessed height, sets the plate:
+         bound by height instead, a portrait elevation shrinks to a third of
+         its column and letters below reading size, while a plan wastes two
+         thirds of the page. At a third of the sheet every step letters the
+         same, an upright unit takes one row a page and a flat one takes three,
+         and a step and its caption always fit a page together. */
+      .unit-steps {
+        grid-template-columns:repeat(3,1fr); gap:7mm 6mm; margin:8mm 0 0;
+        align-content:start;
+      }
+      .unit > header { break-after:avoid; }
+      .unit > :last-child { margin-bottom:0; }
+      .step { break-inside:avoid; }
+      /* The column sets the plate, up to the point where the step stops
+         fitting a page: an upright isometric at a third of the sheet is taller
+         than the page box once its caption, note and tick are under it, and a
+         step that cannot fit a page leaves the one before it half empty. */
+      .step .plate { width:100%; max-width:none; max-height:112mm; }
+      /* Paper holds the floor the whole set letters to: no code mark prints
+         smaller than the ones on the general arrangements. */
+      .step-plate .mark { font-size:27px; }
+      .step figcaption { padding-top:10px; }
+      .unit-holds { margin-top:6mm; break-inside:avoid; break-after:avoid; }
       /* A drawing set letters its caption on one line and keeps the note under
          it; stacked on paper the caption would eat the drawing's height. */
       .drawing figcaption { padding:8px 12px 0; }
@@ -3631,9 +4632,8 @@ STYLE = """
       .drawing-note { margin-top:5px; }
       .unit-face { display:none; }
       .unit .screw-layer { opacity:1 !important; }
-      .code-strip { padding-top:7px; }
-      .stack-check { margin-top:8px; padding-top:7px; }
-      .drawing, .unit, .stock, .note { break-inside:avoid; }
+      .step-check { margin-top:8px; padding-top:7px; }
+      .drawing, .stock, .note { break-inside:avoid; }
       /* A photograph or a source drawing prints whole, with its caption under
          it. `break-inside` is only honoured while a block still fits the page,
          so each figure is bound on its height first: the image states one side
@@ -3662,135 +4662,23 @@ def guide_html(
     boards = cladding_pieces(design)
     beam_stocks = pack_stock(beams, beam_stock_length, kerf)
     panel_stocks = panel_stock_plan(boards, cladding_stock_length, kerf)
-    all_pieces = beams + boards
-    code_map = {piece.code: piece for piece in all_pieces}
     first_panel_length = round(design.door_height, 1)
     last_panel_length = min(round(piece.length, 1) for piece in boards)
-    roof_slope = math.hypot(design.roof_run, design.roof_rise)
-    roof_plan_depth = (
-        roof_slope + 2 * design.frame
-    ) * design.roof_run / roof_slope + design.frame * design.roof_rise / roof_slope
-    roof_side_overhang = (1050 - design.width) / 2
-    roof_end_overhang = (1085 - roof_plan_depth) / 2
+    drawings = unit_drawings(design, boards)
 
-    plates = module_plates(design, boards)
-    fields = panels(boards)
-    side_steps = {}
-    for letter, key, edge in (
-        ("C", "left_wall", "LSC"),
-        ("D", "right_wall", "RSC"),
-    ):
-        field = fields[key]
-        side_steps[letter] = (
-            f"Build the frame. Match its diagonals before you fix {edge}1 to {edge}7.",
-            f"Fix the square {edge} boards from front to rear. Align their lower and front edges.",
-            (
-                f"Mark {fmt(field.pieces[0].finished_long or field.blank)} at the front "
-                f"and {fmt(field.pieces[-1].finished_short or field.blank)} at the rear. "
-                "Set the circular-saw guide and make one gang cut after the boards are fixed."
-            ),
-            (
-                f"Use the rear frame edge to set the circular-saw guide. Cut the estimated "
-                f"{fmt(field.trim)} overhang, then cut the {fmt(design.frame)} × "
-                f"{fmt(design.frame)} bottom-front notch."
-            ),
-            "Do not pre-cut the roof reliefs. Hang and close the roof, then cut only to the scribe.",
-        )
-    unit_steps = {
-        "A": (
-            "Lay RBH1 and RBH2 around RBS1 and RBS2. Center RBC1. Match the diagonals, then place the frame screw marks.",
-            (
-                f"Center the metal sheet with {fmt(roof_side_overhang)} at each side and "
-                f"{fmt(roof_end_overhang)} at the front and rear."
-            ),
-            "Fit the moving hinge leaf. After the shell is square, fit the fixed leaf and hang the roof.",
-        ),
-        "B": (
-            "Build the DBV and DBH frame. Fit DBD1 and match the diagonals.",
-            "Fix DCB1 to DCB9 on the inside face. Align DCB1 with the left frame edge.",
-            (
-                f"Use the right frame edge to set the circular-saw guide. Cut the estimated "
-                f"{fmt(fields['door_panel'].trim)} overhang after the boards are fixed."
-            ),
-            (
-                f"Cut the two top reliefs shown. Fit the moving hinge leaves, then hang the door "
-                f"with a {fmt(design.hinge_gap)} gap after the shell is square."
-            ),
-        ),
-        "C": side_steps["C"],
-        "D": side_steps["D"],
-        "E": (
-            "Build BWH1 and BWH2 with BWD1. Install this bare frame between the two side units.",
-            "Attach the left and right side units to the back unit with the indicated beam screws. Drive from the rear posts into BWH1 and BWH2 at each marked landing.",
-            "Fix BWC1 to BWC8 inside the side cladding. Align BWC1 with the left landing mark.",
-            (
-                f"Use the right landing mark to set the circular-saw guide. Cut the estimated "
-                f"{fmt(fields['back_wall'].trim)} overhang after the boards are fixed."
-            ),
-        ),
-        "F": (
-            (
-                f"Brace the left and right units upright. Keep the bottom of LSH1, RSH1, and BWH1 "
-                f"{fmt(design.leg_extension)} mm above ground while you install the back frame between them."
-            ),
-            "Fit FBB1 between BWH1, FBS1 and FBS2 between LSH1 and RSH1, and FBH1 across the front opening. Keep all four beams square and flush with the shell frame.",
-            (
-                "Drive two 6 × 120 mm screws from FBB1 through the back wall into BWH1, "
-                "one 100 mm from each end. Drive two from FBS1 into LSH1 and two from "
-                "FBS2 into RSH1, all from inside the structure outwards. Then drive one "
-                "centred screw from each outside side rail into FBH1."
-            ),
-            f"Install FBH1 across the front at the {fmt(design.leg_extension)} leg datum. Measure the finished frame before the final screws.",
-        ),
-        "G": (
-            "Fix FCB1 to FCB8 to the installed bearers. Align FCB1 with the left bearer edge.",
-            (
-                f"Use the right bearer edge to set the circular-saw guide. Cut the estimated "
-                f"{fmt(fields['floor'].trim)} overhang after the boards are fixed."
-            ),
-            "Lower the finished deck into the square shell. Fasten its front edge to FBH1.",
-        ),
-        "H": (
-            (
-                "Build the removable 852 mm seat box from SBH1, SBH2, SBS1–SBS4. "
-                f"Keep {fmt(design.seat_box_clearance / 2)} mm clearance at each side."
-            ),
-            (
-                f"Fix STB1 to STB{fields['seat_top'].count} across the top frame, "
-                "with the board ends supported by SBS3 and SBS4."
-            ),
-            (
-                f"Cut the estimated {fmt(fields['seat_top'].trim)} overhang. Then cut the "
-                f"{fmt(design.seat_hole_width)} × {fmt(design.seat_hole_depth)} opening."
-            ),
-            "Use the two outer support beams for the board screw rows. Make sure the opening clears the inner bearers and rails. Seal every fresh cladding cut.",
-        ),
-        "I": (
-            "With the floor deck, sides, and back attached, place SBB1 directly under SBH1 and SBB2 directly under SBH2.",
-            f"Set the upper edge of both support beams {fmt(design.seat_support_top - design.floor_top)} mm above the floor deck: 397 mm front-panel height minus 45 mm seat-box beam height.",
-            "Drive one 6 × 120 mm screw from each side exterior into the centre of each support beam. Check the front beam face against the dimension on A-409.",
-        ),
-        "J": (
-            "Lower the centred 852 mm seat box onto SBB1 and SBB2. Leave the support beams fixed to the shell so the box can lift out as one assembly.",
-            f"Check SBB1 and SBF1 on the shared {fmt(design.seat_front_support_from_back)} mm-from-back datum before the front boards are fixed.",
-            "Use the right/left toggle to check both outside screw pairs and confirm the two side clearances before final finishing.",
-        ),
-        "K": (
-            "Lay SFB1 to SFB8 as individual boards. Keep their vertical joints in the order shown.",
-            f"Trim the joined field to the {fmt(design.interior_width)} mm before fixing.",
-            "Fix every board to SBF1 at floor level and SBB1 under the seat box. The two screw rows are shown on the drawing.",
-        ),
-    }
     module_cards = []
-    for letter, title, prefixes in MODULES:
-        codes = [
-            code
-            for code in code_map
-            if any(code.startswith(prefix) for prefix in prefixes)
-        ]
-        codes.sort()
-        steps = "".join(f"<li>{step}</li>" for step in unit_steps[letter])
-        if letter == "J":
+    for letter, title, _ in MODULES:
+        unit = drawings[letter]
+        number = DRAWING_NUMBERS[letter]
+        steps = "".join(
+            step_html(letter, number, index, step)
+            for index, step in enumerate(unit.steps, 1)
+        )
+        holds = "".join(f"<p>{hold}</p>" for hold in unit.holds)
+        holds_html = (
+            f'<div class="unit-holds"><h4>Hold</h4>{holds}</div>' if holds else ""
+        )
+        if letter == "I":
             face_controls = (
                 f'<div class="unit-face" data-unit-face="{letter}" role="group" '
                 f'aria-label="{title} drawing layer">'
@@ -3810,14 +4698,17 @@ def guide_html(
             )
         else:
             face_controls = ""
-        face = "right" if letter == "J" else "cladding" if letter in "GK" else "frame"
+        face = "right" if letter == "I" else "cladding" if letter in "GJ" else "frame"
         module_cards.append(f"""
-          <article class="unit" id="unit-{letter.lower()}" data-face="{face}">
-            <header><span class="unit-letter">Stack {letter}</span><div><h3>{title}</h3></div>{face_controls}</header>
-            {plates[letter]}
-            <div class="unit-steps"><h4>Assembly</h4><ol>{steps}</ol></div>
-            <div class="code-strip">{"".join(f'<b class="code">{code}</b>' for code in codes)}</div>
-            <label class="stack-check"><input type="checkbox" data-check="unit-{letter.lower()}"> Unit complete</label>
+          <article class="unit" id="unit-{letter.lower()}" data-face="{face}" data-steps="{len(unit.steps)}">
+            <header>
+              <span class="unit-letter">Stack {letter}</span><div><h3>{title}</h3></div>
+              <span class="unit-count" data-count="{letter.lower()}">0 / {len(unit.steps)}</span>
+              {face_controls}
+            </header>
+            {f'<div class="unit-key">{unit.key}</div>' if unit.key else ""}
+            {holds_html}
+            <ol class="unit-steps">{steps}</ol>
           </article>""")
 
     beam_stock_html = "".join(
@@ -3955,12 +4846,14 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
 
   <section class="sheet" id="stacks">
     <div class="sheet-head"><span class="sheet-no">Sheet A-400</span><h2>Unit drawings and assembly</h2></div>
-    <p class="sheet-note">Each drawing is an orthographic projection off the model. Use the Frame and Cladding controls to inspect the fastening layers and the fitted fields.</p>
-    <p class="sheet-note">Black frame paths are measured 120 mm screws: they start on the source beam and finish in the centre of the receiving section. Diagonal paths follow the diagonal beam from its mitred end.</p>
-    <p class="sheet-note"><span class="on-screen">Use the Frame and Cladding controls to
-    change drawing emphasis. The printed drawing keeps every cut line, trim label, and
-    notch note visible.</span><span class="on-paper">Each unit is drawn on its own sheet,
-    with its assembly steps and its codes beside it.</span></p>
+    <p class="sheet-note">Each unit opens with its general arrangement, dimensioned and
+    coded off the model, then builds through its own numbered steps. A step draws one
+    operation: work already done ghosts back, work this step touches goes solid, and the
+    band under the drawing names the operation before the caption is read.</p>
+    <p class="sheet-note">Black screw paths are measured {
+        fmt(design.screw_length)
+    } mm screws: each starts on the source beam and finishes in the centre of the
+    receiving section. Diagonal paths follow the diagonal beam from its mitred end.</p>
     <div class="note" id="hardware">
       <h3>Assembly hardware</h3>
       <p>Use these fasteners for the timber assembly.</p>
@@ -3988,17 +4881,27 @@ FORM: Swedish construction drawing set, pinned by the brief to drawing-sides.png
 <script>
   const key = "dass-cut-guide-checks-v1";
   const saved = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+  const tally = () => document.querySelectorAll(".unit").forEach(unit => {{
+    const steps = [...unit.querySelectorAll(".step-check input")];
+    const done = steps.filter(input => input.checked).length;
+    const count = unit.querySelector(".unit-count");
+    count.textContent = done + " / " + steps.length;
+    count.classList.toggle("is-done", done === steps.length && steps.length > 0);
+  }});
   document.querySelectorAll("[data-check]").forEach(input => {{
     input.checked = saved.has(input.dataset.check);
     input.addEventListener("change", () => {{
       input.checked ? saved.add(input.dataset.check) : saved.delete(input.dataset.check);
       localStorage.setItem(key, JSON.stringify([...saved]));
+      tally();
     }});
   }});
   document.querySelector(".reset").addEventListener("click", () => {{
     saved.clear(); localStorage.removeItem(key);
     document.querySelectorAll("[data-check]").forEach(input => input.checked = false);
+    tally();
   }});
+  tally();
   document.querySelectorAll("[data-unit-face]").forEach(group => {{
     const unit = group.closest(".unit");
     const buttons = [...group.querySelectorAll("[data-face]")];
@@ -4214,10 +5117,11 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
 
   <section class="sheet" id="progress">
     <div class="sheet-head"><span class="sheet-no">Field notes 01</span><h2>How it's going</h2></div>
-    <p class="sheet-note">Model 0.1.4 · cladding fixings are centred after trimming and clear the beam screws.</p>
+    <p class="sheet-note">Model 0.1.5 · every unit builds through its own numbered, drawn construction steps.</p>
     <div class="note model-changelog">
       <h3>Model changelog</h3>
       <ul>
+        <li><time datetime="2026-08-07">2026-08-07 · 0.1.5</time> Each unit builds through a numbered sequence of single-operation drawings, with the back panel clad and trimmed flat before it is set between the sides and the floor deck cut before it is fixed.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.4</time> Terminal-board cladding fixings are centred after trimming, and edge fixings clear the modeled beam-screw paths.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.3</time> The interactive line, textured, fallback, and print views share the in-situ render's perspective, scale, and position.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.2</time> Stack H carries all eight beam screws, and Stack J plus the final open SVG use the same model-aligned isometric projection.</li>

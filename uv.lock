@@ -457,7 +457,7 @@ wheels = [
 
 [[package]]
 name = "dass-cad"
-version = "0.1.4"
+version = "0.1.6"
 source = { editable = "." }
 dependencies = [
     { name = "cadquery" },

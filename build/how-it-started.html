@@ -212,7 +212,7 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     .table-scroll table { min-width:620px; }
 
     /* The two inks. Red is codes. Blue is dimensions and measured detail. */
-    .code, .marks b, .stock-piece b, .code-strip b { color:var(--code); letter-spacing:.06em; }
+    .code, .marks b, .stock-piece b { color:var(--code); letter-spacing:.06em; }
     .measure { color:var(--dim-ink); white-space:nowrap; }
     .pass { color:var(--grey-dark); }
     .marks b + b { margin-left:8px; }
@@ -255,6 +255,9 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     .plate .member-edge { fill:none; stroke:var(--line); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .cut-member { fill:url(#hatch); stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
     .plate .field { fill:var(--grey-faint); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
+    /* Board that is still there because this step has not reached it yet. It
+       is filled over the finished profile, so no edge implies a cut. */
+    .plate .field-fill { fill:var(--grey-faint); stroke:none; }
     .plate .cut-field { fill:var(--grey-pale); stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
     .plate .blank { fill:#fafafa; stroke:var(--grey-mid); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
     .plate .ghost { fill:none; stroke:var(--grey-mid); stroke-width:var(--hair); stroke-dasharray:10 6; vector-effect:non-scaling-stroke; }
@@ -263,7 +266,29 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     .plate .joint { stroke:var(--grey-light); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .trim { fill:url(#hatch-fine); stroke:var(--grey-dark); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .cut { fill:none; stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
+    /* A line set out and not yet cut. The set already means dashed as "not
+       there yet"; at section weight it reads as the cut it is about to be. */
+    .plate .cut-mark {
+      fill:none; stroke:var(--line); stroke-width:var(--section); stroke-dasharray:14 9;
+      vector-effect:non-scaling-stroke;
+    }
+    /* The path a part travels from where it is drawn to where it seats. */
+    .plate .track {
+      fill:none; stroke:var(--grey-dark); stroke-width:var(--hair); stroke-dasharray:9 7;
+      vector-effect:non-scaling-stroke;
+    }
+    .plate .track-head {
+      fill:none; stroke:var(--grey-dark); stroke-width:var(--hair);
+      stroke-linejoin:miter; vector-effect:non-scaling-stroke;
+    }
+    .plate .datum { fill:var(--line); stroke:none; }
+    .plate .datum-line { stroke:var(--line); stroke-width:var(--object); vector-effect:non-scaling-stroke; }
+    .plate .datum-text {
+      fill:var(--ink); font-size:12px; letter-spacing:.12em;
+      stroke:var(--sheet); stroke-width:3px; paint-order:stroke;
+    }
     .plate .opening { fill:none; stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
+    .plate .opening-waste { fill:url(#hatch-fine); stroke:var(--line); stroke-width:var(--section); vector-effect:non-scaling-stroke; }
     .plate .dim, .plate .dim-tick { fill:none; stroke:var(--dim); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .leader { fill:none; stroke:var(--dim); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .leader-dot { fill:var(--dim); stroke:none; }
@@ -289,6 +314,22 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     }
     .plate .screw-head { fill:var(--ink); stroke:var(--line); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
     .plate .screw-recess { fill:var(--sheet); stroke:none; }
+
+    /* The operation band under a step drawing. It sits in reserved plate space
+       below the dimension gutter, so it can never land on a dimension run. */
+    .plate .stamp-rule { stroke:var(--line); stroke-width:var(--border); vector-effect:non-scaling-stroke; }
+    .plate .stamp-op { fill:var(--ink); font-size:23px; letter-spacing:.22em; }
+    .plate .stamp-box { fill:none; stroke:var(--grey-mid); stroke-width:var(--hair); vector-effect:non-scaling-stroke; }
+    .plate .stamp-hardware { fill:var(--grey-dark); font-size:18px; letter-spacing:.1em; }
+
+    /* A step plate carries a fraction of what its key plate carries, and is
+       drawn at roughly half the width, so its lettering is set larger inside
+       the same 1000-unit space. On paper both land at the same cap height. */
+    .step-plate .mark { font-size:24px; }
+    .step-plate .cladding-code { font-size:16px; }
+    .step-plate .small, .step-plate .datum-text { font-size:17px; }
+    .step-plate .dim-text { font-size:17px; }
+    .step-plate .stamp-hardware { font-size:17px; }
 
     /* Stock bars: one scaled diagram per stock length. */
     .stock-list { display:grid; gap:28px; margin-top:36px; }
@@ -390,14 +431,29 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     .viewer-tip .tip-name { margin:3px 0 6px; text-transform:uppercase; letter-spacing:.1em; color:var(--grey-dark); }
     .viewer-tip .tip-size { color:var(--dim-ink); }
 
-    /* Unit drawings. */
-    .drawing-grid {
-      display:grid; grid-template-columns:1fr 1fr; gap:44px 40px; margin-top:36px;
+    /* Unit drawings. One unit takes the full sheet: a general arrangement,
+       then the numbered sequence that builds it. */
+    .drawing-grid { display:grid; gap:clamp(48px,6vw,88px); margin-top:36px; }
+    /* The general arrangement is bound to the screen, not to the column: a
+       1 175 mm elevation drawn to the full width runs past the fold on any
+       laptop, and a unit has to open in one view. */
+    .unit-key { display:flex; justify-content:center; }
+    .unit-key .plate {
+      width:auto; height:auto; max-width:min(100%,750px); max-height:76vh;
     }
-    .unit { display:flex; flex-direction:column; break-inside:avoid; }
-    .unit > header { display:flex; gap:14px; align-items:baseline; margin-bottom:8px; }
+    .unit { display:flex; flex-direction:column; }
+    .unit > header {
+      display:flex; flex-wrap:wrap; gap:14px; align-items:baseline;
+      margin-bottom:8px; padding-bottom:12px; border-bottom:1px solid var(--line);
+    }
     .unit-letter { color:var(--code); font-size:var(--t-mark); letter-spacing:.14em; }
-    .unit-face { display:flex; margin-left:auto; border:1px solid var(--grey-light); }
+    .unit > header > div:first-of-type { margin-right:auto; }
+    .unit-count {
+      font-size:var(--t-fine); letter-spacing:.14em;
+      text-transform:uppercase; color:var(--grey-dark);
+    }
+    .unit-count.is-done { color:var(--code); }
+    .unit-face { display:flex; border:1px solid var(--grey-light); }
     .unit-face button {
       border:0; background:var(--sheet); padding:7px 9px; cursor:pointer;
       color:var(--grey-dark); font-size:var(--t-fine); letter-spacing:.1em;
@@ -406,28 +462,67 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     .unit-face button + button { border-left:1px solid var(--grey-light); }
     .unit-face button.is-on { color:var(--code); box-shadow:inset 0 -2px 0 var(--code); }
     .unit-face button:focus-visible { outline:1px solid var(--line); outline-offset:-3px; }
-    .unit[data-face="cladding"] .plate .member,
-    .unit[data-face="cladding"] .plate .under,
-    .unit[data-face="cladding"] .plate .ghost,
-    .unit[data-face="cladding"] .plate .mark { opacity:.14; }
-    .unit[data-face="frame"] .plate .cladding-code { opacity:0; }
-    .unit[data-face="cladding"] .plate .cladding-code { opacity:1; }
-    .unit[data-face="left"] .perspective-right { display:none; }
-    .unit[data-face="left"] .perspective-left { display:block; }
-    .unit[data-face="right"] .perspective-right { display:block; }
-    .unit[data-face="right"] .perspective-left { display:none; }
-    .unit[data-face="frame"] .screw-cladding { opacity:0; }
-    .unit[data-face="cladding"] .screw-frame { opacity:0; }
-    .unit-steps { margin-top:16px; padding-top:14px; border-top:1px solid var(--grey-pale); }
-    .unit-steps ol { margin:10px 0 0; padding-left:22px; }
-    .unit-steps li { margin-bottom:8px; font-size:var(--t-small); line-height:1.55; }
-    .unit-steps li:last-child { margin-bottom:0; }
-    .code-strip { display:flex; flex-wrap:wrap; gap:4px 12px; padding:14px 0 0; font-size:var(--t-fine); }
-    .stack-check {
-      display:flex; align-items:center; gap:10px; margin-top:16px; padding-top:14px;
-      border-top:1px solid var(--grey-pale); font-size:var(--t-fine); letter-spacing:.14em;
-      text-transform:uppercase; color:var(--grey-dark); cursor:pointer;
+    /* The layer toggle belongs to the general arrangement only. The steps show
+       frame then cladding in order, which is what the toggle used to stand in
+       for, and a step must never be dimmed by a control aimed at another
+       drawing. */
+    .unit[data-face="cladding"] .unit-key .member,
+    .unit[data-face="cladding"] .unit-key .under,
+    .unit[data-face="cladding"] .unit-key .ghost,
+    .unit[data-face="cladding"] .unit-key .mark { opacity:.14; }
+    .unit[data-face="frame"] .unit-key .cladding-code { opacity:0; }
+    .unit[data-face="cladding"] .unit-key .cladding-code { opacity:1; }
+    .unit[data-face="left"] .unit-key .perspective-right { display:none; }
+    .unit[data-face="left"] .unit-key .perspective-left { display:block; }
+    .unit[data-face="right"] .unit-key .perspective-right { display:block; }
+    .unit[data-face="right"] .unit-key .perspective-left { display:none; }
+    .unit[data-face="frame"] .unit-key .screw-cladding { opacity:0; }
+    .unit[data-face="cladding"] .unit-key .screw-frame { opacity:0; }
+
+    /* The step strip. Two up, so a step plate lands at the width the key plate
+       used to take and its lettering reads at the same size on paper. */
+    .unit-steps {
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:38px 32px; margin:34px 0 0; padding:0; list-style:none;
     }
+    .step { display:flex; flex-direction:column; break-inside:avoid; }
+    .step-drawing { flex:1 1 auto; display:flex; flex-direction:column; }
+    /* A step is a detail of the general arrangement and is drawn smaller than
+       it, whichever way round the unit is. */
+    .step .plate {
+      width:auto; height:auto; max-width:100%; max-height:52vh;
+      margin-inline:auto; border:1px solid var(--grey-pale);
+    }
+    .step figcaption { padding:16px 0 0; text-align:left; }
+    .step-name {
+      display:block; font-size:var(--t-note); letter-spacing:.1em;
+      text-transform:uppercase; line-height:1.4;
+    }
+    .step-no {
+      display:inline-block; min-width:1.9em; color:var(--code); font-weight:400;
+    }
+    .step .drawing-ref { margin-top:7px; padding-left:1.9em; text-align:left; }
+    .step .drawing-note {
+      margin:8px 0 0 1.9em; max-width:44ch; text-align:left;
+    }
+    .step-check {
+      display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:12px;
+      border-top:1px solid var(--grey-pale); font-size:var(--t-fine);
+      letter-spacing:.14em; text-transform:uppercase; color:var(--grey-dark);
+      cursor:pointer;
+    }
+    /* A hold is what this unit deliberately leaves undone. It reads before
+       the steps, not after them: a builder needs to know the roof reliefs are
+       scribed before they reach the step that would otherwise cut them. */
+    .unit-holds {
+      margin-top:26px; padding:16px 20px; border:1px solid var(--code);
+      max-width:72ch;
+    }
+    .unit-holds h4 {
+      color:var(--code-deep); font-size:var(--t-fine); letter-spacing:.18em;
+      text-transform:uppercase;
+    }
+    .unit-holds p { margin-top:8px; font-size:var(--t-small); line-height:1.6; }
 
     .set-foot {
       display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between;
@@ -453,7 +548,14 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
     }
     .reset:hover, .reset:focus-visible { background:var(--code); border-color:var(--code); color:#fff; outline:0; }
 
-    @media (max-width:1080px) { .view-grid, .drawing-grid { grid-template-columns:1fr; } }
+    @media (max-width:1080px) { .view-grid { grid-template-columns:1fr; } }
+    /* Narrow: the column is already the constraint, and a viewport height cap
+       on top of it would shrink a plate twice. One drawing per row, full
+       width, and the reader scrolls the way they already are. */
+    @media (max-width:860px) {
+      .unit-steps { grid-template-columns:1fr; }
+      .unit-key .plate, .step .plate { width:100%; max-width:100%; max-height:none; }
+    }
     @media (max-width:720px) {
       :root { --t-fine:.6rem; --t-small:.68rem; --t-mark:.73rem; --t-note:.8rem; }
       .masthead-top { grid-template-columns:1fr; gap:28px; }
@@ -530,29 +632,50 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
          hairline waste block would print off the edge of the sheet, so the
          last one on a track hangs from its right end instead. */
       .stock-waste span { left:auto; right:0; transform:none; }
-      /* One unit, one sheet. Each unit is built standalone, so the sheet a
-         builder carries to the bench holds its drawing, its steps and its codes
-         together. The unit is exactly one page tall and the drawing takes every
-         millimetre the steps beside it leave, so no plate is ever guessed at a
-         height and no drawing is ever split across a page. */
-      /* No top margin: every unit already opens its own sheet, and 8mm of it
-         would push the first unit past the page and orphan its header. The
-         height is the page box, which the page margin has already inset. */
+      /* A unit takes the sheets it needs. The general arrangement opens the
+         unit on its own sheet, bound to the page box so it is never guessed at
+         a height, and the numbered steps run on from there. No plate is ever
+         shrunk to save a sheet, and no step is ever split off its caption. */
+      /* No top margin on the first: every unit already opens its own sheet, and
+         8mm of it would push the first unit past the page and orphan its
+         header. */
       .drawing-grid { display:block; margin-top:0; }
-      .unit {
-        display:grid; grid-template-columns:1fr 74mm;
-        grid-template-rows:auto 1fr auto auto; gap:6mm 8mm;
-        height:184mm; break-before:page;
+      .unit { display:block; break-before:page; }
+      /* The unit's first sheet carries its header, its general arrangement and
+         its codes. The plate takes what those leave, not the whole page box:
+         at the full height the code strip is pushed to a sheet of its own and
+         the browser leaves the overflow page blank. */
+      .unit .unit-key {
+        display:flex; flex-direction:column; height:166mm; break-inside:avoid;
       }
-      .unit > header { grid-column:1 / -1; }
-      .unit .drawing {
-        grid-column:1; grid-row:2 / span 3;
-        display:flex; flex-direction:column; min-height:0;
+      .unit .unit-key .plate { width:100%; max-width:none; max-height:none; }
+      .unit .unit-key .drawing {
+        display:flex; flex-direction:column; min-height:0; flex:1 1 auto;
       }
-      .unit .drawing .plate { flex:1 1 auto; min-height:0; }
-      .unit .unit-steps { grid-column:2; grid-row:2; }
-      .unit .code-strip { grid-column:2; grid-row:3; align-content:end; }
-      .unit .stack-check { grid-column:2; grid-row:4; }
+      .unit .unit-key .plate { flex:1 1 auto; min-height:0; }
+      /* Three steps across. The column, not a guessed height, sets the plate:
+         bound by height instead, a portrait elevation shrinks to a third of
+         its column and letters below reading size, while a plan wastes two
+         thirds of the page. At a third of the sheet every step letters the
+         same, an upright unit takes one row a page and a flat one takes three,
+         and a step and its caption always fit a page together. */
+      .unit-steps {
+        grid-template-columns:repeat(3,1fr); gap:7mm 6mm; margin:8mm 0 0;
+        align-content:start;
+      }
+      .unit > header { break-after:avoid; }
+      .unit > :last-child { margin-bottom:0; }
+      .step { break-inside:avoid; }
+      /* The column sets the plate, up to the point where the step stops
+         fitting a page: an upright isometric at a third of the sheet is taller
+         than the page box once its caption, note and tick are under it, and a
+         step that cannot fit a page leaves the one before it half empty. */
+      .step .plate { width:100%; max-width:none; max-height:112mm; }
+      /* Paper holds the floor the whole set letters to: no code mark prints
+         smaller than the ones on the general arrangements. */
+      .step-plate .mark { font-size:27px; }
+      .step figcaption { padding-top:10px; }
+      .unit-holds { margin-top:6mm; break-inside:avoid; break-after:avoid; }
       /* A drawing set letters its caption on one line and keeps the note under
          it; stacked on paper the caption would eat the drawing's height. */
       .drawing figcaption { padding:8px 12px 0; }
@@ -561,9 +684,8 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
       .drawing-note { margin-top:5px; }
       .unit-face { display:none; }
       .unit .screw-layer { opacity:1 !important; }
-      .code-strip { padding-top:7px; }
-      .stack-check { margin-top:8px; padding-top:7px; }
-      .drawing, .unit, .stock, .note { break-inside:avoid; }
+      .step-check { margin-top:8px; padding-top:7px; }
+      .drawing, .stock, .note { break-inside:avoid; }
       /* A photograph or a source drawing prints whole, with its caption under
          it. `break-inside` is only honoured while a block still fits the page,
          so each figure is bound on its height first: the image states one side

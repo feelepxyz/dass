@@ -17,6 +17,8 @@ from dass.build_guide import (
     RIGHT,
     Panel,
     Plate,
+    Step,
+    UnitDrawings,
     _drawing_screw_path,
     _face_center,
     _face_normal,
@@ -29,13 +31,13 @@ from dass.build_guide import (
     draw_field,
     fmt,
     guide_html,
-    module_plates,
     outline,
     panels,
     plank_atlas,
     progress_html,
     render_asset,
     started_html,
+    unit_drawings,
     viewer_parts,
 )
 from dass.cutlists import (
@@ -65,8 +67,28 @@ def progress_document() -> str:
 
 
 @pytest.fixture(scope="module")
-def plates(design: Design, boards: list[CutPiece]) -> dict[str, str]:
-    return module_plates(design, boards)
+def drawings(design: Design, boards: list[CutPiece]) -> dict[str, UnitDrawings]:
+    return unit_drawings(design, boards)
+
+
+@pytest.fixture(scope="module")
+def plates(drawings: dict[str, UnitDrawings]) -> dict[str, str]:
+    """The general arrangement of the units that keep one."""
+    return {letter: unit.key for letter, unit in drawings.items() if unit.key}
+
+
+@pytest.fixture(scope="module")
+def steps(drawings: dict[str, UnitDrawings]) -> dict[str, tuple[Step, ...]]:
+    return {letter: unit.steps for letter, unit in drawings.items()}
+
+
+@pytest.fixture(scope="module")
+def unit_markup(drawings: dict[str, UnitDrawings]) -> dict[str, str]:
+    """Every drawing a unit owns, whether it sits on a key plate or a step."""
+    return {
+        letter: unit.key + "".join(step.plate for step in unit.steps)
+        for letter, unit in drawings.items()
+    }
 
 
 def test_plans_are_complete_and_kerf_safe(beams, boards):
@@ -332,8 +354,9 @@ def test_progress_page_uses_the_same_heading_and_supplied_photos(progress_docume
         "Real-world progress following the drawing to build an outdoor toilet."
         not in document
     )
-    assert "Model 0.1.4 · cladding fixings are centred after trimming" in document
+    assert "Model 0.1.5 · every unit builds through its own numbered" in document
     assert "<h3>Model changelog</h3>" in document
+    assert "2026-08-07 · 0.1.5" in document
     assert "2026-08-02 · 0.1.4" in document
     assert "2026-08-02 · 0.1.3" in document
     assert "2026-08-02 · 0.1.2" in document
@@ -416,57 +439,62 @@ def test_progress_page_uses_cloudflare_stream_when_configured(monkeypatch):
     assert 'type="video/mp4"' not in document
 
 
-def test_cladding_is_trimmed_on_its_unit_after_fixing(guide_document, plates):
+def test_cladding_is_trimmed_on_its_unit_after_fixing(
+    guide_document, plates, steps, unit_markup
+):
     document = guide_document
 
     assert "bench layout" not in document
     assert "Trim the field to drawing" not in document
     assert "Frame and cladding registration" not in document
     assert "Do not trim loose cladding" not in document
-    assert "Trim the joined field to the 854 mm before fixing." in document
     assert (
         "Trim the joined field to the 852 mm seat-box width after fixing"
         not in document
     )
-    assert (
-        "Fix every board to SBF1 at floor level and SBB1 under the seat box. "
-        "The two screw rows are shown on the drawing." in document
-    )
-    assert "circular-saw guide" in document
+    # The seat front is trimmed to the opening before it is fixed, and fixed
+    # to both bearers after. The order is the step order, not a sentence.
+    assert [step.caption for step in steps["J"]] == [
+        "Lay SFB1 to SFB8 in order",
+        "Trim the field to the opening width",
+        "Screw every board to SBF1 and SBB1",
+    ]
+    assert ">854</text>" in steps["J"][1].plate
+    # The floor deck is the other way round: once the boards are down there is
+    # no guide edge left to run the saw on.
+    assert [step.op for step in steps["G"]] == [build_guide.CUT, build_guide.CLAD]
+    # The rule the sheet used to print on every plate is now the step order
+    # itself: a field is clad, and only then cut.
     for letter in "BCDEH":
-        assert "CUT AFTER FIXING" in plates[letter]
+        sequence = [step.op for step in steps[letter]]
+        assert build_guide.CLAD in sequence
+        assert sequence.index(build_guide.CLAD) < sequence.index(build_guide.CUT)
+    for letter in "BCDEH":
         assert f'data-unit-face="{letter}"' in document
     for letter in "CD":
         assert "45 × 45 NOTCH" in plates[letter]
         assert "100 fall over 770" in plates[letter]
-    for letter in "ABCDEFGH":
-        assert f'data-check="unit-{letter.lower()}"' in document
+    for letter, unit in steps.items():
+        for index in range(1, len(unit) + 1):
+            assert f'data-check="step-{letter.lower()}-{index}"' in document
 
-    for letter in "CDE":
+    for letter in "CD":
         assert 'class="dim-text"' in plates[letter]
         assert ">100</text>" in plates[letter]
-    assert 'class="screw-layer screw-frame"' in plates["A"]
-    for letter in "BCDEH":
-        assert 'class="screw-layer screw-frame"' in plates[letter]
-        assert 'class="screw-layer screw-cladding"' in plates[letter]
-        assert 'class="screw-guide"' in plates[letter]
-        assert "FROM" in plates[letter]
-    assert plates["B"].count('class="screw-head"') >= 18
-    assert plates["C"].count('class="screw-head"') >= 14
-    # Eight frame screws plus two cladding rows across five seat-top boards.
-    assert plates["H"].count('class="screw-head"') == 18
-    assert "STB5" in plates["H"]
-    assert "60 mm TRIM" in plates["H"]
-    assert "SBS3" in plates["H"]
-    assert "SBS4" in plates["H"]
-    assert "Fix DCB1 to DCB9" in document
-    assert (
-        "Attach the left and right side units to the back unit with the indicated beam screws"
-        in document
-    )
-    assert "Fix FCB1 to FCB8" in document
-    assert "FCB1–FCB8 · 8 boards" not in plates["G"]
-    assert "LSH1, RSH1, and BWH1 100 mm above ground" in document
+    for letter in "ABCDEH":
+        assert 'class="screw-layer screw-frame"' in unit_markup[letter]
+    for letter in "BCDEGH":
+        assert 'class="screw-layer screw-cladding"' in unit_markup[letter]
+        assert 'class="screw-guide"' in unit_markup[letter]
+    assert unit_markup["B"].count('class="screw-head"') >= 18
+    assert unit_markup["C"].count('class="screw-head"') >= 14
+    assert "STB5" in unit_markup["H"]
+    assert "SBS3" in unit_markup["H"]
+    assert "SBS4" in unit_markup["H"]
+    assert "Fix DCB1 to DCB9 on the inside face" in document
+    assert "Screw the rear posts into BWH1 and BWH2" in document
+    assert "Fix FCB1 to FCB8 to the bearers" in document
+    assert "FCB1–FCB8 · 8 boards" not in unit_markup["G"]
 
 
 def test_cladding_screws_centre_on_trimmed_boards_and_clear_frame_paths(
@@ -528,24 +556,195 @@ def test_cladding_screws_centre_on_trimmed_boards_and_clear_frame_paths(
         assert row.station != (member.xmin + member.xmax) / 2
 
 
-def test_shell_joint_precedes_cladding_only_floor_stack(guide_document, plates):
+OPERATIONS = frozenset(
+    {
+        build_guide.ASSEMBLE,
+        build_guide.CLAD,
+        build_guide.MARK,
+        build_guide.CUT,
+        build_guide.FASTEN,
+        build_guide.SET_OUT,
+    }
+)
+
+
+def test_a_frame_is_screwed_square_before_anything_is_fixed_to_it(steps):
+    # Squareness is checked as the frame is screwed, not on a step of its own:
+    # a frame racked when the screws go in cannot be pulled straight after.
+    # The back frame is the exception and says so: nothing screws it together,
+    # so it is held square by hand and clad before the posts ever reach it.
+    assert build_guide.SQUARE not in [step.note for step in steps["E"]]
+    assert "square" in steps["E"][0].note.lower()
+    for letter in "ABCD":
+        sequence = [step.op for step in steps[letter]]
+        assert sequence[: sequence.index(build_guide.FASTEN)] == [build_guide.ASSEMBLE]
+        screwing = steps[letter][sequence.index(build_guide.FASTEN)]
+        assert screwing.note == build_guide.SQUARE
+        assert 'class="screw-head"' in screwing.plate
+    assert all(
+        step.op != build_guide.SET_OUT or "diagonal" not in step.caption.lower()
+        for step in steps["A"]
+    )
+
+
+def test_every_unit_builds_through_numbered_drawn_steps(steps, guide_document):
+    for letter, unit in steps.items():
+        # Two is the floor, not a target: unit J only lowers the box on and
+        # checks its clearance, and its datums are already on its key plate.
+        assert 2 <= len(unit) <= 7, letter
+        for index, step in enumerate(unit, 1):
+            assert step.op in OPERATIONS
+            # The caption is a verb line, not a paragraph: every number, code
+            # and tool belongs on the drawing or in the operation stamp.
+            assert len(step.caption.split()) <= 8, step.caption
+            assert step.plate.startswith('<svg class="plate step-plate"')
+            assert step.plate.count('class="stamp-rule"') == 1
+            assert step.plate.count(f">{step.op}</text>") == 1
+            assert f"{build_guide.DRAWING_NUMBERS[letter]}.{index}" in guide_document
+
+
+def test_step_drawings_number_off_their_unit_without_a_gap(guide_document, steps):
+    numbers = list(build_guide.DRAWING_NUMBERS.values())
+
+    assert numbers == [f"A-{400 + n}" for n in range(1, len(numbers) + 1)]
+    refs = re.findall(r'<span class="drawing-ref">(A-\d+\.\d+)</span>', guide_document)
+    assert len(refs) == sum(len(unit) for unit in steps.values())
+    assert len(set(refs)) == len(refs)
+
+
+def test_a_step_carries_one_stamp_and_no_lower_margin_note(steps):
+    # The old note sat in the drawing's own margin and overprinted geometry.
+    # The stamp is ruled off below the dimension gutter instead.
+    for unit in steps.values():
+        for step in unit:
+            assert 'class="note-text"' not in step.plate
+
+
+def test_side_field_is_clad_then_marked_then_cut_edge_by_edge(steps):
+    for letter in "CD":
+        sequence = steps[letter]
+
+        assert [step.op for step in sequence] == [
+            build_guide.ASSEMBLE,
+            build_guide.FASTEN,
+            build_guide.CLAD,
+            build_guide.MARK,
+            build_guide.CUT,
+            build_guide.CUT,
+            build_guide.CUT,
+        ]
+        clad, mark, gang = sequence[2].plate, sequence[3].plate, sequence[4].plate
+        # Clad: board still whole, no cut line anywhere on it.
+        assert 'class="cut"' not in clad
+        assert 'class="cut-mark"' not in clad
+        # Marked: the set-out line is drawn dashed, and nothing is cut yet.
+        assert 'class="cut-mark"' in mark
+        assert 'class="trim"' not in mark
+        # Cut: the waste is hatched and the cut itself is at section weight.
+        assert 'class="trim"' in gang
+        assert 'class="cut"' in gang
+        assert 'class="cut-mark"' not in gang
+
+
+def test_assembly_steps_draw_members_off_their_seats_on_a_travel_track(steps):
+    # Every unit that is assembled from members shows them coming together
+    # once. A placement drawn in plan, such as the roof sheet, has no travel
+    # visible in that projection and is dimensioned instead.
+    for letter in "ABCDEFHI":
+        exploded = [
+            step
+            for step in steps[letter]
+            if step.op == build_guide.ASSEMBLE and 'class="track"' in step.plate
+        ]
+        assert exploded, letter
+        for step in exploded:
+            assert 'class="track-head"' in step.plate
+            assert 'class="ghost"' in step.plate
+
+
+def test_the_back_panel_is_finished_flat_before_it_is_set_between_the_sides(
+    steps,
+):
+    # Fitted first, the side skins stand in the way of the overhang the back
+    # field is cut from, so the whole cladding operation precedes the fit.
+    sequence = [step.op for step in steps["E"]]
+
+    assert sequence == [
+        build_guide.ASSEMBLE,
+        build_guide.CLAD,
+        build_guide.CUT,
+        build_guide.ASSEMBLE,
+        build_guide.FASTEN,
+    ]
+    assert steps["E"][3].caption == "Set it between the two side units"
+    assert steps["E"][4].caption == "Screw the rear posts into BWH1 and BWH2"
+    assert "foul this overhang" in steps["E"][1].note
+
+
+def test_a_fastening_step_has_to_draw_a_screw(steps):
+    for unit in steps.values():
+        for step in unit:
+            if step.op == build_guide.FASTEN:
+                assert 'class="screw-head"' in step.plate
+
+
+def test_deferred_work_is_held_and_never_numbered_as_a_step(guide_document, steps):
+    holds = build_guide.UNIT_HOLDS
+
+    assert "do not pre-cut the roof reliefs" in holds["C"][0].lower()
+    for unit in steps.values():
+        for step in unit:
+            assert "hinge" not in step.caption.lower()
+            assert "relief" not in step.caption.lower() or step.op == build_guide.CUT
+    for notes in holds.values():
+        assert len(notes) <= 2
+        for note in notes:
+            assert note in guide_document
+    assert guide_document.count('class="unit-holds"') == len(holds)
+
+
+def test_layer_toggle_only_dims_the_general_arrangement(guide_document):
+    # The steps show frame then cladding in order, which is what the toggle
+    # stood in for. A control aimed at the key plate must not dim a step.
+    for rule in (
+        '.unit[data-face="cladding"] .unit-key .member',
+        '.unit[data-face="frame"] .unit-key .cladding-code',
+        '.unit[data-face="frame"] .unit-key .screw-cladding',
+    ):
+        assert rule in guide_document
+    assert '.unit[data-face="cladding"] .plate .member' not in guide_document
+    assert '.unit[data-face="frame"] .screw-cladding' not in guide_document
+
+
+def test_unit_progress_is_derived_from_the_step_ticks(guide_document, steps):
+    assert 'data-check="unit-c"' not in guide_document
+    assert "Unit complete" not in guide_document
+    for letter, unit in steps.items():
+        assert f'data-count="{letter.lower()}">0 / {len(unit)}</span>' in guide_document
+
+
+def test_the_general_arrangement_is_bound_to_the_screen(guide_document):
+    # A 1 175 mm elevation drawn to the full column runs past the fold; the
+    # unit has to open in one view, and its steps read smaller than it.
+    assert "max-width:min(100%,750px); max-height:76vh;" in guide_document
+    assert "max-width:100%; max-height:52vh;" in guide_document
+
+
+def test_shell_joint_precedes_cladding_only_floor_stack(guide_document, unit_markup):
     document = guide_document
 
     assert document.index("<h3>Shell joint</h3>") < document.index(
         "<h3>Floor deck</h3>"
     )
     assert all(
-        code in plates["F"] for code in ("FBB1", "FBS1", "FBS2", "LSH1", "RSH1", "BWH1")
+        code in unit_markup["F"]
+        for code in ("FBB1", "FBS1", "FBS2", "LSH1", "RSH1", "BWH1")
     )
-    assert plates["F"].count('class="screw-head"') == 8
-    assert 'class="screw-layer screw-cladding"' not in plates["F"]
-    assert 'class="screw-layer screw-frame"' not in plates["G"]
-    assert 'class="screw-layer screw-cladding"' in plates["G"]
-    assert plates["G"].count('class="screw-head"') == 16
-    assert (
-        'data-face="cladding"'
-        in document[document.index('<article class="unit" id="unit-g"') :]
-    )
+    assert unit_markup["F"].count('class="screw-head"') == 8
+    assert 'class="screw-layer screw-cladding"' not in unit_markup["F"]
+    assert 'class="screw-layer screw-frame"' not in unit_markup["G"]
+    assert 'class="screw-layer screw-cladding"' in unit_markup["G"]
+    assert unit_markup["G"].count('class="screw-head"') == 16
 
 
 def test_lengths_read_as_drawing_numbers():
@@ -582,6 +781,12 @@ def test_printed_set_takes_the_drawn_model_over_the_photographs(guide_document):
         ".viewer-print { display:block; margin:0 auto; "
         "width:auto; height:104mm; max-width:100%; }"
     ) in document
+    # The live line model follows the unit sheets: frames stay white and the
+    # cladding board joints use the drawing set's pale grey rather than ink.
+    assert "const BOARD_JOINT = 0xb7b7b7;" in document
+    assert (
+        "const plankInk = new THREE.LineBasicMaterial({ color: BOARD_JOINT" in document
+    )
     # The title sheet breaks to a new page, so the page margin is the air
     # under the model and the drawing keeps the height padding would cost.
     assert ".masthead { padding-bottom:0; break-after:page; }" in document
@@ -593,18 +798,26 @@ def test_printed_drawings_are_bound_by_the_page_and_never_split(guide_document):
     # A guessed plate height letterboxes the drawing to a fraction of its
     # column; the page has to set the size instead.
     assert "height:74mm" not in document
-    assert ".unit .drawing .plate { flex:1 1 auto; min-height:0; }" in document
-    # One unit per sheet: the drawing, its steps and its codes travel
-    # together, under the same head of air every printed page opens with.
-    # That air is the page box, not padding on the sheet: padding only
-    # reaches the first page a sheet fragments onto, so a page carrying the
-    # overflow of a sheet opened hard against the trim.
+    assert ".unit .unit-key .plate { flex:1 1 auto; min-height:0; }" in document
+    # A unit takes the sheets it needs, under the same head of air every
+    # printed page opens with. That air is the page box, not padding on the
+    # sheet: padding only reaches the first page a sheet fragments onto, so a
+    # page carrying the overflow of a sheet opened hard against the trim.
     assert "@page { size:A4 landscape; margin:14mm 9mm 10mm; }" in document
-    assert "height:184mm; break-before:page;" in document
+    # A unit opens on its own sheet with its general arrangement, where it
+    # keeps one; the steps run on from there, three across.
+    assert "height:166mm; break-inside:avoid;" in document
+    assert (
+        "grid-template-columns:repeat(3,1fr); gap:7mm 6mm; margin:8mm 0 0;" in document
+    )
+    # A step and its tick have to fit one page under whatever sits above them,
+    # or the tick is pushed alone onto a sheet of its own.
+    assert ".step .plate { width:100%; max-width:none; max-height:112mm; }" in document
+    assert ".unit { display:block; break-before:page; }" in document
     assert ".sheet, .masthead { border:0; padding:0; margin:0; }" in document
     # Nothing may push an empty sheet out of the end of the set.
     assert ".sheet:last-of-type { break-after:auto; }" in document
-    assert ".drawing, .unit, .stock, .note { break-inside:avoid; }" in document
+    assert ".drawing, .stock, .note { break-inside:avoid; }" in document
 
 
 @pytest.mark.parametrize(
@@ -711,42 +924,43 @@ def test_plates_project_the_model_rather_than_fixed_coordinates(design, by_name)
     assert min(u for u, _ in wall) >= max(u for u, _ in frame) - 1e-6
 
 
-def test_every_stack_gets_a_plate_carrying_its_own_codes(plates, guide_document):
-    assert set(plates) == set("ABCDEFGHIJK")
+def test_every_stack_gets_a_plate_carrying_its_own_codes(
+    plates, unit_markup, guide_document
+):
+    # A general arrangement is kept only where it says something a step cannot:
+    # the door's reliefs, and the slope, trim and notch on either side. Every
+    # other unit is drawn entirely by its own steps, and still owns its codes.
+    assert set(plates) == set(build_guide.KEY_PLATE_UNITS)
     for letter, codes in (
         ("A", ("RBH1", "RBS1", "RBC1")),
         ("B", ("DBV1", "DBD1")),
         ("C", ("LSV1", "LSD1")),
         ("E", ("BWH1", "BWD1")),
         ("H", ("SBH1", "SBS1", "SBS3")),
-        ("I", ("SBB1", "SBB2")),
-        ("J", ("SBB1", "SBF1")),
-        ("K", ("SFB1",)),
+        ("I", ("SBB1", "SBB2", "SBF1")),
+        ("J", ("SFB1",)),
     ):
         for code in codes:
-            assert code in plates[letter]
+            assert code in unit_markup[letter], (letter, code)
     for code in ("DCB1", "LSC1", "BWC1", "STB1"):
         assert code in guide_document
     for code in ("FCB1", "STB1"):
-        assert code in plates["G"] or code in plates["H"]
-    assert "SFB1" in plates["K"]
-    assert plates["K"].count('class="field"') == 8
-    assert plates["K"].count('class="screw-head"') == 16
-    assert plates["K"].count('class="cladding-code"') == 8
-    assert all(f">SFB{index}</text>" in plates["K"] for index in range(1, 9))
-    assert ">854</text>" in plates["K"]
-    assert 'class="ghost"' in plates["K"]
-    assert 'class="cladding-code"' in plates["G"]
-    assert 'class="dominant-baseline"' not in plates["G"]
-    assert 'dominant-baseline="middle"' in plates["E"]
-    assert 'transform="rotate(' in plates["E"]
-    assert 'data-face="left"' in guide_document
-    assert "perspective-left" in plates["J"]
-    assert "perspective-right" in plates["J"]
+        assert code in unit_markup["G"] or code in unit_markup["H"]
+    front = unit_markup["J"]
+    assert front.count('class="screw-head"') == 16
+    assert all(f">SFB{index}</text>" in front for index in range(1, 9))
+    assert ">854</text>" in front
+    assert 'class="ghost"' in front
+    assert 'class="cladding-code"' in unit_markup["G"]
+    assert 'class="dominant-baseline"' not in unit_markup["G"]
+    assert 'dominant-baseline="middle"' in unit_markup["E"]
+    assert 'transform="rotate(' in unit_markup["E"]
 
 
-def test_seat_support_perspective_contains_only_supports_and_shell(plates):
-    drawing = plates["J"]
+def test_seat_support_perspective_contains_only_supports_and_shell(steps):
+    # It is no longer a general arrangement: it is the step that drives the
+    # screws, so it drops the dimensions the step before it sets out.
+    drawing = steps["I"][1].plate
 
     assert 'class="field"' not in drawing
     assert 'class="opening"' not in drawing
@@ -756,11 +970,13 @@ def test_seat_support_perspective_contains_only_supports_and_shell(plates):
     assert "SBH2" not in drawing
     assert "SBS1" not in drawing
     assert "SBS2" not in drawing
-    assert "23 MM SIDE CLADDING" in drawing
-    assert drawing.count(">352 mm</text>") == 4
-    assert drawing.count(">477 mm</text>") == 2
+    assert "SBB1" in drawing
+    assert "SBB2" in drawing
+    assert "SBF1" in drawing
+    assert ">352 mm</text>" not in drawing
+    assert ">477 mm</text>" not in drawing
     assert "397 - 45" not in drawing
-    assert "ISOMETRIC PROJECTION" in drawing
+    assert 'class="screw-head"' in drawing
 
 
 @pytest.mark.parametrize("view", [build_guide.AXO_RIGHT, build_guide.AXO_LEFT])
