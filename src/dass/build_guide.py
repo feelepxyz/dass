@@ -1034,80 +1034,27 @@ def board_joints(panel: Panel) -> list[float]:
 # Reference views: photoreal renders, static drawing renders, and the model
 # ---------------------------------------------------------------------------
 
-DRAWING_RENDERS = (
-    (
-        "drawing-open",
-        "Open",
-        "Isometric SVG at the same angle as the model viewer.",
-    ),
-    (
-        "drawing-closed",
-        "Closed",
-        "The finished unit rendered with the drawing-set palette.",
-    ),
-)
-SVG_RENDERS = frozenset(name for name, _, _ in DRAWING_RENDERS)
+# The line finish, exported as vector drawings. These are not gallery views:
+# each one underlays the model viewer for its variant and goes on paper with
+# it, so they are staged whatever the gallery beside them shows.
+SVG_RENDERS = ("drawing-open", "drawing-closed")
 
 
 def render_asset(name: str) -> str:
-    """Return the staged gallery path, preserving vector drawing renders."""
-    extension = "svg" if name in SVG_RENDERS else "jpg"
-    return f"web-renders/{name}.{extension}"
+    """Return the staged gallery path for a reference view."""
+    return f"web-renders/{name}.jpg"
 
 
+# The page shows the building where it stands and the model beside it. The
+# studio renders, the drawing renders, and the flat elevations are all the same
+# geometry a reader can already turn in the viewer, so the gallery is the one
+# thing the viewer cannot be: a photograph of the finished unit in its place.
 GALLERY = (
     (
         "In situ",
         (
             ("in-situ-open", "Open", ""),
             ("in-situ-closed", "Closed", "The same plate with everything shut."),
-        ),
-    ),
-    (
-        "Render",
-        (
-            (
-                "open-hero",
-                "Open",
-                "Three-quarter view, door swung clear of the opening.",
-            ),
-            (
-                "open-doorway",
-                "Doorway",
-                "Straight into the opening at standing height.",
-            ),
-            (
-                "open-interior",
-                "Interior",
-                "Down onto the seat box, floor deck, and back wall.",
-            ),
-            ("closed-hero", "Closed", "Three-quarter view of the finished shell."),
-            (
-                "closed-rear-quarter",
-                "Rear",
-                "Back wall, rear posts, and the roof overhang.",
-            ),
-            ("closed-above", "Above", "The mono-pitch roof and its sheet overhangs."),
-        ),
-    ),
-    ("Drawing render", DRAWING_RENDERS),
-    (
-        "Elevation",
-        (
-            ("flat-front", "Front", "Square-on front elevation, door closed."),
-            (
-                "flat-front-open",
-                "Front open",
-                "Square-on with the door swung, showing the opening.",
-            ),
-            ("flat-back", "Back", "Square-on rear elevation."),
-            (
-                "flat-left",
-                "Left",
-                "Square-on left side; the cladding falls to the rear.",
-            ),
-            ("flat-right", "Right", "Square-on right side, mirror of the left."),
-            ("flat-top", "Top", "Orthographic plan of the roof sheet."),
         ),
     ),
 )
@@ -1384,6 +1331,13 @@ VIEWER_SCRIPT = """
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+// A GL line is one device pixel wide whatever it is asked for, which is half a
+// CSS pixel on a retina screen and leaves the drawing fainter than the sheets
+// beside it. These draw a line as a screen-space quad, so a stated weight is
+// the weight that lands.
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 // One timber pipeline, shared with the photoreal renderer.
 import {
   dressModel,
@@ -1400,9 +1354,28 @@ const ATLAS = __ATLAS__;
 // The model is drawn, not photographed, until the reader asks for the material.
 const SHEET = 0xffffff;
 const CODE = 0xbb261a;
-const INK = 0x151515;
+const LINE = 0x000000;
 const BOARD_JOINT = 0xb7b7b7;
-const SHADE = { frame: 0xffffff, field: 0xf2f2f0, deck: 0xe6e6e6, metal: 0xdededc, roof: 0xe6e6e6 };
+// Timber is white on a unit sheet, whatever it is made of; only a clad field
+// carries a tone. The floor deck and the roof sheet follow that rule too, so
+// nothing in the drawing is shaded for its material.
+const SHADE = { frame: 0xffffff, field: 0xf2f2f0, deck: 0xffffff, metal: 0xdededc, roof: 0xffffff };
+// The drawn weights, stated once. Every line node carries its own entry, so the
+// SVG exporter reads the drawn widths and colours off the model rather than
+// keeping a second copy of them.
+//
+// The board joints keep the sheets' hairline. The object line is one step above
+// the sheets' own, because a sheet gives a frame a whole page and this drawing
+// holds the entire building in one square: at that reduction the sheet weight
+// greys out, and the silhouette the export cuts around it is a step above again.
+const strokeHex = (color) => "#" + color.toString(16).padStart(6, "0");
+const EDGE_STROKE = { width: 1.0, color: strokeHex(LINE) };
+const SEAM_STROKE = { width: 0.5, color: strokeHex(BOARD_JOINT) };
+// Dimensions are the set's second ink: a hairline blue run, and the value
+// lettered in a deeper blue clear of it.
+const DIM = 0x63a4f5;
+const DIM_INK = "#1668c4";
+const DIM_STROKE = { width: 0.5, color: strokeHex(DIM) };
 
 const figure = document.querySelector(".viewer");
 const frame = figure.querySelector(".viewer-frame");
@@ -1418,7 +1391,9 @@ try {
   throw error;
 }
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+// The film curve belongs to the photograph, so `lightFinish` hangs it on the
+// finish. The page opens drawn, and the renderer opens with it off.
+renderer.toneMapping = THREE.NoToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = false;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1440,26 +1415,40 @@ const IN_SITU_CAMERA = Object.freeze({
 });
 const IN_SITU_ASPECT = 3 / 4;
 const IN_SITU_CROP_FOCUS = __IN_SITU_CROP_FOCUS__;
-const horizontalFov = 2 * Math.atan(
-  IN_SITU_CAMERA.frameWidth / 2 / IN_SITU_CAMERA.distance,
+// The model is a sheet of the set, not a photograph of one, so it projects in
+// parallel in both finishes: an edge carries the length it has on the building
+// wherever it sits in the frame. The frustum is the photograph's frame width,
+// so the model is drawn at the scale the photograph frames it at and the two
+// sit together on the page.
+const halfWidth = IN_SITU_CAMERA.frameWidth / 2;
+// Stated once because the fills' set-back below is a distance on the building,
+// and only this range turns it into what the depth buffer counts.
+const CAMERA_NEAR = 10;
+const CAMERA_FAR = 40000;
+const camera = new THREE.OrthographicCamera(
+  -halfWidth, halfWidth, halfWidth / IN_SITU_ASPECT, -halfWidth / IN_SITU_ASPECT,
+  CAMERA_NEAR, CAMERA_FAR,
 );
-const verticalFov = 2 * Math.atan(Math.tan(horizontalFov / 2) / IN_SITU_ASPECT);
-const camera = new THREE.PerspectiveCamera(
-  THREE.MathUtils.radToDeg(verticalFov), IN_SITU_ASPECT, 10, 40000,
-);
+// The photograph is taken level, at chest height. Held level, a parallel camera
+// is a degenerate projection: both horizontal axes land on the horizontal, the
+// building flattens into an elevation, and the seat opening closes to a line.
+// So the drawn camera rises to the elevation the plates draw their assemblies
+// on, keeping the photograph's compass bearing.
+const PLATE_ELEVATION = Math.asin(1 / Math.sqrt(3));
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.enablePan = false;
 controls.enableRotate = true;
 controls.rotateSpeed = 0.8;
-controls.minDistance = IN_SITU_CAMERA.distance / 4;
-controls.maxDistance = IN_SITU_CAMERA.distance / 0.55;
+// A parallel camera has no dolly, so its travel is stated as zoom.
+controls.minZoom = 0.55;
+controls.maxZoom = 4;
 controls.maxPolarAngle = Math.PI;
 
 function sizeCamera(width, height) {
   // The photograph is rendered as a 3:4 plate, then cropped to this square
-  // from the bottom. An off-axis view preserves that exact perspective; tilting
-  // the camera to reposition the model would change the verticals.
+  // from the bottom. An off-axis view preserves that exact framing; tilting the
+  // camera to reposition the model would change the verticals.
   const fullHeight = width / IN_SITU_ASPECT;
   const offsetY = Math.max(0, (fullHeight - height) * IN_SITU_CROP_FOCUS);
   camera.setViewOffset(width, fullHeight, 0, offsetY, width, height);
@@ -1492,9 +1481,38 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-const edgeInk = new THREE.LineBasicMaterial({ color: INK, linewidth: 1.25 });
-const edgeCode = new THREE.LineBasicMaterial({ color: CODE, linewidth: 1.25 });
-const plankInk = new THREE.LineBasicMaterial({ color: BOARD_JOINT, linewidth: 0.75 });
+// `LineSegments2` keeps each material's resolution uniform in step with the
+// renderer's viewport as it draws, so a stated width is CSS pixels on screen
+// and needs no bookkeeping of its own. Coverage blending is what carries a
+// sub-pixel hairline through the multisample buffer without dropping it.
+const inkFor = (stroke, color) => new LineMaterial({
+  color, linewidth: stroke.width, alphaToCoverage: true,
+});
+const edgeInk = inkFor(EDGE_STROKE, LINE);
+const edgeCode = inkFor(EDGE_STROKE, CODE);
+const plankInk = inkFor(SEAM_STROKE, BOARD_JOINT);
+// A dimension is drawn over the building, never inside it: the set puts its
+// measurements on top of the geometry rather than letting the geometry cut
+// them, and the SVG export leaves them unclipped for the same reason.
+const dimInk = inkFor(DIM_STROKE, DIM);
+dimInk.depthTest = false;
+
+// A drawn line is a ribbon spread across the screen at the one depth its edge
+// has, so the half of it that falls on the face it edges is measured against a
+// face that is running away from the camera. Over that half stroke the face
+// gains several millimetres of depth, and the depth test then eats the line
+// back to a part-covered pixel. Inside the building every line abuts a face at
+// a shallow angle, which is why the interior creases fade while the silhouette,
+// with nothing behind it, stays solid. So the fills stand back by the depth a
+// face gains across a stroke: about four millimetres at this frustum, converted
+// here into the units the depth buffer counts in.
+//
+// The slope-scaled term stays out of it. That one grows without bound on a face
+// seen edge-on, and the roof battens then show through the roof.
+const FILL_SETBACK_MM = 4.8;
+const FILL_SETBACK_UNITS = Math.round(
+  (FILL_SETBACK_MM / (CAMERA_FAR - CAMERA_NEAR)) * 2 ** 24,
+);
 
 const lineMaterials = new Map();
 function lineMaterialFor(key) {
@@ -1506,8 +1524,8 @@ function lineMaterialFor(key) {
       color: SHADE[tone] ?? SHEET,
       side: THREE.DoubleSide,
       polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
+      polygonOffsetFactor: 0,
+      polygonOffsetUnits: FILL_SETBACK_UNITS,
     }));
   }
   return lineMaterials.get(key);
@@ -1568,9 +1586,10 @@ let environment = null;
 window.__dassDrawing = {
   THREE,
   scene,
-  camera,
   ground,
+  camera,
   get current() { return current; },
+  palette: Object.values(SHADE),
 };
 
 /**
@@ -1645,7 +1664,9 @@ async function setFinish(next) {
       atlas: ATLAS,
     });
     current.traverse((node) => {
-      if (node.isMesh && !node.userData.isEdge) node.userData.texturedMaterial = node.material;
+      if (node.isMesh && !node.userData.isEdge && !node.userData.isDim) {
+        node.userData.texturedMaterial = node.material;
+      }
     });
     current.userData.dressed = true;
     status.hidden = true;
@@ -1663,6 +1684,13 @@ function lightFinish(wanted) {
   fill.intensity = wanted ? 0.7 : 0.35;
   ground.material.opacity = wanted ? 0.22 : 0;
   renderer.shadowMap.enabled = wanted;
+  // A film curve is what makes a photograph read as one, and it is what stops a
+  // drawing reading as one: it rolls white off to about four fifths, so a white
+  // beam lands grey against the sheet it is drawn on and the tone that separates
+  // a clad field from a timber closes up. Drawn, the ink is worth its stated
+  // value. This is also what put the canvas out of step with the SVG underlay
+  // it replaces, which was never tone mapped.
+  renderer.toneMapping = wanted ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
   scene.environment = wanted ? environmentMap() : null;
 }
 
@@ -1670,15 +1698,17 @@ function applyFinish() {
   if (!current) return;
   const wanted = finish === "textured";
   current.traverse((node) => {
-    if (!node.isMesh || node.userData.isEdge) return;
+    if (!node.isMesh || node.userData.isEdge || node.userData.isDim) return;
     const material = wanted ? node.userData.texturedMaterial : node.userData.lineMaterial;
     if (material) node.material = material;
     node.castShadow = wanted;
     node.receiveShadow = wanted;
     if (node.userData.edges) node.userData.edges.visible = !wanted;
   });
+  // Board joints and dimensions are drawing, not building: they belong to the
+  // line finish and come off with it.
   current.traverse((node) => {
-    if (node.userData.isPlankSeam) node.visible = !wanted;
+    if (node.userData.isPlankSeam || node.userData.isDim) node.visible = !wanted;
   });
 }
 
@@ -1746,13 +1776,16 @@ function addPlankLines(root) {
           const segment = trianglePlaneSegment(a, b, c, frame.across, cut);
           if (!segment) continue;
           normal.copy(b).sub(a).cross(c.clone().sub(a)).normalize().multiplyScalar(0.2);
-          positions.push(segment[0].clone().add(normal), segment[1].clone().add(normal));
+          for (const end of segment) {
+            positions.push(end.x + normal.x, end.y + normal.y, end.z + normal.z);
+          }
         }
         if (!positions.length) continue;
-        const geometry = new THREE.BufferGeometry().setFromPoints(positions);
-        const seams = new THREE.LineSegments(geometry, plankInk);
+        const geometry = new LineSegmentsGeometry().setPositions(positions);
+        const seams = new LineSegments2(geometry, plankInk);
         seams.userData.isEdge = true;
         seams.userData.isPlankSeam = true;
+        seams.userData.stroke = SEAM_STROKE;
         seams.raycast = () => {};
         // Depth sorting in the SVG exporter must be allowed to interleave
         // seams with nearer faces; a forced late render would expose joints
@@ -1765,6 +1798,225 @@ function addPlankLines(root) {
   }
 }
 
+// A drawing-set number: no trailing zeros, thousands spaced as `1 175`.
+function fmt(value) {
+  let text = value.toFixed(1);
+  while (text.endsWith("0")) text = text.slice(0, -1);
+  if (text.endsWith(".")) text = text.slice(0, -1);
+  const [whole, fraction] = text.split(".");
+  const groups = [];
+  let rest = whole;
+  while (rest.length > 3) {
+    groups.unshift(rest.slice(-3));
+    rest = rest.slice(0, -3);
+  }
+  groups.unshift(rest);
+  return groups.join(" ") + (fraction ? "." + fraction : "");
+}
+
+// Plate conventions, in model millimetres: the extension line leaves the piece
+// a gap, the run overruns the last tick, and the value is lettered one em
+// clear of it. The exporter reletters the value at the projected size of that
+// em, so the drawn and the exported dimension are the same size.
+const DIM_GAP = 45;
+const DIM_TICK = 26;
+const DIM_OVERRUN = 110;
+const DIM_TEXT = 30;
+
+function dimLabel(text, position) {
+  // Drawn once at a working size and scaled into the model, so a value costs
+  // one small texture rather than a mesh per glyph.
+  const face = 64;
+  const canvas = document.createElement("canvas");
+  const typeface = face + "px InputMono, ui-monospace, monospace";
+  const measure = canvas.getContext("2d");
+  measure.font = typeface;
+  canvas.width = Math.ceil(measure.measureText(text).width) + face;
+  canvas.height = Math.round(face * 1.6);
+  const context = canvas.getContext("2d");
+  context.font = typeface;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = DIM_INK;
+  context.fillText(text, canvas.width / 2, canvas.height / 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: texture, transparent: true, depthTest: false,
+  }));
+  sprite.scale.set(canvas.width / face * DIM_TEXT, canvas.height / face * DIM_TEXT, 1);
+  sprite.position.copy(position);
+  sprite.renderOrder = 3;
+  sprite.userData.isDim = true;
+  // The export letters the value rather than shipping a picture of it, and
+  // takes its size by projecting one em of the model.
+  sprite.userData.dimText = { text, em: DIM_TEXT };
+  return sprite;
+}
+
+/**
+ * One dimension between two model points, drawn the way the plates draw one.
+ *
+ * `out` is the direction the measurement is pulled clear of the building in.
+ * The run stands `offset` along it, closed at each measured point by a 45°
+ * architect's tick, overrunning both so the line reads past the piece, with
+ * the value lettered beyond it. Nothing here is typed: the label is the
+ * distance between the two points.
+ */
+function dimension(from, to, out, offset) {
+  const span = to.clone().sub(from);
+  const length = span.length();
+  if (length < 1) return null;
+  const along = span.divideScalar(length);
+  const push = out.clone().normalize();
+  const seats = [from, to].map((point) => point.clone().addScaledVector(push, offset));
+  const points = [];
+  const segment = (a, b) => points.push(a.x, a.y, a.z, b.x, b.y, b.z);
+  segment(
+    seats[0].clone().addScaledVector(along, -DIM_OVERRUN),
+    seats[1].clone().addScaledVector(along, DIM_OVERRUN),
+  );
+  const tick = along.clone().add(push).normalize().multiplyScalar(DIM_TICK);
+  for (const [point, seat] of [[from, seats[0]], [to, seats[1]]]) {
+    segment(
+      point.clone().addScaledVector(push, DIM_GAP),
+      seat.clone().addScaledVector(push, DIM_TICK),
+    );
+    segment(seat.clone().sub(tick), seat.clone().add(tick));
+  }
+  const run = new LineSegments2(
+    new LineSegmentsGeometry().setPositions(points), dimInk,
+  );
+  run.userData.isDim = true;
+  run.userData.stroke = DIM_STROKE;
+  run.raycast = () => {};
+  run.renderOrder = 2;
+  const group = new THREE.Group();
+  group.userData.isDim = true;
+  group.add(run);
+  group.add(dimLabel(
+    fmt(length),
+    seats[0].clone().lerp(seats[1], 0.5).addScaledVector(push, DIM_TEXT * 1.3),
+  ));
+  return group;
+}
+
+function partMeshes(root, key) {
+  const found = [];
+  root.traverse((node) => {
+    if (!node.isMesh || node.userData.isEdge || node.userData.isDim) return;
+    if (keyForObject(node) === key) found.push(node);
+  });
+  return found;
+}
+
+function partBox(root, key) {
+  const box = new THREE.Box3();
+  for (const mesh of partMeshes(root, key)) {
+    mesh.geometry.computeBoundingBox();
+    box.union(mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
+  }
+  return box;
+}
+
+/** How far a set of pieces reaches along a world direction of its own. */
+function reachAlong(meshes, axis) {
+  let low = Infinity;
+  let high = -Infinity;
+  const point = new THREE.Vector3();
+  for (const mesh of meshes) {
+    const position = mesh.geometry.attributes.position;
+    for (let index = 0; index < position.count; index += 1) {
+      const reach = point.fromBufferAttribute(position, index)
+        .applyMatrix4(mesh.matrixWorld).dot(axis);
+      low = Math.min(low, reach);
+      high = Math.max(high, reach);
+    }
+  }
+  return { low, high };
+}
+
+/**
+ * Measure the building where a reader stands to look at it: the ground it
+ * covers, the door, and the wall beside it.
+ *
+ * Every point is taken off the loaded geometry, so a dimension cannot drift
+ * from the model the same page is drawing. The door is measured in its own
+ * plane, which is the only way a swung leaf reads as 990 rather than as the
+ * width of the arc it has been left at.
+ */
+function addDimensions(root) {
+  root.updateMatrixWorld(true);
+  const up = new THREE.Vector3(0, 1, 0);
+  const centre = (box) => box.getCenter(new THREE.Vector3());
+  // The face of a piece turned away from the piece opposite it.
+  const outside = (box, axis, away) => (
+    Math.abs(box.max[axis] - away[axis]) > Math.abs(box.min[axis] - away[axis])
+      ? box.max[axis]
+      : box.min[axis]
+  );
+  const dims = new THREE.Group();
+  dims.userData.isDim = true;
+  const add = (dim) => dim && dims.add(dim);
+
+  const frontLeft = partBox(root, "front_post_left");
+  const frontRight = partBox(root, "front_post_right");
+  const backLeft = partBox(root, "back_post_left");
+  if (!frontLeft.isEmpty() && !frontRight.isEmpty() && !backLeft.isEmpty()) {
+    const left = outside(frontLeft, "x", centre(frontRight));
+    const right = outside(frontRight, "x", centre(frontLeft));
+    const front = outside(frontLeft, "z", centre(backLeft));
+    const back = outside(backLeft, "z", centre(frontLeft));
+    const grade = Math.min(frontLeft.min.y, frontRight.min.y, backLeft.min.y);
+    const on = (x, z) => new THREE.Vector3(x, grade, z);
+    const beyondLeft = new THREE.Vector3(Math.sign(left - right), 0, 0);
+    const beyondFront = new THREE.Vector3(0, 0, Math.sign(front - back));
+    // The plan of the building, lying on the ground it stands on, taken at the
+    // outside face of the post at either end.
+    add(dimension(on(left, front), on(left, back), beyondLeft, 430));
+    add(dimension(on(left, front), on(right, front), beyondFront, 320));
+
+    const wall = partBox(root, "left_wall");
+    if (!wall.isEmpty()) {
+      // The side wall's own run, chained inside the overall depth the way a
+      // sheet stacks a part dimension under the one that covers it.
+      const face = outside(wall, "x", centre(frontRight));
+      const wallBack = outside(wall, "z", centre(frontLeft));
+      add(dimension(
+        new THREE.Vector3(face, grade, front),
+        new THREE.Vector3(face, grade, wallBack),
+        beyondLeft, 170,
+      ));
+    }
+  }
+
+  const panel = partMeshes(root, "door_panel");
+  const hinged = partBox(root, "door_right");
+  const swinging = partBox(root, "door_left");
+  if (panel.length && !hinged.isEmpty() && !swinging.isEmpty()) {
+    // The leaf's own frame: along the stiles, up, and out through the face.
+    const axis = centre(swinging).sub(centre(hinged)).setY(0).normalize();
+    const normal = new THREE.Vector3().crossVectors(axis, up).normalize();
+    const reach = reachAlong(panel, axis);
+    const rise = reachAlong(panel, up);
+    const face = centre(partBox(root, "door_panel")).dot(normal);
+    const on = (across, height) => normal.clone().multiplyScalar(face)
+      .addScaledVector(axis, across).addScaledVector(up, height);
+    add(dimension(
+      on(reach.low, rise.high), on(reach.high, rise.high), up, 150,
+    ));
+    // On the hinged edge, not the swinging one: a leaf standing open reaches
+    // the edge of the frame, and its height is set out against the building
+    // at the hinges anyway.
+    add(dimension(
+      on(reach.low, rise.low), on(reach.low, rise.high),
+      axis.clone().negate(), 130,
+    ));
+  }
+
+  if (dims.children.length) root.add(dims);
+}
+
 async function show(name) {
   if (!variants.has(name)) {
     status.hidden = false;
@@ -1772,20 +2024,28 @@ async function show(name) {
     const gltf = await loader.loadAsync("renders/dass-" + name + ".glb");
     addPlankLines(gltf.scene);
     gltf.scene.traverse((node) => {
-      if (!node.isMesh) return;
+      // Board joints are already hanging off their panels, and a screen-space
+      // line is a mesh: without this the outline pass would outline its own
+      // outlines, all the way down.
+      if (!node.isMesh || node.userData.isEdge) return;
       const key = keyForObject(node);
       const material = lineMaterialFor(key ?? "frame");
       node.material = material;
       node.userData.lineMaterial = material;
       // The outline is what makes this read as a drawing rather than a render.
-      const edges = new THREE.LineSegments(
-        new THREE.EdgesGeometry(node.geometry, 18), edgeInk,
+      const edges = new LineSegments2(
+        new LineSegmentsGeometry().fromEdgesGeometry(
+          new THREE.EdgesGeometry(node.geometry, 18),
+        ),
+        edgeInk,
       );
       edges.userData.isEdge = true;
+      edges.userData.stroke = EDGE_STROKE;
       edges.raycast = () => {};
       node.add(edges);
       node.userData.edges = edges;
     });
+    addDimensions(gltf.scene);
     variants.set(name, gltf.scene);
   }
   if (current) scene.remove(current);
@@ -1797,9 +2057,13 @@ async function show(name) {
   }
   await setFinish(finish);
   if (!framed) {
+    // The photograph's compass bearing and its aim, lifted to the elevation
+    // the plates draw an assembly on.
     const azimuth = THREE.MathUtils.degToRad(IN_SITU_CAMERA.azimuth);
     const direction = new THREE.Vector3(
-      Math.sin(azimuth), 0, Math.cos(azimuth),
+      Math.sin(azimuth) * Math.cos(PLATE_ELEVATION),
+      Math.sin(PLATE_ELEVATION),
+      Math.cos(azimuth) * Math.cos(PLATE_ELEVATION),
     );
     const anchor = new THREE.Vector3(
       IN_SITU_CAMERA.anchorX,
@@ -1810,6 +2074,7 @@ async function show(name) {
     controls.target.copy(anchor);
     sizeCamera(frame.clientWidth, frame.clientHeight);
     camera.lookAt(controls.target);
+    controls.update();
     framed = true;
   }
   hovered = null;
@@ -5117,10 +5382,11 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
 
   <section class="sheet" id="progress">
     <div class="sheet-head"><span class="sheet-no">Field notes 01</span><h2>How it's going</h2></div>
-    <p class="sheet-note">Model 0.1.5 · every unit builds through its own numbered, drawn construction steps.</p>
+    <p class="sheet-note">Model 0.1.7 · the model is another sheet of the set, measured and drawn like the rest of them.</p>
     <div class="note model-changelog">
       <h3>Model changelog</h3>
       <ul>
+        <li><time datetime="2026-08-08">2026-08-08 · 0.1.7</time> Both finishes are projected in parallel at the unit sheets' elevation, timber is white throughout, the linework is drawn at its stated weights and cut around a heavier silhouette, and the ground, side wall, and door carry dimensions measured off the model.</li>
         <li><time datetime="2026-08-07">2026-08-07 · 0.1.5</time> Each unit builds through a numbered sequence of single-operation drawings, with the back panel clad and trimmed flat before it is set between the sides and the floor deck cut before it is fixed.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.4</time> Terminal-board cladding fixings are centred after trimming, and edge fixings clear the modeled beam-screw paths.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.3</time> The interactive line, textured, fallback, and print views share the in-situ render's perspective, scale, and position.</li>

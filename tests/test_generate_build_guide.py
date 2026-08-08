@@ -15,6 +15,7 @@ from dass.build_guide import (
     PLAN,
     REAR,
     RIGHT,
+    SVG_RENDERS,
     Panel,
     Plate,
     Step,
@@ -204,12 +205,24 @@ def test_masthead_names_the_project_and_credits_its_sources(guide_document):
     )
     assert in_situ_camera
     assert in_situ_camera.group() in document
-    assert "new THREE.PerspectiveCamera" in document
+    # Both finishes project in parallel now: the model is a sheet of the set
+    # framed like the photograph, not a photograph of the building. One camera
+    # carries the square crop, and there is no second one to swap to.
+    assert "new THREE.OrthographicCamera" in document
+    assert "new THREE.PerspectiveCamera" not in document
+    assert "photoCamera" not in document
+    assert "lineCamera" not in document
+    assert "cameraFinish" not in document
+    assert "controls.minZoom = 0.55;" in document
+    assert "controls.maxZoom = 4;" in document
     assert (
         "camera.setViewOffset(width, fullHeight, 0, offsetY, width, height);"
         in document
     )
     assert "const IN_SITU_CROP_FOCUS = 1.0;" in document
+    # The photograph's bearing, lifted to the elevation the plates draw on: a
+    # parallel camera held level flattens the building into an elevation.
+    assert "const PLATE_ELEVATION = Math.asin(1 / Math.sqrt(3));" in document
     assert (
         "camera.position.copy(anchor).addScaledVector(direction, IN_SITU_CAMERA.distance);"
         in document
@@ -354,8 +367,9 @@ def test_progress_page_uses_the_same_heading_and_supplied_photos(progress_docume
         "Real-world progress following the drawing to build an outdoor toilet."
         not in document
     )
-    assert "Model 0.1.5 · every unit builds through its own numbered" in document
+    assert "Model 0.1.7 · the model is another sheet of the set" in document
     assert "<h3>Model changelog</h3>" in document
+    assert "2026-08-08 · 0.1.7" in document
     assert "2026-08-07 · 0.1.5" in document
     assert "2026-08-02 · 0.1.4" in document
     assert "2026-08-02 · 0.1.3" in document
@@ -781,15 +795,119 @@ def test_printed_set_takes_the_drawn_model_over_the_photographs(guide_document):
         ".viewer-print { display:block; margin:0 auto; "
         "width:auto; height:104mm; max-width:100%; }"
     ) in document
-    # The live line model follows the unit sheets: frames stay white and the
-    # cladding board joints use the drawing set's pale grey rather than ink.
+    # The live line model follows the unit sheets: timber is white whatever it
+    # is made of, only clad fields carry a tone, and the board joints use the
+    # drawing set's pale grey rather than ink.
     assert "const BOARD_JOINT = 0xb7b7b7;" in document
     assert (
-        "const plankInk = new THREE.LineBasicMaterial({ color: BOARD_JOINT" in document
+        "const SHADE = { frame: 0xffffff, field: 0xf2f2f0, deck: 0xffffff, "
+        "metal: 0xdededc, roof: 0xffffff };" in document
+    )
+    # Those tones are only worth their stated value with the film curve off. It
+    # rolls white down to about four fifths, which greyed every beam against the
+    # sheet behind it and closed the gap between a timber and a clad field, so it
+    # hangs on the finish: the drawn one opens the page without it, the printed
+    # still is taken through it, and the photograph switches it back on.
+    assert "renderer.toneMapping = THREE.NoToneMapping;" in document
+    assert (
+        "renderer.toneMapping = wanted ? THREE.ACESFilmicToneMapping "
+        ": THREE.NoToneMapping;" in document
+    )
+    # A GL line is one device pixel whatever width it is given, so the drawn
+    # weights are carried by screen-space line quads instead.
+    assert "new THREE.LineBasicMaterial" not in document
+    assert 'from "three/addons/lines/LineSegments2.js"' in document
+    assert 'from "three/addons/lines/LineSegmentsGeometry.js"' in document
+    assert 'from "three/addons/lines/LineMaterial.js"' in document
+    assert "new LineMaterial({" in document
+    assert "new LineSegments2(" in document
+    assert "new LineSegmentsGeometry().fromEdgesGeometry(" in document
+    # One stroke table carries the drawn weights, and every line node is
+    # stamped with its entry so the SVG exporter needs no copy of them.
+    assert "const LINE = 0x000000;" in document
+    assert "const EDGE_STROKE = { width: 1.0, color: strokeHex(LINE) };" in document
+    assert (
+        "const SEAM_STROKE = { width: 0.5, color: strokeHex(BOARD_JOINT) };" in document
+    )
+    assert "edges.userData.stroke = EDGE_STROKE;" in document
+    assert "seams.userData.stroke = SEAM_STROKE;" in document
+    # A line quad carries the one depth its edge has, so the fills stand back
+    # by the depth a foreshortened face gains across a stroke. A few depth
+    # units are worth thousandths of a millimetre here and left the interior
+    # creases cut back to a part-covered pixel, so the set-back is stated as a
+    # distance on the building and converted with the camera's own range. The
+    # slope-scaled term stays at zero: it shows the roof battens through the
+    # roof.
+    assert "const CAMERA_NEAR = 10;" in document
+    assert "const CAMERA_FAR = 40000;" in document
+    assert "const FILL_SETBACK_MM = 4.8;" in document
+    assert (
+        "const FILL_SETBACK_UNITS = Math.round(\n"
+        "  (FILL_SETBACK_MM / (CAMERA_FAR - CAMERA_NEAR)) * 2 ** 24,\n"
+        ");" in document
+    )
+    assert "polygonOffsetFactor: 0," in document
+    assert "polygonOffsetUnits: FILL_SETBACK_UNITS," in document
+    # Dimensions are the set's second ink, and they belong to the line finish.
+    assert "const DIM = 0x63a4f5;" in document
+    assert 'const DIM_INK = "#1668c4";' in document
+    assert "const DIM_STROKE = { width: 0.5, color: strokeHex(DIM) };" in document
+    assert "run.userData.stroke = DIM_STROKE;" in document
+    assert (
+        "if (node.userData.isPlankSeam || node.userData.isDim) node.visible = !wanted;"
+        in document
     )
     # The title sheet breaks to a new page, so the page margin is the air
     # under the model and the drawing keeps the height padding would cost.
     assert ".masthead { padding-bottom:0; break-after:page; }" in document
+
+
+def test_the_model_measures_itself_rather_than_carrying_typed_dimensions(
+    guide_document,
+):
+    document = guide_document
+
+    # Every value is the distance between two points taken off the loaded
+    # geometry; nothing here restates a number the model already holds.
+    assert "addDimensions(gltf.scene);" in document
+    assert "const length = span.length();" in document
+    assert "dimLabel(\n    fmt(length)," in document
+    for part in ("front_post_left", "front_post_right", "back_post_left"):
+        assert f'partBox(root, "{part}")' in document
+    assert 'partBox(root, "left_wall")' in document
+    assert 'partMeshes(root, "door_panel")' in document
+    # A swung leaf is measured in its own plane, not across the arc it is at.
+    assert "reachAlong(panel, axis)" in document
+    # And the values are lettered the way the sheets letter theirs.
+    assert 'return groups.join(" ") + (fraction ? "." + fraction : "");' in document
+
+
+def test_drawing_exporter_takes_its_style_from_the_model_it_captures():
+    exporter = (Path(__file__).parents[1] / "scripts/render-drawing.mjs").read_text()
+
+    # Widths and colours belong to the viewer, which stamps them on each line.
+    assert "node.userData.stroke" in exporter
+    assert "#151515" not in exporter
+    # Flat fills carry no gradient, so a sampled colour off the drawing's
+    # palette is antialiasing rather than information.
+    assert "antialias: false" in exporter
+    assert "state.palette" in exporter
+    # A screen-space line keeps its ends in the instanced attributes, and it is
+    # a mesh, so it has to be read as linework before anything reads solids.
+    assert "geometry.attributes.instanceStart" in exporter
+    assert "geometry.attributes.instanceEnd" in exporter
+    assert exporter.index("node.userData.isEdge") < exporter.index("if (!node.isMesh)")
+    # White timber leaves no colour to trace, so the silhouette is captured on
+    # its own pass and laid down first: white fill, section-weight cut.
+    assert "state.scene.overrideMaterial = new THREE.MeshBasicMaterial({" in exporter
+    assert "state.scene.overrideMaterial = null;" in exporter
+    assert "mask.setAttribute('stroke-width', '1.4');" in exporter
+    # The set draws a dimension over its geometry, never cut by it.
+    assert "dimSegments" in exporter
+    assert "'#1668c4'" in exporter
+    assert "InputMono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" in (
+        exporter
+    )
 
 
 def test_printed_drawings_are_bound_by_the_page_and_never_split(guide_document):
@@ -877,6 +995,29 @@ def test_html_carries_every_reference_view_and_its_model_assets(guide_document):
     for variant in ("open", "closed"):
         assert f'data-variant="{variant}"' in document
     assert '"three":"./vendor/three.module.min.js"' in document
+
+
+def test_the_gallery_only_carries_what_the_model_viewer_cannot_be(guide_document):
+    # Studio renders, drawing renders, and flat elevations are all the same
+    # geometry a reader can already turn beside them. The photograph of the
+    # finished unit where it stands is the one view the viewer cannot give.
+    assert GALLERY == (
+        (
+            "In situ",
+            (
+                ("in-situ-open", "Open", ""),
+                ("in-situ-closed", "Closed", "The same plate with everything shut."),
+            ),
+        ),
+    )
+    for gone in ("open-hero", "flat-front", "closed-above", "Elevation"):
+        assert gone not in guide_document
+    assert guide_document.count("<i>Drawing render</i>") == 0
+    # The vector drawings stay: they underlay the viewer and print with it.
+    assert SVG_RENDERS == ("drawing-open", "drawing-closed")
+    assert 'class="drawing-render" src="web-renders/drawing-open.svg"' in (
+        guide_document
+    )
 
 
 def test_every_panel_finishes_at_its_modeled_span(design, boards):

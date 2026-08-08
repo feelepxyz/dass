@@ -95,6 +95,7 @@ def test_stage_renders_crops_only_in_situ_plates_before_downscaling(
     tmp_path, monkeypatch
 ):
     monkeypatch.setattr(build_web_assets, "LONG_EDGE", 40)
+    monkeypatch.setattr(build_web_assets, "SVG_RENDERS", ())
     monkeypatch.setattr(
         build_web_assets,
         "GALLERY",
@@ -122,6 +123,7 @@ def test_stage_renders_crops_only_in_situ_plates_before_downscaling(
 
 
 def test_stage_renders_names_the_missing_render(tmp_path, monkeypatch):
+    monkeypatch.setattr(build_web_assets, "SVG_RENDERS", ())
     monkeypatch.setattr(
         build_web_assets, "GALLERY", (("Render", (("absent", "Absent", ""),)),)
     )
@@ -133,12 +135,13 @@ def test_stage_renders_names_the_missing_render(tmp_path, monkeypatch):
     assert "absent.png" in str(caught.value)
 
 
-def test_stage_renders_preserves_drawing_svgs(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        build_web_assets,
-        "GALLERY",
-        (("Drawing render", (("drawing-open", "Open", ""),)),),
-    )
+def test_stage_renders_carries_the_drawing_svgs_the_gallery_no_longer_lists(
+    tmp_path, monkeypatch
+):
+    # The drawing renders underlay the model viewer and print with it, so the
+    # stager owes them to the page whatever the gallery shows.
+    monkeypatch.setattr(build_web_assets, "SVG_RENDERS", ("drawing-open",))
+    monkeypatch.setattr(build_web_assets, "GALLERY", ())
     source = tmp_path / "renders"
     source.mkdir()
     source_svg = source / "drawing-open.svg"
@@ -148,6 +151,17 @@ def test_stage_renders_preserves_drawing_svgs(tmp_path, monkeypatch):
 
     assert [path.name for path in written] == ["drawing-open.svg"]
     assert written[0].read_text() == source_svg.read_text()
+
+
+def test_stage_renders_names_a_missing_drawing_svg(tmp_path, monkeypatch):
+    monkeypatch.setattr(build_web_assets, "SVG_RENDERS", ("drawing-open",))
+    monkeypatch.setattr(build_web_assets, "GALLERY", ())
+
+    with pytest.raises(SystemExit) as caught:
+        build_web_assets.stage_renders(tmp_path / "renders", tmp_path / "out")
+
+    assert "render-drawing.mjs" in str(caught.value)
+    assert "drawing-open.svg" in str(caught.value)
 
 
 # Stage progress
@@ -387,6 +401,13 @@ def test_stage_vendor_copies_three_and_the_shared_materials_module(
     assert (
         target / "addons/loaders/GLTFLoader.js"
     ).read_text() == "// examples/jsm/loaders/GLTFLoader.js"
+    # The screen-space line modules import each other by relative path, so all
+    # three have to land in the same staged directory.
+    assert {
+        "addons/lines/LineSegments2.js",
+        "addons/lines/LineSegmentsGeometry.js",
+        "addons/lines/LineMaterial.js",
+    } <= set(build_web_assets.VENDOR)
 
 
 def test_stage_vendor_names_the_missing_node_modules(tmp_path, monkeypatch):
@@ -431,6 +452,7 @@ def test_main_stages_every_asset_group_under_the_given_flags_and_reports_a_summa
 ):
     monkeypatch.setattr(build_web_assets, "ROOT", tmp_path)
     monkeypatch.setattr(build_web_assets, "LONG_EDGE", 40)
+    monkeypatch.setattr(build_web_assets, "SVG_RENDERS", ())
     monkeypatch.setattr(
         build_web_assets, "GALLERY", (("Render", (("shot", "Shot", ""),)),)
     )
@@ -510,7 +532,7 @@ def test_main_stages_every_asset_group_under_the_given_flags_and_reports_a_summa
     assert "1 starting-point images (" in summary
     assert "1 progress photos (" in summary
     assert "2 textures (" in summary
-    assert "7 vendored modules, 1 font" in summary
+    assert "10 vendored modules, 1 font" in summary
 
 
 # Entry point
@@ -519,19 +541,18 @@ def test_main_stages_every_asset_group_under_the_given_flags_and_reports_a_summa
 def test_running_as_a_script_fires_the_main_guard_without_touching_the_real_repo(
     tmp_path, monkeypatch, capsys
 ):
-    # The fresh module exec re-reads the real GALLERY, PROGRESS_GALLERY,
-    # STARTED_GALLERY, WEB_TEXTURES, and VENDOR from their own top-level
-    # import, so every entry they name is satisfied under `tmp_path` here
-    # rather than in the repository's own `build/`, `web/media/`, or
+    # The fresh module exec re-reads the real GALLERY, SVG_RENDERS,
+    # PROGRESS_GALLERY, STARTED_GALLERY, WEB_TEXTURES, and VENDOR from their own
+    # top-level import, so every entry they name is satisfied under `tmp_path`
+    # here rather than in the repository's own `build/`, `web/media/`, or
     # `web/render/`.
+    for name in build_web_assets.SVG_RENDERS:
+        path = tmp_path / "build/renders" / f"{name}.svg"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('<svg viewBox="0 0 10 10"/>')
     for _, views in build_web_assets.GALLERY:
         for name, _, _ in views:
-            if name in build_web_assets.SVG_RENDERS:
-                path = tmp_path / "build/renders" / f"{name}.svg"
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text('<svg viewBox="0 0 10 10"/>')
-            else:
-                _write_placeholder_image(tmp_path / "build/renders" / f"{name}.png")
+            _write_placeholder_image(tmp_path / "build/renders" / f"{name}.png")
     for _, source_name, _, _ in build_web_assets.PROGRESS_GALLERY:
         _write_placeholder_image(tmp_path / "web/media/progress" / source_name)
     for asset in build_web_assets.PROGRESS_VIDEO[:2]:
@@ -555,7 +576,9 @@ def test_running_as_a_script_fires_the_main_guard_without_touching_the_real_repo
     fonts_dir.mkdir(parents=True)
     (fonts_dir / "InputMono-Regular.woff2").write_bytes(b"font")
 
-    render_count = sum(len(views) for _, views in build_web_assets.GALLERY)
+    render_count = len(build_web_assets.SVG_RENDERS) + sum(
+        len(views) for _, views in build_web_assets.GALLERY
+    )
     started_count = len(build_web_assets.STARTED_GALLERY)
     progress_count = len(build_web_assets.PROGRESS_GALLERY)
     texture_count = len(build_web_assets.WEB_TEXTURES) + 1  # + the ripple copy

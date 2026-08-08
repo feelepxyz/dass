@@ -334,7 +334,10 @@ export function averageNormal(mesh) {
 export function groupByPart(root, parts) {
   const groups = new Map();
   root.traverse((child) => {
-    if (!child.isMesh) return;
+    // The guide's line finish hangs its outlines, board joints, and dimensions
+    // off the part meshes. A screen-space line is a mesh too, so the timber
+    // pipeline has to step over the drawing rather than dress it.
+    if (!child.isMesh || child.userData.isEdge || child.userData.isDim) return;
     const key = partKeyFor(parts, child.name) ?? child.name;
     const part = parts[key] ?? {};
     const planked = PLANK_CATEGORIES.test(part.category ?? '');

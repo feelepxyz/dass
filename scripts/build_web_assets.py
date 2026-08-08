@@ -45,6 +45,12 @@ VENDOR = {
     "addons/controls/OrbitControls.js": "examples/jsm/controls/OrbitControls.js",
     "addons/utils/BufferGeometryUtils.js": "examples/jsm/utils/BufferGeometryUtils.js",
     "addons/utils/SkeletonUtils.js": "examples/jsm/utils/SkeletonUtils.js",
+    # Screen-space line quads, so the viewer draws the plate weights rather
+    # than the one device pixel a GL line is fixed at. These three import each
+    # other by relative path, so they stage into one directory together.
+    "addons/lines/LineSegments2.js": "examples/jsm/lines/LineSegments2.js",
+    "addons/lines/LineSegmentsGeometry.js": "examples/jsm/lines/LineSegmentsGeometry.js",
+    "addons/lines/LineMaterial.js": "examples/jsm/lines/LineMaterial.js",
 }
 
 
@@ -67,18 +73,19 @@ def square_crop(image: Image.Image, focus: float = IN_SITU_CROP_FOCUS) -> Image.
 def stage_renders(source: Path, target: Path) -> list[Path]:
     target.mkdir(parents=True, exist_ok=True)
     written = []
+    # The drawing renders underlay the model viewer and print with it, so they
+    # are staged whether or not the gallery beside them lists them.
+    for name in SVG_RENDERS:
+        original = source / f"{name}.svg"
+        if not original.exists():
+            raise SystemExit(
+                f"missing render {original}; run `node scripts/render-drawing.mjs` first"
+            )
+        out = target / original.name
+        shutil.copyfile(original, out)
+        written.append(out)
     for group, views in GALLERY:
         for name, _, _ in views:
-            if name in SVG_RENDERS:
-                original = source / f"{name}.svg"
-                if not original.exists():
-                    raise SystemExit(
-                        f"missing render {original}; run `node scripts/render-drawing.mjs` first"
-                    )
-                out = target / original.name
-                shutil.copyfile(original, out)
-                written.append(out)
-                continue
             original = source / f"{name}.png"
             if not original.exists():
                 raise SystemExit(

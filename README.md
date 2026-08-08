@@ -19,11 +19,12 @@ closed model, the unit drawings, and the workshop cut sequence.
 
 ## Current release
 
-Version `0.1.6` matches the line model's white frames, pale grey cladding, and
-grey board joints to the unit drawings. It also rebuilds the unit drawings so
-each unit builds through a numbered sequence of single-operation steps, and
-corrects the back panel to be clad and trimmed flat before it is fitted. Read
-the [full changelog](CHANGELOG.md).
+Version `0.1.7` turns the model into another sheet of the set: parallel
+projection in both finishes at the elevation the unit sheets use, white timber,
+real line weights on screen, a cut silhouette on the exported drawings, and
+measured dimensions taken off the model itself. The reference gallery is now
+just the finished unit where it stands. Read the
+[full changelog](CHANGELOG.md).
 
 ## Run the guide
 
@@ -251,7 +252,6 @@ screenshots, inspection records, and evolution images.
 
 ## Model changelog
 
-Version 0.1.6 (2026-08-07) matches the line finish to the unit drawings and
-builds each unit through a numbered construction sequence, finishing the back
-panel flat before it is fitted. Read the [full changelog](CHANGELOG.md) for the
-dated model history.
+Version 0.1.7 (2026-08-08) draws the model as another sheet of the set: parallel
+projection, white timber, real line weights, a cut silhouette, and measured
+dimensions. Read the [full changelog](CHANGELOG.md) for the dated model history.

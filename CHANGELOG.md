@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.1.7 — The model becomes a sheet of the set · 2026-08-08
+
+- Put the model on a parallel projection in both finishes, at the elevation
+  the unit sheets draw their assemblies on. The interactive model, both
+  exported drawing renders, and the still that goes on paper now measure the
+  same everywhere, so an edge carries the length it has on the building
+  instead of shrinking with distance, and turning the material on no longer
+  moves the building under the reader.
+- Made timber white wherever it appears. The floor deck and the roof sheet
+  were shaded for their material and read as grey beams beside the unit
+  sheets; only a clad field carries a tone now, exactly as the sheets draw it.
+- Took the photograph's film curve off the drawn model. It rolls white down to
+  about four fifths, so on screen every white beam still landed grey against
+  the sheet behind it and a timber barely told itself from a clad field. The
+  drawing under the model changed the moment the model finished loading;
+  drawn, it now carries the tones the exported drawing and the printed sheet
+  carry, and nothing moves when it loads.
+- Put the ground shadow back under the material finish. Its sun and its shadow
+  map were switched on after the finish's shaders had already been built, so
+  the shadow never reached the screen and the building floated; it stands on
+  its shadow again.
+- Gave the drawn model real line weights on screen. Its outlines were drawn
+  one device pixel wide whatever weight they asked for, which is half a pixel
+  on a retina display and left the object lines and the board joints
+  indistinguishable; they are now drawn at their stated widths, so the edges
+  and corners carry the drawing.
+- Cleared those lines of the faces they edge. A drawn line is spread across the
+  screen at the single depth its edge has, so where it lands on a face running
+  away from the camera the depth test cut most of the stroke away. Inside the
+  building, where every line meets a face at a shallow angle, the creases
+  between the wall panels, the seat and the floor had faded to a broken
+  hairline; they now carry the weight the exported drawing gives them.
+- Cut the exported drawings around their own silhouette, at the heavier weight
+  a sheet gives an outer edge, and filled that silhouette white. The drawings
+  no longer depend on the colour of whatever they are laid over.
+- Added measured dimensions to the drawn model: the ground the building
+  covers, the side wall along it, and the door's width and height, drawn in
+  the set's blue with architect's ticks. Every value is taken off the model as
+  it is drawn, so no dimension can disagree with the geometry beside it.
+- Cut the reference gallery back to the two photographs of the finished unit
+  in its place. The studio renders, the drawing renders, and the six flat
+  elevations were all the same geometry the reader can already turn in the
+  viewer beside them.
+- Cut the exported drawings to the drawing palette. The traced fills were
+  carrying thousands of blended edge colours that no drawing ever asks for;
+  they are now the flat tones of the set, which halved the file each reader
+  downloads.
+
 ## 0.1.6 — Match the unit-drawing line finish · 2026-08-07
 
 - Made the interactive line model and its exported drawing renders use white
