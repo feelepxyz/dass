@@ -156,7 +156,6 @@ def test_html_contains_every_code_and_required_shop_phases(
     assert "Unit drawings" in document
     assert "Assembly" in document
     assert "<dd>2.8 mm per cut</dd>" in document
-    assert "do not pre-cut the roof reliefs" in document.lower()
     assert "--stock-aspect:46.666667" in document
     assert "--stock-aspect:18.750000" in document
     assert "The 9 beam stock lengths below are named B01 to B09" in document
@@ -367,8 +366,9 @@ def test_progress_page_uses_the_same_heading_and_supplied_photos(progress_docume
         "Real-world progress following the drawing to build an outdoor toilet."
         not in document
     )
-    assert "Model 0.1.7 · the model is another sheet of the set" in document
+    assert "Model 0.1.8 · the unit sheets carry their drawings" in document
     assert "<h3>Model changelog</h3>" in document
+    assert "2026-08-09 · 0.1.8" in document
     assert "2026-08-08 · 0.1.7" in document
     assert "2026-08-07 · 0.1.5" in document
     assert "2026-08-02 · 0.1.4" in document
@@ -702,19 +702,12 @@ def test_a_fastening_step_has_to_draw_a_screw(steps):
                 assert 'class="screw-head"' in step.plate
 
 
-def test_deferred_work_is_held_and_never_numbered_as_a_step(guide_document, steps):
-    holds = build_guide.UNIT_HOLDS
-
-    assert "do not pre-cut the roof reliefs" in holds["C"][0].lower()
+def test_deferred_work_is_never_numbered_as_a_step(guide_document, steps):
     for unit in steps.values():
         for step in unit:
             assert "hinge" not in step.caption.lower()
             assert "relief" not in step.caption.lower() or step.op == build_guide.CUT
-    for notes in holds.values():
-        assert len(notes) <= 2
-        for note in notes:
-            assert note in guide_document
-    assert guide_document.count('class="unit-holds"') == len(holds)
+    assert "unit-holds" not in guide_document
 
 
 def test_layer_toggle_only_dims_the_general_arrangement(guide_document):

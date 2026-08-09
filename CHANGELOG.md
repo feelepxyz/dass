@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.8 — The working drawing drops its Hold boxes · 2026-08-09
+
+- Took the Hold boxes off the unit sheets. Each one sat between a unit's
+  general arrangement and its first step, so a reader met a paragraph of
+  deferred work before the drawing they came for. The sequences already show
+  what each unit finishes with, and nothing that was held is numbered as a
+  step.
+
 ## 0.1.7 — The model becomes a sheet of the set · 2026-08-08
 
 - Put the model on a parallel projection in both finishes, at the elevation

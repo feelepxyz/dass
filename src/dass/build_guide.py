@@ -145,26 +145,6 @@ MODULES = [
     ("J", "Seat front cladding", ("SFB",)),
 ]
 
-# Work a unit deliberately leaves undone. A hold is never a numbered step:
-# numbering it would invite someone to do it, and every one of these waits on
-# a part that does not exist yet or on a shell that is not yet square.
-UNIT_HOLDS: dict[str, tuple[str, ...]] = {
-    "A": (
-        "Fit the moving hinge leaf now. Hang the roof only after the shell is square.",
-    ),
-    "B": ("Fit the moving hinge leaves now. Hang the door after the shell is square.",),
-    "C": (
-        "Do not pre-cut the roof reliefs. Hang and close the roof, then cut to the scribe.",
-    ),
-    "D": (
-        "Do not pre-cut the roof reliefs. Hang and close the roof, then cut to the scribe.",
-    ),
-    "H": ("Seal every fresh cladding cut before the box goes in.",),
-    "I": (
-        "Leave both bearers screwed to the shell so the box lifts out as one assembly.",
-    ),
-}
-
 # One drawing number per unit, running without a gap so the register reads as
 # a register. A step takes its parent's number and its own place in the order.
 DRAWING_NUMBERS: dict[str, str] = {
@@ -898,7 +878,6 @@ class UnitDrawings:
 
     key: str
     steps: tuple[Step, ...]
-    holds: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -4229,9 +4208,7 @@ def unit_drawings(design: Design, boards: list[CutPiece]) -> dict[str, UnitDrawi
     keys = key_plates(context)
     sequences = unit_sequences(context)
     return {
-        letter: UnitDrawings(
-            keys.get(letter, ""), sequences[letter], UNIT_HOLDS.get(letter, ())
-        )
+        letter: UnitDrawings(keys.get(letter, ""), sequences[letter])
         for letter, _, _ in MODULES
     }
 
@@ -4724,18 +4701,6 @@ STYLE = """
       letter-spacing:.14em; text-transform:uppercase; color:var(--grey-dark);
       cursor:pointer;
     }
-    /* A hold is what this unit deliberately leaves undone. It reads before
-       the steps, not after them: a builder needs to know the roof reliefs are
-       scribed before they reach the step that would otherwise cut them. */
-    .unit-holds {
-      margin-top:26px; padding:16px 20px; border:1px solid var(--code);
-      max-width:72ch;
-    }
-    .unit-holds h4 {
-      color:var(--code-deep); font-size:var(--t-fine); letter-spacing:.18em;
-      text-transform:uppercase;
-    }
-    .unit-holds p { margin-top:8px; font-size:var(--t-small); line-height:1.6; }
 
     .set-foot {
       display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between;
@@ -4888,7 +4853,6 @@ STYLE = """
          smaller than the ones on the general arrangements. */
       .step-plate .mark { font-size:27px; }
       .step figcaption { padding-top:10px; }
-      .unit-holds { margin-top:6mm; break-inside:avoid; break-after:avoid; }
       /* A drawing set letters its caption on one line and keeps the note under
          it; stacked on paper the caption would eat the drawing's height. */
       .drawing figcaption { padding:8px 12px 0; }
@@ -4939,10 +4903,6 @@ def guide_html(
             step_html(letter, number, index, step)
             for index, step in enumerate(unit.steps, 1)
         )
-        holds = "".join(f"<p>{hold}</p>" for hold in unit.holds)
-        holds_html = (
-            f'<div class="unit-holds"><h4>Hold</h4>{holds}</div>' if holds else ""
-        )
         if letter == "I":
             face_controls = (
                 f'<div class="unit-face" data-unit-face="{letter}" role="group" '
@@ -4972,7 +4932,6 @@ def guide_html(
               {face_controls}
             </header>
             {f'<div class="unit-key">{unit.key}</div>' if unit.key else ""}
-            {holds_html}
             <ol class="unit-steps">{steps}</ol>
           </article>""")
 
@@ -5382,10 +5341,11 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
 
   <section class="sheet" id="progress">
     <div class="sheet-head"><span class="sheet-no">Field notes 01</span><h2>How it's going</h2></div>
-    <p class="sheet-note">Model 0.1.7 · the model is another sheet of the set, measured and drawn like the rest of them.</p>
+    <p class="sheet-note">Model 0.1.8 · the unit sheets carry their drawings and nothing else.</p>
     <div class="note model-changelog">
       <h3>Model changelog</h3>
       <ul>
+        <li><time datetime="2026-08-09">2026-08-09 · 0.1.8</time> The unit sheets drop their Hold boxes, so a unit's general arrangement runs straight into its first numbered step.</li>
         <li><time datetime="2026-08-08">2026-08-08 · 0.1.7</time> Both finishes are projected in parallel at the unit sheets' elevation, timber is white throughout, the linework is drawn at its stated weights and cut around a heavier silhouette, and the ground, side wall, and door carry dimensions measured off the model.</li>
         <li><time datetime="2026-08-07">2026-08-07 · 0.1.5</time> Each unit builds through a numbered sequence of single-operation drawings, with the back panel clad and trimmed flat before it is set between the sides and the floor deck cut before it is fixed.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.4</time> Terminal-board cladding fixings are centred after trimming, and edge fixings clear the modeled beam-screw paths.</li>

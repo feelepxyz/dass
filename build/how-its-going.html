@@ -511,18 +511,6 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
       letter-spacing:.14em; text-transform:uppercase; color:var(--grey-dark);
       cursor:pointer;
     }
-    /* A hold is what this unit deliberately leaves undone. It reads before
-       the steps, not after them: a builder needs to know the roof reliefs are
-       scribed before they reach the step that would otherwise cut them. */
-    .unit-holds {
-      margin-top:26px; padding:16px 20px; border:1px solid var(--code);
-      max-width:72ch;
-    }
-    .unit-holds h4 {
-      color:var(--code-deep); font-size:var(--t-fine); letter-spacing:.18em;
-      text-transform:uppercase;
-    }
-    .unit-holds p { margin-top:8px; font-size:var(--t-small); line-height:1.6; }
 
     .set-foot {
       display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between;
@@ -675,7 +663,6 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
          smaller than the ones on the general arrangements. */
       .step-plate .mark { font-size:27px; }
       .step figcaption { padding-top:10px; }
-      .unit-holds { margin-top:6mm; break-inside:avoid; break-after:avoid; }
       /* A drawing set letters its caption on one line and keeps the note under
          it; stacked on paper the caption would eat the drawing's height. */
       .drawing figcaption { padding:8px 12px 0; }
@@ -731,10 +718,11 @@ FORM: Companion field-notes sheet inside the established Swedish construction dr
 
   <section class="sheet" id="progress">
     <div class="sheet-head"><span class="sheet-no">Field notes 01</span><h2>How it's going</h2></div>
-    <p class="sheet-note">Model 0.1.7 · the model is another sheet of the set, measured and drawn like the rest of them.</p>
+    <p class="sheet-note">Model 0.1.8 · the unit sheets carry their drawings and nothing else.</p>
     <div class="note model-changelog">
       <h3>Model changelog</h3>
       <ul>
+        <li><time datetime="2026-08-09">2026-08-09 · 0.1.8</time> The unit sheets drop their Hold boxes, so a unit's general arrangement runs straight into its first numbered step.</li>
         <li><time datetime="2026-08-08">2026-08-08 · 0.1.7</time> Both finishes are projected in parallel at the unit sheets' elevation, timber is white throughout, the linework is drawn at its stated weights and cut around a heavier silhouette, and the ground, side wall, and door carry dimensions measured off the model.</li>
         <li><time datetime="2026-08-07">2026-08-07 · 0.1.5</time> Each unit builds through a numbered sequence of single-operation drawings, with the back panel clad and trimmed flat before it is set between the sides and the floor deck cut before it is fixed.</li>
         <li><time datetime="2026-08-02">2026-08-02 · 0.1.4</time> Terminal-board cladding fixings are centred after trimming, and edge fixings clear the modeled beam-screw paths.</li>

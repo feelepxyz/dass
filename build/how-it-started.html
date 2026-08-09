@@ -511,18 +511,6 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
       letter-spacing:.14em; text-transform:uppercase; color:var(--grey-dark);
       cursor:pointer;
     }
-    /* A hold is what this unit deliberately leaves undone. It reads before
-       the steps, not after them: a builder needs to know the roof reliefs are
-       scribed before they reach the step that would otherwise cut them. */
-    .unit-holds {
-      margin-top:26px; padding:16px 20px; border:1px solid var(--code);
-      max-width:72ch;
-    }
-    .unit-holds h4 {
-      color:var(--code-deep); font-size:var(--t-fine); letter-spacing:.18em;
-      text-transform:uppercase;
-    }
-    .unit-holds p { margin-top:8px; font-size:var(--t-small); line-height:1.6; }
 
     .set-foot {
       display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between;
@@ -675,7 +663,6 @@ FORM: Companion project-notes sheet inside the established Swedish construction 
          smaller than the ones on the general arrangements. */
       .step-plate .mark { font-size:27px; }
       .step figcaption { padding-top:10px; }
-      .unit-holds { margin-top:6mm; break-inside:avoid; break-after:avoid; }
       /* A drawing set letters its caption on one line and keeps the note under
          it; stacked on paper the caption would eat the drawing's height. */
       .drawing figcaption { padding:8px 12px 0; }

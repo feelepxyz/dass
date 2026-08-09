@@ -19,12 +19,9 @@ closed model, the unit drawings, and the workshop cut sequence.
 
 ## Current release
 
-Version `0.1.7` turns the model into another sheet of the set: parallel
-projection in both finishes at the elevation the unit sheets use, white timber,
-real line weights on screen, a cut silhouette on the exported drawings, and
-measured dimensions taken off the model itself. The reference gallery is now
-just the finished unit where it stands. Read the
-[full changelog](CHANGELOG.md).
+Version `0.1.8` clears the Hold boxes off the working drawing, so each unit
+sheet runs from its general arrangement straight into its first numbered step.
+Read the [full changelog](CHANGELOG.md).
 
 ## Run the guide
 
@@ -252,6 +249,6 @@ screenshots, inspection records, and evolution images.
 
 ## Model changelog
 
-Version 0.1.7 (2026-08-08) draws the model as another sheet of the set: parallel
-projection, white timber, real line weights, a cut silhouette, and measured
-dimensions. Read the [full changelog](CHANGELOG.md) for the dated model history.
+Version 0.1.8 (2026-08-09) takes the Hold boxes off the unit sheets, leaving
+each unit's general arrangement and its numbered steps. Read the
+[full changelog](CHANGELOG.md) for the dated model history.
